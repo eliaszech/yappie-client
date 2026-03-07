@@ -21,7 +21,7 @@ function FriendsLayout() {
                     <FontAwesomeIcon icon={faUsers}/>
                     <span className="font-medium">{t('messages.friends.title')}</span>
                     <div className="w-px h-5 bg-border"></div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                         <NavLink to="/@me/friends/online"
                                 className={({isActive}) => `${isActive ? 'text-foreground bg-muted font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'} cursor-pointer text-sm px-2 py-1 rounded-md transition-colors `}>
                             {t('messages.friends.filters.online')}
@@ -31,7 +31,7 @@ function FriendsLayout() {
                             {t('messages.friends.filters.all')}
                         </NavLink>
                         <NavLink to="/@me/friends/add"
-                            className={({isActive}) => `${isActive ? 'bg-voice text-primary-foreground' : 'bg-card text-foreground'} cursor-pointer px-2 text-sm py-1 font-medium rounded-sm transition-colors `}>
+                            className={({isActive}) => `${isActive ? 'bg-primary/50 text-primary-foreground' : 'bg-primary text-primary-foreground'} cursor-pointer px-2 text-sm py-1 font-medium rounded-sm transition-colors `}>
                             {t('messages.addFriend')}
                         </NavLink>
                     </div>

@@ -20,10 +20,11 @@
     --popover-foreground: 30 8% 85%;
     --color-popover-foreground: hsl(var(--popover-foreground));
 
-    --primary: 142 80% 50%;
-    --color-primary: hsl(var(--primary));
 
-    --primary-foreground: 0 0% 5%;
+    --primary: 38 90% 55%;
+    --primary-foreground: 220 10% 8%;
+
+    --color-primary: hsl(var(--primary));
     --color-primary-foreground: hsl(var(--primary-foreground));
 
     --secondary: 25 5% 21%;
