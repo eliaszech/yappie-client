@@ -1,5 +1,6 @@
 import MessagesSidebar from "../features/private/MessagesSidebar.jsx";
-import { Outlet } from "react-router-dom";
+import {Navigate, Outlet, useLocation} from "react-router-dom";
+import {useLastPath} from "../hooks/useLastPath.js";
 
 function MessagesLayout() {
     return (

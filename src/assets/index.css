@@ -73,6 +73,15 @@
 
     --offline: 24 4% 38%;
     --color-offline: hsl(var(--offline));
+
+    --voice: 142 80% 50%;
+    --color-voice: hsl(var(--voice));
+
+    --bubble-self: 25 5% 21%;
+    --color-bubble-self: hsl(var(--bubble-self));
+
+    --bubble-other: 25 6% 16%;
+    --color-bubble-other: hsl(var(--bubble-other));
 }
 
 * {

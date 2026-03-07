@@ -5,12 +5,23 @@ const resources = {
     de: {
         translation: {
             messages: {
-                friends: 'Freunde',
+                friends: {
+                    title: 'Freunde',
+                    filters: {
+                        texts: {
+                            online: 'Online',
+                            all: 'Alle Freunde',
+                        },
+                        online: 'Online',
+                        all: 'Alle',
+                    },
+                    empty: {
+                        online: 'Momentan wurden keine Freunde gefunden die Online sind.',
+                        all: 'Es wurden keine Freunde gefunden.',
+                    }
+                },
                 quests: 'Quests',
-                filter: {
-                    all: 'Alle',
-                    online: 'Online',
-                }
+                addFriend: 'Freund hinzufügen'
             }
         }
     }
