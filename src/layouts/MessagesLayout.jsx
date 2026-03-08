@@ -5,7 +5,6 @@ import {useLastPath} from "../hooks/useLastPath.js";
 function MessagesLayout() {
     return (
         <>
-            <MessagesSidebar />
             <div className="w-full flex flex-col h-screen bg-background">
                 <Outlet />
             </div>

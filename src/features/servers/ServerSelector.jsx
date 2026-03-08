@@ -6,10 +6,9 @@ import { faPlus, faCompass, faSparkles } from "@awesome.me/kit-95376d5d61/icons/
 function ServerSelector() {
 
     return (
-        <div
-            className="flex flex-col shrink-0 h-screen w-20 py-4 gap-2 items-center bg-guild-bar text-foreground">
+        <div className="flex flex-col h-full shrink-0 grow w-20 pt-4 gap-2 items-center bg-guild-bar text-foreground pb-[65px]">
             <NavLink to="/@me"
-                className={({isActive}) => `${isActive ? 'text-primary-foreground bg-primary' : 'text-muted-foreground bg-card'} w-12 h-12 rounded-2xl text-xl flex items-center hover:rounded-2xl hover:bg-primary hover:text-primary-foreground justify-center transition-all duration-200`}>
+                     className={({isActive}) => `${isActive ? 'text-primary-foreground bg-primary' : 'text-muted-foreground bg-card'} w-12 h-12 rounded-2xl text-xl flex items-center hover:rounded-2xl hover:bg-primary hover:text-primary-foreground justify-center transition-all duration-200`}>
                 <FontAwesomeIcon icon={faSparkles}/>
             </NavLink>
             <div className="w-8 h-px bg-border mb-1"></div>

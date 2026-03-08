@@ -1,17 +1,31 @@
 const API_URL = import.meta.env.API_URL || 'http://localhost:3000';
 
+export function getToken() {
+    return localStorage.getItem('token');
+}
 
-export const fetchUsers = () =>
-    fetch(`${API_URL}/users`).then(res => {
-        return res.json();
+export function setToken(token) {
+    localStorage.setItem('token', token);
+}
+
+export function removeToken() {
+    localStorage.removeItem('token');
+}
+
+function apiRequest(method, path) {
+    const res = fetch(`${API_URL}${path}`, {
+        method,
+        headers: {
+            'Authorization': `Bearer ${getToken()}`
+        }
     });
 
-export const fetchConversations = () =>
-    fetch(`${API_URL}/conversations?userId=8ad5c742-f4c6-4519-899d-1e2b1c15a8bd`).then(res => {
-        return res.json();
-    });
+    if(!res.ok) throw new Error('Api request failed');
+    return res.json();
+}
 
-export const fetchConversation = (conversationId) =>
-    fetch(`${API_URL}/conversations/${conversationId}`).then(res => {
-        return res.json();
-    });
+export const fetchUsers = () => apiRequest('GET', '/users');
+
+export const fetchConversations = () => apiRequest('GET', '/conversations?userId=eb01c1dc-dbcc-4bb8-8e09-dc9150dc9063');
+
+export const fetchConversation = (conversationId) => apiRequest('GET', `/conversations/${conversationId}`);

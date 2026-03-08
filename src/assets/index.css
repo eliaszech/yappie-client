@@ -2,27 +2,26 @@
 @plugin "tailwind-scrollbar";
 
 @theme {
-    --background: 25 6% 16%;
+    --background: 225, 12%, 13%;
     --color-background: hsl(var(--background));
 
-    --foreground: 30 8% 85%;
+    --foreground: 210 10% 82%;
     --color-foreground: hsl(var(--foreground));
 
-    --card: 24 7% 13%;
+    --card: 220 16% 11%;
     --color-card: hsl(var(--card));
 
-    --card-foreground: 30 8% 85%;
+    --card-foreground: 210 10% 82%;
     --color-card-foreground: hsl(var(--card-foreground));
 
     --popover: 23 8% 11%;
     --color-popover: hsl(var(--popover));
 
-    --popover-foreground: 30 8% 85%;
+    --popover-foreground: 210 10% 82%;
     --color-popover-foreground: hsl(var(--popover-foreground));
 
-
-    --primary: 38 90% 55%;
-    --primary-foreground: 220 10% 8%;
+    --primary: 175 55% 50%;
+    --primary-foreground: 0 0% 5%;
 
     --color-primary: hsl(var(--primary));
     --color-primary-foreground: hsl(var(--primary-foreground));
@@ -33,10 +32,10 @@
     --secondary-foreground: 142 20% 70%;
     --color-secondary-foreground: hsl(var(--secondary-foreground));
 
-    --muted: 25 5% 21%;
+    --muted: 220 13% 18%;
     --color-muted: hsl(var(--muted));
 
-    --muted-foreground: 24 5% 45%;
+    --muted-foreground: 215 8% 46%;
     --color-muted-foreground: hsl(var(--muted-foreground));
 
     --accent: 142 80% 50%;
@@ -51,16 +50,16 @@
     --destructive-foreground: 0 0% 100%;
     --color-destructive-foreground: hsl(var(--destructive-foreground));
 
-    --border: 24 6% 12%;
+    --border: 220 14% 16%;
     --color-border: hsl(var(--border));
 
-    --input: 24 6% 12%;
+    --input: 220 14% 16%;
     --color-input: hsl(var(--input));
 
     --ring: 142 80% 50%;
     --color-ring: hsl(var(--ring));
 
-    --guild-bar: 23 8% 9%;
+    --guild-bar: 220 17% 7%;
     --color-guild-bar: hsl(var(--guild-bar));
 
     --online: 142 80% 50%;
@@ -81,7 +80,7 @@
     --bubble-self: 25 5% 21%;
     --color-bubble-self: hsl(var(--bubble-self));
 
-    --bubble-other: 25 6% 16%;
+    --bubble-other: 220 17% 7%;
     --color-bubble-other: hsl(var(--bubble-other));
 }
 

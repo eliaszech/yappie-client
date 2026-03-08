@@ -12,7 +12,7 @@ function AddFriend() {
                         placeholder="You can add friends with their username. e.g. CoolUser#1234"
                         />
                     <button disabled=""
-                            className="px-5 py-2 rounded bg-primary text-primary-foreground text-[13px] font-semibold disabled:opacity-40 hover:bg-primary/80 transition-all flex-shrink-0">Send
+                            className="px-5 py-2 rounded bg-primary text-primary-foreground text-[13px] font-semibold disabled:opacity-40 hover:bg-primary transition-all flex-shrink-0">Send
                         Friend Request
                     </button>
                 </div>
