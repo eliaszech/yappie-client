@@ -8,7 +8,7 @@ export function AuthProvider({ children }) {
 
     useEffect(() => {
         const token = getToken();
-        if (!token) return;
+        if (!token || user) return;
 
         fetch('http://localhost:3000/auth/me', {
             headers: { 'Authorization': `Bearer ${token}` }

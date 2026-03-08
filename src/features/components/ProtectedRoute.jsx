@@ -5,7 +5,7 @@ import {Navigate} from "react-router-dom";
 function ProtectedRoute({ children }) {
     const { user, loading } = useAuth();
 
-    if (loading) return <Spinner size="w-12 h-12"/>;
+    if (loading) return <Spinner size="w-12 h-12"/>; //replace with splashscreen
     if(!user) return <Navigate to="/login" replace />;
 
     return children;

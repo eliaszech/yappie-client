@@ -10,7 +10,7 @@ import ConversationList from "./friends/ConversationList.jsx";
 function MessagesSidebar() {
     const {t} = useTranslation();
     const location = useLocation();
-    const { savePath } = useLastPath('messages')
+    const { savePath } = useLastPath('messages');
 
     useEffect(() => {
         savePath(location.pathname);

@@ -12,20 +12,23 @@ export function removeToken() {
     localStorage.removeItem('token');
 }
 
-function apiRequest(method, path) {
-    const res = fetch(`${API_URL}${path}`, {
+async function apiRequest(method, path, body = null) {
+    const token = getToken();
+
+    const res = await fetch(`${API_URL}${path}`, {
         method,
+        body: body ? JSON.stringify(body) : null,
         headers: {
             'Authorization': `Bearer ${getToken()}`
         }
     });
 
-    if(!res.ok) throw new Error('Api request failed');
+    if (!res.ok && res.status !== 304) throw new Error(`API Fehler: ${res.status}`);
     return res.json();
 }
 
 export const fetchUsers = () => apiRequest('GET', '/users');
 
-export const fetchConversations = () => apiRequest('GET', '/conversations?userId=eb01c1dc-dbcc-4bb8-8e09-dc9150dc9063');
+export const fetchConversations = (userId) => apiRequest('GET', `/conversations?userId=${userId}`);
 
 export const fetchConversation = (conversationId) => apiRequest('GET', `/conversations/${conversationId}`);

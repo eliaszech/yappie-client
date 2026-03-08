@@ -56,7 +56,7 @@
     --input: 220 14% 16%;
     --color-input: hsl(var(--input));
 
-    --ring: 142 80% 50%;
+    --ring: 175 55% 50%;
     --color-ring: hsl(var(--ring));
 
     --guild-bar: 220 17% 7%;
