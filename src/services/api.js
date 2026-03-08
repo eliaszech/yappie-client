@@ -7,6 +7,11 @@ export const fetchUsers = () =>
     });
 
 export const fetchConversations = () =>
-    fetch(`${API_URL}/conversations?userId=3eb5ef0d-b02c-4def-890e-4596b12deeaa`).then(res => {
+    fetch(`${API_URL}/conversations?userId=8ad5c742-f4c6-4519-899d-1e2b1c15a8bd`).then(res => {
+        return res.json();
+    });
+
+export const fetchConversation = (conversationId) =>
+    fetch(`${API_URL}/conversations/${conversationId}`).then(res => {
         return res.json();
     });

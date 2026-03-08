@@ -35,12 +35,12 @@ function FriendsList({filter}) {
         <div className="flex flex-col h-full overflow-hidden pt-4">
             <div className="relative flex items-center w-full mb-6 px-4">
                 <FontAwesomeIcon icon={faSearch}
-                                 className="absolute left-7.5 pointer-events-none text-muted-foreground"/>
+                                 className="absolute left-5.5 pointer-events-none text-muted-foreground"/>
                 <input
                     className="pl-8 pr-2.5 py-1.5 w-full rounded border border-border outline-none bg-input text-sm focus:ring-2 focus:ring-primary/80 text-foreground placeholder:text-muted-foreground"
                     placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)}/>
                 <button onClick={() => setSearch('')}
-                    className={`${search !== '' ? '' : 'hidden'} absolute right-8 rounded-full w-6 h-6 bg-transparent cursor-pointer text-muted-foreground hover:text-foreground transition-colors`}>
+                    className={`${search !== '' ? '' : 'hidden'} absolute right-5.5 rounded-full w-6 h-6 bg-transparent cursor-pointer text-muted-foreground hover:text-foreground transition-colors`}>
                     <FontAwesomeIcon icon={faTimes} />
                 </button>
             </div>

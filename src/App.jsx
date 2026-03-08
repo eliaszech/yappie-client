@@ -7,6 +7,7 @@ import AddFriend from "./features/private/friends/AddFriend.jsx";
 import FriendsLayout from "./features/private/friends/FriendsLayout.jsx";
 import LastPathRedirect from "./features/components/LastPathRedirect.jsx";
 import UserPanel from "./features/components/UserPanel.jsx";
+import Conversation from "./features/private/friends/Conversation.jsx";
 
 function App() {
 
@@ -25,6 +26,7 @@ function App() {
                                 <Route path="all" element={<FriendsList filter="all" />} />
                                 <Route path="add" element={<AddFriend />} />
                             </Route>
+                            <Route path="messages/:conversationId" element={<Conversation />} />
                             <Route path="quests" element={<div>Quests</div>} />
                         </Route>
                     </Routes>
