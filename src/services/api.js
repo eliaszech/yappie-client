@@ -33,6 +33,7 @@ export const fetchServers = () => apiRequest('GET', `/@me/servers`);
 
 export const fetchServer = (serverId) => apiRequest('GET', `/servers/${serverId}`);
 export const fetchChannels = (serverId) => apiRequest('GET', `/servers/${serverId}/channels`);
+export const fetchChannel = (channelId) => apiRequest('GET', `/channels/${channelId}`);
 
 export const fetchGetOrCreateConversation = (userId, targetUserId) => apiRequest('POST', `/conversations/getOrCreate`, { userId: userId, targetUserId: targetUserId });
 

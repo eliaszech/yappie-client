@@ -15,6 +15,7 @@ import {useMessages} from "./hooks/useMessages.js";
 import SidebarLayout from "./layouts/SidebarLayout.jsx";
 import ServerSidebar from "./features/servers/ServerSidebar.jsx";
 import ServerRedirect from "./features/servers/ServerRedirect.jsx";
+import Channel from "./features/servers/channels/Channel.jsx";
 
 function App() {
     usePresence();
@@ -54,7 +55,7 @@ function App() {
                                 <Route path="/servers/:serverId" element={<SidebarLayout />}>
                                     <Route index element={<ServerRedirect />} />
                                     <Route path="members" element={<div>Members</div>} />
-                                    <Route path="channels/:channelId" element={<div>Channel</div>} />
+                                    <Route path="channels/:channelId" element={<Channel />} />
                                     <Route path="settings" element={<div>Settings</div>} />
                                 </Route>
                             </Routes>
