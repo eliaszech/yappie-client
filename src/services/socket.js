@@ -8,6 +8,8 @@ let presenceCallback = null;
 
 let messageCallback = null;
 
+let voiceCallback = null;
+
 export function connectSocket() {
     if (socket) return socket;
 
@@ -31,6 +33,14 @@ export function connectSocket() {
         if (messageCallback) messageCallback(message);
     });
 
+    socket.on('voice:join', (data) => {
+        if (voiceCallback) voiceCallback('join', data);
+    });
+
+    socket.on('voice:leave', (data) => {
+        if (voiceCallback) voiceCallback('leave', data);
+    });
+
     return socket;
 }
 
@@ -40,6 +50,10 @@ export function onPresenceChange(callback) {
 
 export function onNewMessage(callback) {
     messageCallback = callback;
+}
+
+export function onVoiceChange(callback) {
+    voiceCallback = callback;
 }
 
 export function getSocket() {

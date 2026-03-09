@@ -4,6 +4,7 @@ import ConversationItem from "../../private/friends/components/ConversationItem.
 import {useQuery} from "@tanstack/react-query";
 import {fetchChannels} from "../../../services/api.js";
 import {NavLink} from "react-router-dom";
+import VoiceChannel from "./VoiceChannel.jsx";
 
 function ChannelList({server}) {
     const {data: channels = [], isError, isLoading} = useQuery({
@@ -15,6 +16,9 @@ function ChannelList({server}) {
 
     if(isLoading) return <div>Loading...</div>
 
+    const textChannels = channels.filter(c => c.type === 'text');
+    const voiceChannels = channels.filter(c => c.type === 'voice');
+
     return (
         <div className="flex flex-col px-2">
             <div className="flex items-center justify-between px-2 py-3 text-xs text-muted-foreground">
@@ -22,11 +26,20 @@ function ChannelList({server}) {
                 <button><FontAwesomeIcon icon={faPlus} /></button>
             </div>
             <div className="flex flex-col gap-1">
-                {channels.map((channel) =>
+                {textChannels.map((channel) =>
                     <NavLink to={`/servers/${server.id}/channels/${channel.id}`} key={channel.id}
                          className={({isActive}) => `${isActive ? 'bg-muted/50 text-foreground' : 'text-muted-foreground'} w-full flex items-center gap-2.5 px-2 py-1 rounded-md font-medium transition-all hover:text-foreground hover:bg-muted/50`}>
                         <FontAwesomeIcon icon={faHashtag} /> {channel.name}
                     </NavLink>
+                )}
+            </div>
+            <div className="flex items-center justify-between px-2 py-3 text-xs text-muted-foreground">
+                <span className="uppercase">Sprachkanäle</span>
+                <button><FontAwesomeIcon icon={faPlus} /></button>
+            </div>
+            <div className="flex flex-col gap-1">
+                {voiceChannels.map((channel) =>
+                    <VoiceChannel key={channel.id} server={server} channel={channel} />
                 )}
             </div>
         </div>

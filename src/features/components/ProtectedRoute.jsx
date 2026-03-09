@@ -4,6 +4,7 @@ import {Navigate} from "react-router-dom";
 import ErrorMessage from "./static/ErrorMessage.jsx";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faExclamationTriangle} from "@awesome.me/kit-95376d5d61/icons/classic/light";
+import {VoiceProvider} from "../../context/VoiceProvider.jsx";
 
 function ProtectedRoute({ children }) {
     const { user, loading, error, logout } = useAuth();
@@ -26,7 +27,7 @@ function ProtectedRoute({ children }) {
 
     if(!user) return <Navigate to="/login" replace />;
 
-    return children;
+    return <VoiceProvider>{children}</VoiceProvider>;
 }
 
 export default ProtectedRoute;

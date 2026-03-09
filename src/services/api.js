@@ -35,6 +35,9 @@ export const fetchServer = (serverId) => apiRequest('GET', `/servers/${serverId}
 export const fetchChannels = (serverId) => apiRequest('GET', `/servers/${serverId}/channels`);
 export const fetchChannel = (channelId) => apiRequest('GET', `/channels/${channelId}`);
 
+export const fetchVoiceToken = (data) => apiRequest('POST', `/voice/token`, data);
+export const fetchChannelParticipants = (channelId) => apiRequest('GET', `/voice/participants/${channelId}`);
+
 export const fetchGetOrCreateConversation = (userId, targetUserId) => apiRequest('POST', `/conversations/getOrCreate`, { userId: userId, targetUserId: targetUserId });
 
 export const fetchConversations = (userId) => apiRequest('POST', `/conversations/list`, { userId: userId });

@@ -16,10 +16,13 @@ import SidebarLayout from "./layouts/SidebarLayout.jsx";
 import ServerSidebar from "./features/servers/ServerSidebar.jsx";
 import ServerRedirect from "./features/servers/ServerRedirect.jsx";
 import Channel from "./features/servers/channels/Channel.jsx";
+import GlobalVoiceComponent from "./features/components/GlobalVoiceComponent.jsx";
+import {useVoiceEvents} from "./hooks/useVoiceParticipants.js";
 
 function App() {
     usePresence();
     useMessages();
+    useVoiceEvents();
 
     return (
         <BrowserRouter>
@@ -28,6 +31,7 @@ function App() {
                 <Route path="/register" element={<GuestRoute>Register</GuestRoute>} />
                 <Route path="/*" element={
                     <ProtectedRoute>
+                        <GlobalVoiceComponent />
                         <div className="h-screen flex antialiased overflow-hidden bg-guild-bar">
                             <div className="flex flex-col h-screen shrink-0">
                                 <div className="flex h-full">
