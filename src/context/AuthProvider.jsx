@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { getToken, setToken, removeToken } from '../services/api';
 import { connectSocket, disconnectSocket } from '../services/socket';
 import {AuthContext} from "./AuthContext.jsx";
-import {connect} from "socket.io-client";
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
@@ -37,8 +36,8 @@ export function AuthProvider({ children }) {
 
     function login(token, userData) {
         setToken(token);
-        setUser({...userData, online: true});
         connectSocket();
+        setUser({...userData, online: true});
     }
 
     function logout() {

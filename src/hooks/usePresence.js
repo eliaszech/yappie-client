@@ -1,32 +1,18 @@
 import { useEffect } from 'react';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
-import { getSocket } from '../services/socket';
+import {onPresenceChange} from '../services/socket';
 
 export function usePresence() {
     const queryClient = useQueryClient();
 
     useEffect(() => {
-        const socket = getSocket();
-        if (!socket) return;
-
-        socket.on('user:online', ({ userId }) => {
-            console.log('User online:', userId);
+        onPresenceChange((userId, online) => {
             queryClient.setQueryData(['presence'], (old = {}) => ({
-                ...old, [userId]: true
+                ...old, [userId]: online
             }));
         });
 
-        socket.on('user:offline', ({ userId }) => {
-            console.log('User offline:', userId);
-            queryClient.setQueryData(['presence'], (old = {}) => ({
-                ...old, [userId]: false
-            }));
-        });
-
-        return () => {
-            socket.off('user:online');
-            socket.off('user:offline');
-        };
+        return () => onPresenceChange(null);
     }, [queryClient]);
 }
 

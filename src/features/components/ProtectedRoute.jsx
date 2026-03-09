@@ -6,7 +6,7 @@ import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faExclamationTriangle} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 
 function ProtectedRoute({ children }) {
-    const { user, loading, error } = useAuth();
+    const { user, loading, error, logout } = useAuth();
 
     if (loading) return (
         <div className="h-screen flex justify-center items-center antialiased">
@@ -16,7 +16,10 @@ function ProtectedRoute({ children }) {
     if(error) return (
         <div className="h-screen flex justify-center items-center antialiased">
             <ErrorMessage icon={<FontAwesomeIcon icon={faExclamationTriangle} />}
-                onRetry={() => window.location.reload()}
+                onRetry={() => {
+                    logout();
+                    window.location.reload();
+                }} retryTitle="Logout"
                 title="Error loading page" message="There was a problem loading the page. Please try again later." />
         </div>
     );

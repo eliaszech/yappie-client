@@ -17,7 +17,8 @@ async function apiRequest(method, path, body = null) {
         method,
         body: body ? JSON.stringify(body) : null,
         headers: {
-            'Authorization': `Bearer ${getToken()}`
+            'Authorization': `Bearer ${getToken()}`,
+            'Content-Type': 'application/json',
         }
     });
 
@@ -25,8 +26,16 @@ async function apiRequest(method, path, body = null) {
     return res.json();
 }
 
-export const fetchUsers = () => apiRequest('GET', '/users');
+//export const fetchUsers = () => apiRequest('GET', '/users');
 
-export const fetchConversations = (userId) => apiRequest('GET', `/conversations?userId=${userId}`);
+export const fetchFriends = () => apiRequest('GET', `/@me/friends`);
+export const fetchServers = () => apiRequest('GET', `/@me/servers`);
+
+export const fetchServer = (serverId) => apiRequest('GET', `/servers/${serverId}`);
+export const fetchChannels = (serverId) => apiRequest('GET', `/servers/${serverId}/channels`);
+
+export const fetchGetOrCreateConversation = (userId, targetUserId) => apiRequest('POST', `/conversations/getOrCreate`, { userId: userId, targetUserId: targetUserId });
+
+export const fetchConversations = (userId) => apiRequest('POST', `/conversations/list`, { userId: userId });
 
 export const fetchConversation = (conversationId) => apiRequest('GET', `/conversations/${conversationId}`);

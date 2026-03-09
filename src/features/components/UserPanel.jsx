@@ -19,7 +19,7 @@ function UserPanel() {
     return(
         <div className="absolute bottom-2 left-2 w-[385px] z-10 bg-muted  backdrop-blur-md rounded-lg pl-1 pr-2 py-1 justify-between flex items-center">
             <div className="flex items-center gap-3 hover:bg-card px-2 grow py-1 rounded-lg cursor-pointer">
-                <UserAvatar icon={user.username.charAt(0).toUpperCase()} online={user.online} />
+                <UserAvatar icon={user.username.charAt(0).toUpperCase()} avatar={user.avatar} online={user.online} />
                 <div className="flex flex-col ">
                     <span className="text-foreground text-base font-medium">
                         {user.username}

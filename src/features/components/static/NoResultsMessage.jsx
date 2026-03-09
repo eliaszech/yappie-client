@@ -5,7 +5,7 @@ function ErrorMessage({ title = 'Keine Einträge', message = "Es konnten keine E
                 <span className="text-muted-foreground text-6xl">{icon}</span>
             )}
             <span className="text-foreground text-xl font-bold">{title}</span>
-            <span className="text-muted-foreground text-lg">{message}</span>
+            <span className="text-muted-foreground text-center text-lg">{message}</span>
         </div>
     );
 }

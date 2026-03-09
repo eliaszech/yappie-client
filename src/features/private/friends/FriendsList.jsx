@@ -6,26 +6,33 @@ import {AnimatePresence, motion} from "framer-motion";
 import {faTimes} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import Spinner from "../../components/static/Spinner.jsx";
 import ErrorMessage from "../../components/static/ErrorMessage.jsx";
-import {useQuery} from "@tanstack/react-query";
 import {useState} from "react";
 import NoResultsMessage from "../../components/static/NoResultsMessage.jsx";
-import {fetchUsers} from "../../../services/api.js";
-import FriendItem from "./components/FriendItem.jsx";
+import UserItem from "../../components/UserItem.jsx";
+import {useUsersWithPresence} from "../../../hooks/useUsersWithPresence.js";
+import {fetchGetOrCreateConversation} from "../../../services/api.js";
+import {useAuth} from "../../../hooks/useAuth.js";
+import {useQueryClient} from "@tanstack/react-query";
+import {useNavigate} from "react-router-dom";
 
 function FriendsList({filter}) {
+    const { user } = useAuth();
+    const { users, isLoading, isError } = useUsersWithPresence({queryKey: 'users'});
     const [search, setSearch] = useState('');
-
-    const { data: users = [], isLoading, isError} = useQuery({
-        queryKey: ['users'],
-        queryFn: fetchUsers,
-        staleTime: 10 * 60 * 1000,
-        retry: 1,
-    });
+    const queryClient = useQueryClient();
+    const navigate = useNavigate();
 
     const filteredUsers = users.filter(user => (user.online && filter === 'online' || filter === 'all'))
         .filter(user => user.username.toLowerCase().includes(search.toLowerCase()));
 
     const {t} = useTranslation();
+
+    async function openConversation({friendId}) {
+        const res = await fetchGetOrCreateConversation(user.id, friendId);
+
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        navigate(`/@me/messages/${res.id}`);
+    }
 
     if (isLoading) return <Spinner size="w-10 h-10" />;
 
@@ -52,7 +59,7 @@ function FriendsList({filter}) {
                         </span>
                         <div className="flex flex-col divide-y divide-border">
                             <AnimatePresence mode="popLayout">
-                                {filteredUsers.map((user) => (
+                                {filteredUsers.map((friend) => (
                                     <motion.div
                                         key={user.id}
                                         initial={{ opacity: 0, y: 50 }}
@@ -60,7 +67,9 @@ function FriendsList({filter}) {
                                         exit={{ opacity: 0, y: -50 }}
                                         transition={{ duration: 0.25 }}
                                     >
-                                       <FriendItem user={user} />
+                                        <div onClick={() => openConversation({friendId: friend.id})}>
+                                            <UserItem user={friend} paddings={'px-2 py-3'} />
+                                        </div>
                                     </motion.div>
                                 ))}
                             </AnimatePresence>
