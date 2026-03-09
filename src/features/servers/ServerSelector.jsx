@@ -15,7 +15,7 @@ function ServerSelector() {
             <a href="#" className="w-12 h-12 rounded-2xl text-lg bg-card text-muted-foreground hover:text-primary hover:bg-primary/10 flex items-center justify-center transition-all" title="Discover">
                 <FontAwesomeIcon icon={faPlus}/>
             </a>
-            <NavLink to="/dicover"
+            <NavLink to="/discover"
                      className={({isActive}) => `${isActive ? 'text-foreground bg-primary/80' : 'bg-card text-muted-foreground'} w-12 h-12 rounded-2xl text-xl  hover:text-primary hover:bg-primary/10 flex items-center justify-center transition-all`}>
                 <FontAwesomeIcon icon={faCompass}/>
             </NavLink>

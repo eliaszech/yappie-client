@@ -37,7 +37,7 @@ function FriendsList({filter}) {
                 <FontAwesomeIcon icon={faSearch}
                                  className="absolute left-5.5 pointer-events-none text-muted-foreground"/>
                 <input
-                    className="pl-8 pr-2.5 py-1.5 w-full rounded border border-border outline-none bg-input text-sm focus:ring-2 focus:ring-primary/80 text-foreground placeholder:text-muted-foreground"
+                    className="pl-8 pr-2.5 py-2 w-full rounded-lg border border-border outline-none bg-input text-sm focus:ring-2 focus:ring-primary/80 text-foreground placeholder:text-muted-foreground!"
                     placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)}/>
                 <button onClick={() => setSearch('')}
                     className={`${search !== '' ? '' : 'hidden'} absolute right-5.5 rounded-full w-6 h-6 bg-transparent cursor-pointer text-muted-foreground hover:text-foreground transition-colors`}>
@@ -47,8 +47,7 @@ function FriendsList({filter}) {
             <div className="flex flex-col h-full overflow-y-auto scrollbar px-4">
                 {filteredUsers.length > 0 ? (
                     <>
-                        <span
-                            className="text-[11px] font-semibold uppercase tracking-wide text-foreground mb-2">
+                        <span className="text-sm font-semibold uppercase tracking-wide text-foreground mb-2">
                             {t('messages.friends.filters.texts.' + filter.toLowerCase()) + ' - ' + filteredUsers.length}
                         </span>
                         <div className="flex flex-col divide-y divide-border">

@@ -7,8 +7,8 @@ function ErrorMessage({ title = 'Fehler beim Laden', message = "Daten konnten ni
             <span className="text-foreground text-xl font-bold">{title}</span>
             <span className="text-muted-foreground text-lg text-center">{message}</span>
             {onRetry && (
-                <button onClick={onRetry} className="bg-primary text-primary-foreground rounded-md px-2 py-1">
-                    Erneut versuchen
+                <button onClick={onRetry} className="bg-primary cursor-pointer font-medium text-primary-foreground rounded-md px-2 py-1 mt-2">
+                    Try again
                 </button>
             )}
         </div>

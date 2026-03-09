@@ -13,8 +13,6 @@ export function removeToken() {
 }
 
 async function apiRequest(method, path, body = null) {
-    const token = getToken();
-
     const res = await fetch(`${API_URL}${path}`, {
         method,
         body: body ? JSON.stringify(body) : null,

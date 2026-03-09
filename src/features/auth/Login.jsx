@@ -51,14 +51,13 @@ function Login() {
 
     return (
         <>
-            <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-primary/10 blur-[120px]"></div>
+            <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-lg bg-primary/10 blur-[120px]"></div>
             <div className="w-full max-w-md mx-4 animate-slide-up">
                 <div className="text-center mb-8">
                     <h1 className="text-4xl font-extrabold text-foreground mb-2">Willkommen zurück</h1>
                     <p className="text-muted-foreground">Melde dich an, um fortzufahren</p>
                 </div>
-                <div
-                    className="rounded-2xl bg-card/80 backdrop-blur-xl border border-border p-8 glow-primary flex flex-col gap-5">
+                <form onSubmit={handleLogin} className="rounded-2xl bg-card/80 backdrop-blur-xl border border-border p-8 glow-primary flex flex-col gap-5">
                     {error && <p className="text-dnd text-sm">{error}</p>}
 
                     <div className="flex flex-col gap-2">
@@ -73,8 +72,8 @@ function Login() {
                         <div className="flex items-center justify-between"><label
                             className="text-sm font-medium text-foreground">Passwort</label>
                             <button type="button"
-                                    className="text-xs text-primary hover:text-primary/80 transition-colors">Passwort
-                                vergessen?
+                                    className="text-xs text-primary hover:text-primary/80 transition-colors">
+                                Passwort vergessen?
                             </button>
                         </div>
                         <div className="relative">
@@ -87,11 +86,11 @@ function Login() {
                             </button>
                         </div>
                     </div>
-                    <button type="submit" onClick={handleLogin}
-                            className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity glow-primary">Anmelden
-                        <FontAwesomeIcon icon={faArrowRight}/>
+                    <button type="submit" disabled={isLoading}
+                            className="w-full h-11 rounded-lg bg-primary text-primary-foreground font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity glow-primary">
+                        Anmelden <FontAwesomeIcon icon={faArrowRight}/>
                     </button>
-                </div>
+                </form>
                 <p className="text-center text-sm text-muted-foreground mt-6">
                     Noch kein Konto?
                     <Link className="text-primary ml-1 font-medium hover:text-primary/80 transition-colors"

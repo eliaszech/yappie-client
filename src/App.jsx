@@ -11,8 +11,10 @@ import MessagesSidebar from "./features/private/MessagesSidebar.jsx";
 import ProtectedRoute from "./features/components/ProtectedRoute.jsx";
 import Login from "./features/auth/Login.jsx";
 import GuestRoute from "./features/components/GuestRoute.jsx";
+import {usePresence} from "./hooks/usePresence.js";
 
 function App() {
+    usePresence();
 
     return (
         <BrowserRouter>
