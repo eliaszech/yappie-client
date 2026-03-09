@@ -103,8 +103,6 @@ function Conversation() {
         return timeDiff < oneHour;
     }
 
-
-
     if (isLoading) return <Spinner size="w-10 h-10" />;
     if (isError) return <ErrorMessage message="Chat konnte nicht geladen werden" icon={<FontAwesomeIcon icon={faMessage} />} />;
 
@@ -120,11 +118,11 @@ function Conversation() {
     return (
         <>
             <ContentHeader>
-                <div className="flex items-center text-xl text-foreground gap-3">
+                <div className="flex items-center text-foreground gap-3">
                     { isSingle ? (
                         <UserAvatar size="w-6 h-6" avatar={otherUsers[0].user.avatar} displayOnline={false} icon={icons[0]} />
                     ) : (
-                        <UserAvatarGroup size="w-5 h-5" avatars={avatars} icons={icons} />
+                        <UserAvatarGroup size="w-6 h-6" avatars={avatars} icons={icons} />
                     )}
                     <span className="font-medium">{conversationTitle}</span>
                 </div>
