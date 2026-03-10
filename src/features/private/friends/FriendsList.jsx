@@ -10,14 +10,18 @@ import {useState} from "react";
 import NoResultsMessage from "../../components/static/NoResultsMessage.jsx";
 import UserItem from "../../components/UserItem.jsx";
 import {useUsersWithPresence} from "../../../hooks/useUsersWithPresence.js";
-import {fetchGetOrCreateConversation} from "../../../services/api.js";
+import {fetchFriends, fetchGetOrCreateConversation} from "../../../services/api.js";
 import {useAuth} from "../../../hooks/useAuth.js";
 import {useQueryClient} from "@tanstack/react-query";
 import {useNavigate} from "react-router-dom";
 
 function FriendsList({filter}) {
     const { user } = useAuth();
-    const { users, isLoading, isError } = useUsersWithPresence({queryKey: 'users'});
+    const { users, isLoading, isError } = useUsersWithPresence({
+        queryKey: ['users'],
+        fetchFunction: () => fetchFriends(),
+        getUserId: (user) => user.id,
+    });
     const [search, setSearch] = useState('');
     const queryClient = useQueryClient();
     const navigate = useNavigate();

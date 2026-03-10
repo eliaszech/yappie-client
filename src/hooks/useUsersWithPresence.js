@@ -1,13 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import {fetchFriends} from "../services/api.js";
-import {useAuth} from "./useAuth.js";
 
-export function useUsersWithPresence({queryKey}) {
-    const {user} = useAuth();
-
+export function useUsersWithPresence({queryKey = ['users'], fetchFunction, getUserId = (item) => item.id}) {
     const { data: users = [], isLoading, isError, refetch } = useQuery({
-        queryKey: [queryKey],
-        queryFn: () => fetchFriends(user.id),
+        queryKey: queryKey,
+        queryFn: fetchFunction,
         staleTime: 10 * 60 * 1000,
         retry: 1,
     });
@@ -18,10 +14,15 @@ export function useUsersWithPresence({queryKey}) {
         staleTime: Infinity,
     });
 
-    const usersWithPresence = users.map(user => ({
-        ...user,
-        online: presence[user.id] !== undefined ? presence[user.id] : user.online,
-    }));
+    const usersWithPresence = users.map(item => {
+        const userId = getUserId(item);
+        const onlineStatus = presence[userId] !== undefined ? presence[userId] : (item.online ?? item.user?.online);
+        return {
+            ...item,
+            online: onlineStatus,
+            user: item.user ? { ...item.user, online: onlineStatus } : undefined,
+        };
+    });
 
     return { users: usersWithPresence, isLoading, isError, refetch };
 }

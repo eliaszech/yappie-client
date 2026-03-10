@@ -159,7 +159,8 @@ function Conversation() {
                                        sendMessage()
                                        stopTyping();
                                    }
-                               }} />
+                               }}
+                        />
                     </div>
                 </div>
                 { isSingle ? (
