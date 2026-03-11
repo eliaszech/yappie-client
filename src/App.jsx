@@ -36,7 +36,7 @@ function App() {
                     <ProtectedRoute>
                         <GlobalVoiceComponent />
                         <div className="h-screen flex antialiased overflow-hidden bg-guild-bar">
-                            <div className="flex flex-col h-screen shrink-0">
+                            <div className="flex flex-col h-screen shrink-0 border-r border-border">
                                 <div className="flex h-full">
                                     <ServerSelector />
                                     <div className="max-w-xs min-w-xs w-full h-full">

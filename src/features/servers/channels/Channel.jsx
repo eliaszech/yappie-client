@@ -59,7 +59,8 @@ function Channel() {
         <>
             <ContentHeader>
                 <div className="flex items-center text-foreground gap-3">
-                    <span className="font-medium"><FontAwesomeIcon icon={faHashtag} /> {channel.name}</span>
+                    <FontAwesomeIcon icon={faHashtag} />
+                    <span className="font-medium">{channel.name}</span>
                 </div>
             </ContentHeader>
             <div className="flex h-full w-full overflow-hidden">

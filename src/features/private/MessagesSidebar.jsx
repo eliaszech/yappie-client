@@ -1,6 +1,5 @@
 import {NavLink, useLocation} from "react-router-dom";
-import {faAward, faPlus, faUsers} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
-import {faMessages} from "@awesome.me/kit-95376d5d61/icons/classic/light";
+import {faAward, faUsers} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {useTranslation} from "react-i18next";
 import {useLastPath} from "../../hooks/useLastPath.js";
@@ -18,7 +17,7 @@ function MessagesSidebar() {
 
     return(
         <div className="h-full w-full bg-card rounded-tl-2xl border-l border-border flex flex-col grow overflow-y-auto pb-[65px]">
-            <div className="px-2 h-12 flex items-center border-b-2 border-border shrink-0">
+            <div className="px-2 h-12 flex items-center border-b-2 border-border shrink-0 bg-guild-bar">
                 <a href="#findOrStart"
                    className="w-full flex items-center gap-2.5 px-2 py-2 rounded-md text-xs transition-all bg-muted/50 hover:bg-muted text-foreground">
                     Find or start a conversation</a>

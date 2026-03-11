@@ -9,9 +9,19 @@ function MemberList() {
         <>
             <ContentHeader>
                 <div className="flex items-center text-foreground gap-3">
-                    <span className="font-medium"><FontAwesomeIcon icon={faUsers} /> Mitglieder</span>
+                    <FontAwesomeIcon icon={faUsers} />
+                    <span className="font-medium"> Mitglieder</span>
                 </div>
             </ContentHeader>
+            <div className="w-full h-full overflow-y-auto p-4">
+                <div className="w-full h-max bg-guild-bar rounded-xl border border-border text-foreground">
+                    <div className="flex justify-between items-center px-4 py-2">
+                        Alle Mitglieder dieses Servers
+                        <input type="text" placeholder="Nach Benutzername oder ID suchen"
+                           className="bg-card text-sm w-[300px] rounded-md border border-border outline-none py-1 px-2 text-foreground focus:ring-2 focus:ring-primary placeholder:text-muted-foreground" />
+                    </div>
+                </div>
+            </div>
         </>
     )
 }
