@@ -1,20 +1,17 @@
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faEllipsis, faPencil, faTrash} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
-import {getSocket} from "../../../services/socket.js";
+import {faArrowTurnRight, faEllipsis, faPencil, faTrash} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
+import {deleteMessage} from "../../../hooks/messages/useDeleteMessage.js";
 
 
 function MessageActionPopup({message}) {
-    function deleteMessage() {
-        const socket = getSocket()
-
-        socket.emit('message:tryDelete', { messageId: message.id });
-    }
+    const roomType = message.conversationId ? 'conversation' : 'channel';
 
     return (
-        <div className="absolute text-foreground hidden divide-x divide-border group-hover:flex right-0 border border-border -top-3 right-4 w-max bg-guild-bar rounded-lg bg-card shadow-lg z-10">
+        <div className="absolute text-foreground hidden group-hover:flex right-0 border border-border -top-4 right-4 w-max bg-card rounded-lg bg-guild-bar shadow-lg z-10">
             <button className="cursor-pointer px-2 py-1 hover:bg-muted/50 rounded-tl-lg rounded-bl-lg"><FontAwesomeIcon icon={faPencil} /></button>
-            <button className="cursor-pointer px-2 py-1 hover:bg-dnd/10 text-dnd" onClick={deleteMessage}><FontAwesomeIcon icon={faTrash} /></button>
-            <button className="cursor-pointer px-2 py-1 hover:bg-muted/50 rounded-tr-lg rounded-br-lg"><FontAwesomeIcon icon={faEllipsis} /></button>
+            <button className="cursor-pointer px-2 py-1 hover:bg-muted/50"><FontAwesomeIcon icon={faArrowTurnRight} /></button>
+            <button className="cursor-pointer px-2 py-1 hover:bg-muted/50"><FontAwesomeIcon icon={faEllipsis} /></button>
+            <button className="cursor-pointer px-2 py-1 hover:bg-dnd/10 rounded-tr-lg rounded-br-lg  text-dnd" onClick={() => deleteMessage(roomType, message.id)}><FontAwesomeIcon icon={faTrash} /></button>
         </div>
     )
 }

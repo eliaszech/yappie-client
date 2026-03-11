@@ -7,6 +7,7 @@ let socket = null;
 let presenceCallback = null;
 
 let messageCallback = null;
+let messageDeleteCallback = null;
 
 let voiceCallback = null;
 
@@ -33,6 +34,10 @@ export function connectSocket() {
         if (messageCallback) messageCallback(message);
     });
 
+    socket.on('message:deleted', (type, roomId, messageId) => {
+        if (messageDeleteCallback) messageDeleteCallback(type, roomId, messageId);
+    });
+
     socket.on('voice:join', (data) => {
         if (voiceCallback) voiceCallback('join', data);
     });
@@ -50,6 +55,10 @@ export function onPresenceChange(callback) {
 
 export function onNewMessage(callback) {
     messageCallback = callback;
+}
+
+export function onMessageDelete(callback) {
+    messageDeleteCallback = callback;
 }
 
 export function onVoiceChange(callback) {

@@ -18,10 +18,12 @@ import ServerRedirect from "./features/servers/ServerRedirect.jsx";
 import Channel from "./features/servers/channels/Channel.jsx";
 import GlobalVoiceComponent from "./features/components/GlobalVoiceComponent.jsx";
 import {useVoiceEvents} from "./hooks/useVoiceParticipants.js";
+import {useDeleteMessage} from "./hooks/messages/useDeleteMessage.js";
 
 function App() {
     usePresence();
     useMessages();
+    useDeleteMessage();
     useVoiceEvents();
 
     return (

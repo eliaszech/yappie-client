@@ -1,8 +1,6 @@
 import UserAvatar from "../../components/UserAvatar.jsx";
-import {useIsOnline} from "../../../hooks/usePresence.js";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faSpinner} from "@awesome.me/kit-95376d5d61/icons/classic/light";
-import {faRefresh, faSpinnerScale, faSpinnerThird, faSync} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
+import {faSpinnerThird} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import MessageActionPopup from "./MessageActionPopup.jsx";
 import {useAuth} from "../../../hooks/useAuth.js";
 
