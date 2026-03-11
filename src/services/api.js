@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.API_URL || 'http://localhost:3000/api';
+const API_URL = import.meta.env.API_URL || 'http://5.175.166.53:3000/api';
 
 export function getToken() {
     return localStorage.getItem('token');
