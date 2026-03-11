@@ -1,6 +1,6 @@
 function UserAvatar({icon, avatar = null, online, size = 'w-8 h-8', displayOnline = true}) {
     return (
-        <div className="relative shrink-0">
+        <div className="relative shrink-0 w-max">
             { avatar ? (
                 <div
                     className={`${size} rounded-full flex items-center justify-center text-sm font-bold text-primary-foreground bg-primary`}>
@@ -8,7 +8,7 @@ function UserAvatar({icon, avatar = null, online, size = 'w-8 h-8', displayOnlin
                 </div>
             ) : (
                 <div
-                    className={`${size} rounded-full flex items-center justify-center text-sm font-bold text-primary-foreground bg-primary`}>
+                    className={`${size} rounded-full flex items-center justify-center font-bold text-primary-foreground bg-primary`}>
                     {icon}
                 </div>
             )}

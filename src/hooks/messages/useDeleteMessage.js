@@ -6,14 +6,21 @@ export function useDeleteMessage() {
     const queryClient = useQueryClient();
 
     useEffect(() => {
-        onMessageDelete((type, roomId, messageId) => {
+        onMessageDelete((type, roomId, messageId, replies) => {
             queryClient.setQueryData([type, roomId], (old) => {
                 if (!old) return old;
 
                 return {
                     ...old,
-                    messages: old.messages.filter(m => m.id !== messageId)
-                }
+                    messages: old.messages
+                        .filter(m => m.id !== messageId)
+                        .map(m => {
+                            if (replies?.includes(m.id)) {
+                                return { ...m, replyTo: null, replyToId: null };
+                            }
+                            return m;
+                        })
+                };
             });
         })
     }, [queryClient]);

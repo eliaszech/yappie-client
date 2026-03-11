@@ -96,3 +96,26 @@
 body {
     font-family: "Space Grotesk", sans-serif;
 }
+
+
+.reply-arrow::before {
+    content: "";
+    height: 8px;
+    width: 2px;
+    background-color: var(--color-muted-foreground);
+    position: absolute;
+    left: 20px;
+    top: 7px;
+}
+
+.reply-arrow::after {
+    content: "";
+    height: 2px;
+    width: 20px;
+    background-color: var(--color-muted-foreground);
+    position: absolute;
+    left: 20px;
+    top: 7px;
+}
+
+

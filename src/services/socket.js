@@ -34,8 +34,8 @@ export function connectSocket() {
         if (messageCallback) messageCallback(message);
     });
 
-    socket.on('message:deleted', (type, roomId, messageId) => {
-        if (messageDeleteCallback) messageDeleteCallback(type, roomId, messageId);
+    socket.on('message:deleted', (type, roomId, messageId, replies) => {
+        if (messageDeleteCallback) messageDeleteCallback(type, roomId, messageId, replies);
     });
 
     socket.on('voice:join', (data) => {

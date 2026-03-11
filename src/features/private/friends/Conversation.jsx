@@ -1,22 +1,19 @@
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faUsers} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import {useParams} from "react-router-dom";
 import ContentHeader from "../../components/ContentHeader.jsx";
 import {useQuery, useQueryClient} from "@tanstack/react-query";
 import {fetchConversation} from "../../../services/api.js";
 import ErrorMessage from "../../components/static/ErrorMessage.jsx";
-import {faMessage, faMessages} from "@awesome.me/kit-95376d5d61/icons/classic/light";
+import {faMessage, faMessages, faUsers} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import Spinner from "../../components/static/Spinner.jsx";
 import UserAvatar from "../../components/UserAvatar.jsx";
 import UserAvatarGroup from "../../components/UserAvatarGroup.jsx";
-import {useEffect, useRef, useState} from "react";
+import {useEffect, useRef} from "react";
 import {getSocket} from "../../../services/socket.js";
 import {useAuth} from "../../../hooks/useAuth.js";
-import {useTyping} from "../../../hooks/useTyping.js";
-import MessageItem from "../../messages/components/MessageItem.jsx";
 import UserItem from "../../components/UserItem.jsx";
-import NoResultsMessage from "../../components/static/NoResultsMessage.jsx";
 import MessageInput from "../../messages/components/MessageInput.jsx";
+import Chat from "../../messages/components/Chat.jsx";
 
 function Conversation() {
     const {user} = useAuth();
@@ -99,20 +96,17 @@ function Conversation() {
             </ContentHeader>
             <div className="flex h-full w-full overflow-hidden">
                 <div className="flex flex-col w-full h-full relative">
-                    {conversation.messages.length > 0 ? (
-                        <div className="relative flex grow flex-col pt-4 pb-8 overflow-y-auto">
-                            { conversation.messages.map((message, index) => {
-                                const previous = conversation.messages[index - 1];
-                                const isGrouped = shouldGroupMessage(message, previous);
-
-                                return <MessageItem isGrouped={isGrouped} key={message.id} message={message} />
-                            })}
-                            <div ref={messagesEndRef} />
+                    <Chat messages={conversation.messages} icon={faMessages} >
+                        <div className="flex flex-col px-8 text-foreground gap-2.5 pb-8">
+                            <div className="mb-2">
+                                {isSingle ? <UserAvatar displayOnline={false} size="w-[100px] h-[100px] text-5xl" icon={icons[0]}/> : <UserAvatar size="w-[100px] h-[100px]" displayOnline={false} icon={<FontAwesomeIcon className="text-5xl" icon={faUsers} />} />}
+                            </div>
+                            <div className="text-4xl font-bold">{conversationTitle}</div>
+                            <div className="text-xl">
+                                { isSingle ? `Die ist der Anfang des Direktnachrichtenchannels mit ${conversationTitle}` : `Willkomen am Anfang der ${conversationTitle}-Gruppe` }
+                            </div>
                         </div>
-                    ) : (
-                        <NoResultsMessage icon={<FontAwesomeIcon icon={faMessages} />} title="Keine Nachrichten" message="Es ist ziemlich leer hier. Schreibe die erste Nachricht."/>
-                    )}
-
+                    </Chat>
                     <div className="absolute z-2 bottom-[64px] left-0 w-full h-16 bg-gradient-to-b from-transparent to-background pointer-events-none"></div>
                     <MessageInput type="conversation" roomId={conversationId} roomName={conversationTitle} />
                 </div>
