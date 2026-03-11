@@ -2,8 +2,7 @@ import UserAvatar from "../../components/UserAvatar.jsx";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faSpinnerThird} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import MessageActionPopup from "./MessageActionPopup.jsx";
-import {useAuth} from "../../../hooks/useAuth.js";
-import {useReplyState} from "../../../hooks/messages/useReplyState.js";
+import {useRef} from "react";
 
 function MessageItem({message, isGrouped = false, disabled = false}) {
     const { user: messageUser } = message;
@@ -17,13 +16,28 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
     })
     const timeString = dateTimeString.split(',')[1].trim();
 
+    function scrollToMessage(messageId) {
+        const element = document.getElementById(`message-${messageId}`);
+        if (!element) return;
+
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        element.classList.add('bg-primary/10');
+        setTimeout(() => {
+            element.classList.remove('bg-primary/10');
+        }, 1500);
+    }
+
     return disabled || !isGrouped || message.replyTo ? (
-        <div className={`${disabled ? 'pointer-events-none' : ''} relative flex flex-col mt-4 group hover:bg-muted/50`}>
+        <div id={`message-${message.id}`} className={`${disabled ? 'pointer-events-none' : ''} relative flex flex-col mt-4 group transition-colors duration-700 hover:bg-muted/50`}>
             {message.replyTo && (
-                <div className="flex items-center bg-primary/3  py-1 pl-4 relative">
+                <div onClick={() => scrollToMessage(message.replyTo.id)} className="flex items-center bg-primary/3  py-1 pl-4 relative hover:bg-primary/10 cursor-pointer">
                     <div className="absolute top-1/2 left-8 w-6 h-3 border-l-2 border-t-2 border-primary/80 rounded-tl-md"></div>
-                    <span className="text-sm text-primary/80 pl-13">
-                        Antwort an {message.replyTo.user.username}: {message.replyTo.text.slice(0, 100)}
+                    <span className="text-sm flex items-center text-primary/80 pl-13">
+                        <span className="mr-1">Antwort an</span>
+                        <UserAvatar size="w-3.5 h-3.5 text-xs" displayOnline={false} icon={message.replyTo.user.username.charAt(0).toUpperCase()} />
+                        <span className="ml-1 mr-1">{message.replyTo.user.username}: </span>
+                        {message.replyTo.text.slice(0, 100)}
                     </span>
                 </div>
             )}
@@ -47,7 +61,7 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
             </div>
         </div>
     ) : (
-        <div className="relative flex items-center pl-6 pr-4 hover:bg-muted/50 py-0.5 group">
+        <div id={`message-${message.id}`} className="relative flex items-center pl-6 pr-4 transition-colors duration-700 hover:bg-muted/50 py-0.5 group">
             <span className="w-11 text-[10px] text-foreground/70 opacity-0 group-hover:opacity-100">{timeString}</span>
             <span className={`${message.pending ? 'text-foreground animate animate-pulse' : 'text-foreground'} text-base flex items-center`}>
                 {message.text}
