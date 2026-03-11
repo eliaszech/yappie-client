@@ -12,7 +12,7 @@ export function AuthProvider({ children }) {
         const token = getToken();
         if (!token || user) return;
 
-        fetch('http://localhost:3000/auth/me', {
+        fetch('http://localhost:3000/api/auth/me', {
             headers: { 'Authorization': `Bearer ${token}` }
         })
             .then(res => {
