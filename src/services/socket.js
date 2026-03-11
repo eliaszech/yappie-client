@@ -1,7 +1,7 @@
 import { io } from 'socket.io-client';
 import { getToken } from './api';
 
-const API_URL = import.meta.env.API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.API_URL || 'http://5.175.166.53:3000';
 
 let socket = null;
 let presenceCallback = null;
