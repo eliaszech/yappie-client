@@ -1,7 +1,5 @@
 import ContentHeader from "../../components/ContentHeader.jsx";
-import UserAvatar from "../../components/UserAvatar.jsx";
-import UserAvatarGroup from "../../components/UserAvatarGroup.jsx";
-import {useQuery, useQueryClient} from "@tanstack/react-query";
+import {useQuery} from "@tanstack/react-query";
 import {useParams} from "react-router-dom";
 import Spinner from "../../components/static/Spinner.jsx";
 import {fetchChannel} from "../../../services/api.js";
@@ -12,7 +10,7 @@ import {faHashtag} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import {useEffect, useRef} from "react";
 import MessageItem from "../../messages/components/MessageItem.jsx";
 import NoResultsMessage from "../../components/static/NoResultsMessage.jsx";
-import MemberList from "../MemberList.jsx";
+import MemberSidebarList from "./MemberSidebarList.jsx";
 import {getSocket} from "../../../services/socket.js";
 import MessageInput from "../../messages/components/MessageInput.jsx";
 
@@ -83,7 +81,7 @@ function Channel() {
                     <MessageInput type="channel" roomId={channel.id} roomName={channel.name} />
                 </div>
                 <div className="max-w-xs w-full bg-card/70 h-full">
-                    <MemberList serverId={channel.serverId} />
+                    <MemberSidebarList serverId={channel.serverId} />
                 </div>
             </div>
 

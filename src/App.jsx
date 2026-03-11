@@ -19,6 +19,7 @@ import Channel from "./features/servers/channels/Channel.jsx";
 import GlobalVoiceComponent from "./features/components/GlobalVoiceComponent.jsx";
 import {useVoiceEvents} from "./hooks/useVoiceParticipants.js";
 import {useDeleteMessage} from "./hooks/messages/useDeleteMessage.js";
+import MemberList from "./features/servers/members/MemberList.jsx";
 
 function App() {
     usePresence();
@@ -38,10 +39,12 @@ function App() {
                             <div className="flex flex-col h-screen shrink-0">
                                 <div className="flex h-full">
                                     <ServerSelector />
-                                    <Routes>
-                                        <Route path="/@me/*" element={<MessagesSidebar />} />
-                                        <Route path="/servers/:serverId/*" element={<ServerSidebar />} />
-                                    </Routes>
+                                    <div className="max-w-xs min-w-xs w-full h-full">
+                                        <Routes>
+                                            <Route path="/@me/*" element={<MessagesSidebar />} />
+                                            <Route path="/servers/:serverId/*" element={<ServerSidebar />} />
+                                        </Routes>
+                                    </div>
                                 </div>
                                 <UserPanel />
                             </div>
@@ -60,7 +63,7 @@ function App() {
                                 </Route>
                                 <Route path="/servers/:serverId" element={<SidebarLayout />}>
                                     <Route index element={<ServerRedirect />} />
-                                    <Route path="members" element={<div>Members</div>} />
+                                    <Route path="members" element={<MemberList />} />
                                     <Route path="channels/:channelId" element={<Channel />} />
                                     <Route path="settings" element={<div>Settings</div>} />
                                 </Route>

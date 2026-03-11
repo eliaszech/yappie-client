@@ -1,13 +1,12 @@
-import {useQuery} from "@tanstack/react-query";
-import {fetchChannel, fetchMembers} from "../../services/api.js";
-import Spinner from "../components/static/Spinner.jsx";
-import ErrorMessage from "../components/static/ErrorMessage.jsx";
+import {fetchMembers} from "../../../services/api.js";
+import Spinner from "../../components/static/Spinner.jsx";
+import ErrorMessage from "../../components/static/ErrorMessage.jsx";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faUsers} from "@awesome.me/kit-95376d5d61/icons/classic/light";
-import UserItem from "../components/UserItem.jsx";
-import {useUsersWithPresence} from "../../hooks/useUsersWithPresence.js";
+import UserItem from "../../components/UserItem.jsx";
+import {useUsersWithPresence} from "../../../hooks/useUsersWithPresence.js";
 
-function MemberList({serverId}) {
+function MemberSidebarList({serverId}) {
     const { users: members, isLoading, isError } = useUsersWithPresence({
         queryKey: ['members', serverId],
         fetchFunction: () => fetchMembers(serverId),
@@ -41,4 +40,4 @@ function MemberList({serverId}) {
         </div>
     );
 }
-export default MemberList;
+export default MemberSidebarList;

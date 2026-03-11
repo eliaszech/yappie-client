@@ -29,7 +29,7 @@ function ServerSidebar() {
     if(isLoading) return <Spinner size="w-10 h-10" />
 
     return(
-        <div className="max-w-xs min-w-xs w-full shrink-0 bg-card rounded-tl-2xl border-l border-border flex flex-col grow overflow-y-auto pb-[65px]">
+        <div className="w-full h-full bg-card rounded-tl-2xl border-l border-border flex flex-col grow overflow-y-auto pb-[65px]">
             <div className="px-2 h-12 flex justify-between items-center border-b-2 border-border shrink-0 text-foreground">
                 <button className="cursor-pointer font-bold flex items-center gap-2.5 hover:bg-muted/50 rounded-md px-2 py-1 transition-all">
                     {server.name} <FontAwesomeIcon className="text-xs" icon={faChevronDown} />
