@@ -3,12 +3,12 @@ import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faSpinnerThird} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import MessageActionPopup from "./MessageActionPopup.jsx";
 import HasUserPopup from "../../components/user/HasUserPopup.jsx";
-import {toggleReaction} from "../../../hooks/messages/useReactMessage.js";
-import {useAuth} from "../../../hooks/useAuth.js";
 import Reactions from "./Reactions.jsx";
+import {useState} from "react";
 
 function MessageItem({message, isGrouped = false, disabled = false}) {
     const { user: messageUser } = message;
+    const [hovered, setHovered] = useState(false);
 
     const dateTimeString = new Date(message.createdAt).toLocaleString('de-DE', {
         day: '2-digit',
@@ -32,7 +32,7 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
     }
 
     return disabled || !isGrouped || message.replyTo ? (
-        <div id={`message-${message.id}`} className={`${disabled ? 'pointer-events-none' : ''} relative flex flex-col mt-4 transition-colors duration-300 hover:bg-muted/50 group`}>
+        <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} id={`message-${message.id}`} className={`${disabled ? 'pointer-events-none' : ''} relative flex flex-col mt-4 transition-colors duration-300 hover:bg-muted/50 group`}>
             {message.replyTo && (
                 <div onClick={() => scrollToMessage(message.replyTo.id)} className="flex items-center bg-primary/3  py-1 pl-4 relative hover:bg-primary/10 cursor-pointer">
                     <div className="absolute top-1/2 left-8 w-6 h-3 border-l-2 border-t-2 border-primary/80 rounded-tl-md"></div>
@@ -67,13 +67,13 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
                     </span>
                     <Reactions disabled={disabled} message={message} />
                 </div>
-                {!disabled && (
+                {!disabled && hovered && (
                     <MessageActionPopup message={message} />
                 )}
             </div>
         </div>
     ) : (
-        <div id={`message-${message.id}`} className="relative flex items-center pl-6 pr-4 transition-colors duration-700 hover:bg-muted/50 py-0.5 group">
+        <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} id={`message-${message.id}`} className="relative flex items-center pl-6 pr-4 transition-colors duration-700 hover:bg-muted/50 py-0.5 group">
             <span className="w-11 text-[10px] text-foreground/70 opacity-0 group-hover:opacity-100">{timeString}</span>
             <div className="flex flex-col">
                 <span className={`${message.pending ? 'text-foreground animate animate-pulse' : 'text-foreground'} text-base flex items-center`}>
@@ -84,7 +84,9 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
                 </span>
                 <Reactions disabled={disabled} message={message} />
             </div>
-            <MessageActionPopup message={message} />
+            {!disabled && hovered && (
+                <MessageActionPopup message={message} />
+            )}
         </div>
     );
 }

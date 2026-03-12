@@ -1,14 +1,43 @@
 import MessageItem from "./MessageItem.jsx";
-import {useEffect, useRef} from "react";
+import {useEffect, useRef, useState} from "react";
 
-function Chat({children, messages}) {
+function Chat({children, messages, channelId}) {
     const messagesEndRef = useRef(null);
+    const [isAtBottom, setIsAtBottom] = useState(true);
+    const chatRef = useRef();
 
+    // Only scroll with the messages if the user is at the bottom
     useEffect(() => {
+        console.log(isAtBottom)
+        if (!isAtBottom) return;
+
         setTimeout(() => {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }, 100);
     }, [messages]);
+
+    // Beim ersten Laden nach unten scrollen
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+    }, []);
+
+    //Save the scroll position
+    useEffect(() => {
+        const chatEl = chatRef.current;
+        if (!chatEl) return;
+
+        const handleScroll = () => {
+            const isAtBottom = Math.abs(chatEl.scrollTop - (chatEl.scrollHeight - chatEl.offsetHeight)) < 5;
+            setIsAtBottom(isAtBottom);
+        };
+
+        chatEl.addEventListener('scroll', handleScroll);
+
+        return () => {
+            console.log('cleanup');
+            chatEl.removeEventListener('scroll', handleScroll);
+        };
+    }, [channelId]);
 
     function shouldPrependDateLine(current, previous) {
         if (!previous) return true;
@@ -26,7 +55,7 @@ function Chat({children, messages}) {
     }
 
     return (
-        <div className="relative flex grow flex-col pb-8 overflow-y-auto">
+        <div ref={chatRef} className="relative flex grow flex-col pb-8 overflow-y-auto">
             <div className="grow"></div>
             {children}
             { messages.length > 0 && messages.map((message, index) => {
