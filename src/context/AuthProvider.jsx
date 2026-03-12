@@ -3,6 +3,8 @@ import { getToken, setToken, removeToken } from '../services/api';
 import { connectSocket, disconnectSocket } from '../services/socket';
 import {AuthContext} from "./AuthContext.jsx";
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(() => !!getToken());
@@ -12,7 +14,7 @@ export function AuthProvider({ children }) {
         const token = getToken();
         if (!token || user) return;
 
-        fetch('http://localhost:3000/api/auth/me', {
+        fetch(`${API_URL}/auth/me`, {
             headers: { 'Authorization': `Bearer ${token}` }
         })
             .then(res => {
