@@ -5,6 +5,7 @@ import ErrorMessage from "./static/ErrorMessage.jsx";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faExclamationTriangle} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {VoiceProvider} from "../../context/VoiceProvider.jsx";
+import {UserPopupProvider} from "../../context/user/UserPopupProvider.jsx";
 
 function ProtectedRoute({ children }) {
     const { user, loading, error, logout } = useAuth();
@@ -27,7 +28,11 @@ function ProtectedRoute({ children }) {
 
     if(!user) return <Navigate to="/login" replace />;
 
-    return <VoiceProvider>{children}</VoiceProvider>;
+    return <VoiceProvider>
+        <UserPopupProvider>
+            {children}
+        </UserPopupProvider>
+    </VoiceProvider>;
 }
 
 export default ProtectedRoute;

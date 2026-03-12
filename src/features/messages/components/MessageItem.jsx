@@ -2,7 +2,7 @@ import UserAvatar from "../../components/UserAvatar.jsx";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faSpinnerThird} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import MessageActionPopup from "./MessageActionPopup.jsx";
-import {useRef} from "react";
+import HasUserPopup from "../../components/user/HasUserPopup.jsx";
 
 function MessageItem({message, isGrouped = false, disabled = false}) {
     const { user: messageUser } = message;
@@ -45,7 +45,9 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
                 <UserAvatar size="w-10 h-10" displayOnline={false} avatar={messageUser.avatar} icon={messageUser.username.charAt(0).toUpperCase()} />
                 <div className="flex flex-col">
                     <div className="flex items-center gap-2">
-                        <span className="text-lg text-foreground font-bold">{messageUser.username}</span>
+                        <HasUserPopup user={messageUser} >
+                            <span className="text-lg font-bold text-foreground">{messageUser.username}</span>
+                        </HasUserPopup>
                         <span className="text-sm text-muted-foreground">{dateTimeString}</span>
                     </div>
                     <span className={`${message.pending ? 'text-muted-foreground' : 'text-foreground'} text-base`}>

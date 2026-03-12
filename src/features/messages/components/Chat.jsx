@@ -39,7 +39,7 @@ function Chat({children, messages}) {
                         { shouldPrependDate && (
                             <div className="text-center flex justify-center text-foreground/80 my-6 mx-8 relative">
                                 <div className="absolute top-1/2 h-[2px] w-full bg-border z-0"></div>
-                                <div className="z-2 w-max px-4 bg-background">{new Date(message.createdAt).toLocaleDateString()}</div>
+                                <div className="z-2 w-max px-4 bg-background">{new Date(message.createdAt).toLocaleDateString([], { day: '2-digit', month: '2-digit', year: 'numeric'})}</div>
                             </div>
                         )}
                         <MessageItem isGrouped={isGrouped} message={message} />
