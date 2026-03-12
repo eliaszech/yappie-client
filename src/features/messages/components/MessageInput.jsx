@@ -47,6 +47,7 @@ function MessageInput({roomName, type = 'conversation', roomId}) {
     }
 
     const typingUsersString = typingUsers.map((typingUser) => typingUser.username).join(', ');
+    const roomNamePrefix = type === 'conversation' ? '' : '#';
 
     return (
         <div className="relative flex flex-col px-1.5 pb-2 z-3">
@@ -68,7 +69,7 @@ function MessageInput({roomName, type = 'conversation', roomId}) {
                         <FontAwesomeIcon icon={faPlus} className="" />
                     </button>
                     <input type="text" className="w-full pl-12 pr-12 h-[56px] text-foreground placeholder:text-muted-foreground! outline-none rounded-lg shadow-sm bg-card focus:ring-2 focus:ring-primary/80 transition-colors"
-                       placeholder={`Nachricht an #${roomName} schreiben...`}
+                       placeholder={`Nachricht an ${roomNamePrefix}${roomName} schreiben...`}
                        value={input} onChange={(e) => {
                             setInput(e.target.value)
                             sendTyping();

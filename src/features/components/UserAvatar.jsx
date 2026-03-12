@@ -1,4 +1,4 @@
-function UserAvatar({icon, avatar = null, online, size = 'w-8 h-8', displayOnline = true}) {
+function UserAvatar({icon, avatar = null, online, size = 'w-8 h-8', onlineSize = "w-3 h-3 -bottom-0.5 -right-0.5", displayOnline = true}) {
     return (
         <div className="relative shrink-0 w-max">
             { avatar ? (
@@ -13,7 +13,7 @@ function UserAvatar({icon, avatar = null, online, size = 'w-8 h-8', displayOnlin
                 </div>
             )}
             { displayOnline && online !== null && (
-                <div className={`${online ? 'bg-online' : 'bg-offline'} absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background`}></div>
+                <div className={`${online ? 'bg-online' : 'bg-offline'} absolute ${onlineSize} rounded-full border-2 border-background`}></div>
             )}
         </div>
     )

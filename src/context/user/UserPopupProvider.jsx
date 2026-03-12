@@ -7,6 +7,7 @@ export function UserPopupProvider({children}) {
 
     const openPopup = useCallback((user, element) => {
         const rect = element.getBoundingClientRect();
+
         setPopup({
             user,
             position: {
