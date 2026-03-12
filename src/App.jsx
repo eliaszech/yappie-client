@@ -20,12 +20,14 @@ import GlobalVoiceComponent from "./features/components/GlobalVoiceComponent.jsx
 import {useVoiceEvents} from "./hooks/useVoiceParticipants.js";
 import {useDeleteMessage} from "./hooks/messages/useDeleteMessage.js";
 import MemberList from "./features/servers/members/MemberList.jsx";
+import {useReactMessage} from "./hooks/messages/useReactMessage.js";
 
 function App() {
     usePresence();
-    useMessages();
-    useDeleteMessage();
     useVoiceEvents();
+    useDeleteMessage();
+    useReactMessage();
+    useMessages();
 
     return (
         <BrowserRouter>

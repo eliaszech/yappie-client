@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { onVoiceChange } from '../services/socket';
-import {playJoinSound, playLeaveSound} from "../services/sounds.js";
 
 export function useVoiceEvents() {
     const queryClient = useQueryClient();

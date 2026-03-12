@@ -6,11 +6,12 @@ import {useState} from "react";
 import Input from "../components/static/Input.jsx";
 import {useAuth} from "../../hooks/useAuth.js";
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
 function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
@@ -27,7 +28,7 @@ function Login() {
         try {
             setIsLoading(true);
 
-            const res = await fetch('http://localhost:3000/api/auth/login', {
+            const res = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),

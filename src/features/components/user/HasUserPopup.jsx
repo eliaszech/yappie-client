@@ -1,10 +1,13 @@
 import {useUserPopup} from "../../../hooks/user/useUserPopup.js";
 
-function HasUserPopup({children, user}) {
-    const { openPopup} = useUserPopup();
+function HasUserPopup({children, user, orientation = 'right'}) {
+    const { openPopup } = useUserPopup();
 
     return (
-        <div className="group cursor-pointer" onClick={(e) => openPopup(user, e.currentTarget)}>
+        <div className="cursor-pointer" onClick={(e) => {
+            e.stopPropagation();
+            openPopup(user, e.currentTarget, orientation)
+        }}>
             {children}
         </div>
     )

@@ -1,13 +1,14 @@
 import { io } from 'socket.io-client';
 import { getToken } from './api';
 
-const API_URL = import.meta.env.API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
 let socket = null;
 let presenceCallback = null;
 
 let messageCallback = null;
 let messageDeleteCallback = null;
+let reactionCallback = null;
 
 let voiceCallback = null;
 
@@ -34,6 +35,10 @@ export function connectSocket() {
         if (messageCallback) messageCallback(message);
     });
 
+    socket.on('reaction:update', (type, roomId, reaction, action) => {
+        if(reactionCallback) reactionCallback(type, roomId, reaction, action);
+    })
+
     socket.on('message:deleted', (type, roomId, messageId, replies) => {
         if (messageDeleteCallback) messageDeleteCallback(type, roomId, messageId, replies);
     });
@@ -55,6 +60,10 @@ export function onPresenceChange(callback) {
 
 export function onNewMessage(callback) {
     messageCallback = callback;
+}
+
+export function onReactionUpdate(callback) {
+    reactionCallback = callback;
 }
 
 export function onMessageDelete(callback) {

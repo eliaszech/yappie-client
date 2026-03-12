@@ -23,6 +23,8 @@ export function useDeleteMessage() {
                 };
             });
         })
+
+        return () => onMessageDelete(null);
     }, [queryClient]);
 }
 

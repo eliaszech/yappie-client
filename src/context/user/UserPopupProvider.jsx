@@ -5,11 +5,13 @@ import UserPopup from "../../features/components/user/UserPopup.jsx";
 export function UserPopupProvider({children}) {
     const [popup, setPopup] = useState(null);
 
-    const openPopup = useCallback((user, element) => {
+    const openPopup = useCallback((user, element, orientation) => {
         const rect = element.getBoundingClientRect();
 
         setPopup({
             user,
+            orientation,
+            elementWidth: rect.width,
             position: {
                 top: rect.top,
                 left: rect.right + 8,

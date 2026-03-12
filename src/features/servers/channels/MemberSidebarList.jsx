@@ -5,6 +5,7 @@ import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faUsers} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import UserItem from "../../components/UserItem.jsx";
 import {useUsersWithPresence} from "../../../hooks/useUsersWithPresence.js";
+import HasUserPopup from "../../components/user/HasUserPopup.jsx";
 
 function MemberSidebarList({serverId}) {
     const { users: members, isLoading, isError } = useUsersWithPresence({
@@ -25,7 +26,9 @@ function MemberSidebarList({serverId}) {
                 <>
                     <span className="text-sm px-2 text-foreground mb-2">Online - {onlineMembers.length}</span>
                     {onlineMembers.map((member) => (
-                        <UserItem user={member.user} key={member.userId} />
+                        <HasUserPopup user={member.user} orientation="left" key={member.userId}>
+                            <UserItem user={member.user} />
+                        </HasUserPopup>
                     ))}
                 </>
             )}
@@ -33,7 +36,9 @@ function MemberSidebarList({serverId}) {
                 <>
                     <span className="text-sm px-2 text-foreground mb-2 mt-4">Offline - {offlineMembers.length}</span>
                     {offlineMembers.map((member) => (
-                        <UserItem user={member.user} key={member.userId} />
+                        <HasUserPopup user={member.user} orientation="left" key={member.userId}>
+                            <UserItem user={member.user} />
+                        </HasUserPopup>
                     ))}
                 </>
             )}

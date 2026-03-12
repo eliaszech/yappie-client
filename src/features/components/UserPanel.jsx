@@ -11,11 +11,11 @@ import {useAuth} from "../../hooks/useAuth.js";
 import {useNavigate} from "react-router-dom";
 import {useQueryClient} from "@tanstack/react-query";
 import {useVoice} from "../../hooks/useVoice.jsx";
-import {faPhoneSlash} from "@awesome.me/kit-95376d5d61/icons/classic/light";
+import {faMicrophoneSlash, faPhoneSlash} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 
 function UserPanel() {
     const { user, logout } = useAuth();
-    const { isConnected, channelName, serverName, krisp, setKrisp, leaveVoice } = useVoice();
+    const { isConnected, channelName, serverName, krisp, setKrisp, leaveVoice, muted, toggleMute } = useVoice();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
 
@@ -44,11 +44,11 @@ function UserPanel() {
                         </div>
                         <div className="flex items-center gap-1">
                             {krisp && (
-                                <button onClick={toggleKrisp} className="cursor-pointer rounded-lg text-xl text-dnd hover:bg-card/80 hover:text-foreground px-1.5 py-1.5">
+                                <button onClick={toggleKrisp} className="cursor-pointer rounded-lg text-xl text-red-400 hover:bg-card/80 hover:text-foreground px-1.5 py-1.5">
                                     {krisp.isNoiseFilterEnabled ? <FontAwesomeIcon className="text-green-300" icon={faWaveform} /> : <FontAwesomeIcon icon={faWaveform} />}
                                 </button>
                             )}
-                            <button onClick={leaveVoice} className="cursor-pointer rounded-lg text-xl text-dnd hover:bg-card/80 hover:text-foreground px-1.5 py-1.5">
+                            <button onClick={leaveVoice} className="cursor-pointer rounded-lg text-xl text-red-400 hover:bg-card/80 hover:text-foreground px-1.5 py-1.5">
                                 <FontAwesomeIcon icon={faPhoneSlash} />
                             </button>
                         </div>
@@ -68,8 +68,8 @@ function UserPanel() {
                     </div>
                 </div>
                 <div className="flex items-center gap-1">
-                    <button className="cursor-pointer rounded-lg  text-foreground/80 text-xl hover:bg-card/80 hover:text-foreground px-1.5 py-1.5">
-                        <FontAwesomeIcon icon={faMicrophone} />
+                    <button onClick={toggleMute} className={`cursor-pointer rounded-lg ${muted ? 'text-red-400' : 'text-foreground'}  text-xl hover:bg-card/80 hover:text-foreground px-1.5 py-1.5`}>
+                        <FontAwesomeIcon icon={muted ? faMicrophoneSlash : faMicrophone} />
                     </button>
                     <button className="cursor-pointer rounded-lg  text-foreground/80 text-xl hover:bg-card/80 hover:text-foreground px-1.5 py-1.5">
                         <FontAwesomeIcon icon={faHeadset} />
@@ -77,7 +77,7 @@ function UserPanel() {
                     <button className="cursor-pointer rounded-lg  text-foreground/80 text-xl hover:bg-card/80 hover:text-foreground px-1.5 py-1.5">
                         <FontAwesomeIcon icon={faCog} />
                     </button>
-                    <button onClick={handleLogout} className="cursor-pointer rounded-lg  text-xl text-dnd hover:bg-card/80 hover:text-foreground px-1.5 py-1.5">
+                    <button onClick={handleLogout} className="cursor-pointer rounded-lg  text-xl text-red-400 hover:bg-card/80 hover:text-foreground px-1.5 py-1.5">
                         <FontAwesomeIcon icon={faSignOut} />
                     </button>
                 </div>

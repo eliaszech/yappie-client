@@ -65,7 +65,7 @@ function FriendsList({filter}) {
                             <AnimatePresence mode="popLayout">
                                 {filteredUsers.map((friend) => (
                                     <motion.div
-                                        key={user.id}
+                                        key={friend.id}
                                         initial={{ opacity: 0, y: 50 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -50 }}

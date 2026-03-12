@@ -14,6 +14,7 @@ import {useAuth} from "../../../hooks/useAuth.js";
 import UserItem from "../../components/UserItem.jsx";
 import MessageInput from "../../messages/components/MessageInput.jsx";
 import Chat from "../../messages/components/Chat.jsx";
+import HasUserPopup from "../../components/user/HasUserPopup.jsx";
 
 function Conversation() {
     const {user} = useAuth();
@@ -62,16 +63,6 @@ function Conversation() {
         }, 100);
     }, [conversation?.messages]);
 
-    function shouldGroupMessage(current, previous) {
-        if (!previous) return false;
-        if (current.userId !== previous.userId) return false;
-
-        const timeDiff = new Date(current.createdAt) - new Date(previous.createdAt);
-        const oneHour = 60 * 60 * 1000;
-
-        return timeDiff < oneHour;
-    }
-
     if (isLoading) return <Spinner size="w-10 h-10" />;
     if (isError) return <ErrorMessage message="Chat konnte nicht geladen werden" icon={<FontAwesomeIcon icon={faMessage} />} />;
 
@@ -118,7 +109,9 @@ function Conversation() {
                     <div className="max-w-xs flex flex-col px-2 py-4 w-full h-full bg-card/70">
                         <span className="text-sm px-2 text-foreground mb-2">Teilnehmer - {conversation.participants.length}</span>
                         { conversation.participants.map((participant) => (
-                            <UserItem user={participant.user} key={participant.user.id} />
+                            <HasUserPopup user={participant.user} orientation="left" key={participant.user.id}>
+                                <UserItem user={participant.user} />
+                            </HasUserPopup>
                         ))}
                     </div>
                 )}

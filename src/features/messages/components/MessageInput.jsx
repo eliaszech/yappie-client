@@ -1,11 +1,12 @@
 import {getSocket} from "../../../services/socket.js";
-import {useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import {useTyping} from "../../../hooks/useTyping.js";
 import {useQueryClient} from "@tanstack/react-query";
 import {useAuth} from "../../../hooks/useAuth.js";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faArrowTurnRight, faFaceSmile, faPlus, faTimesCircle} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import {useReplyState} from "../../../hooks/messages/useReplyState.js";
+import HasEmojiPicker from "./HasEmojiPicker.jsx";
 
 function MessageInput({roomName, type = 'conversation', roomId}) {
     const {user} = useAuth();
@@ -13,6 +14,12 @@ function MessageInput({roomName, type = 'conversation', roomId}) {
     const queryClient = useQueryClient();
     const { replyTo, clearReplyState } = useReplyState(roomId);
     const { typingUsers, sendTyping, stopTyping } = useTyping(type, roomId);
+    const inputRef = useRef(null);
+
+    useEffect(() => {
+        if(!replyTo) return
+        inputRef.current.focus();
+    }, [replyTo]);
 
     function sendMessage() {
         if (!input.trim()) return;
@@ -68,7 +75,7 @@ function MessageInput({roomName, type = 'conversation', roomId}) {
                     <button className="absolute z-10 left-3 cursor-pointer text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg px-1 py-1">
                         <FontAwesomeIcon icon={faPlus} className="" />
                     </button>
-                    <input type="text" className="w-full pl-12 pr-12 h-[56px] text-foreground placeholder:text-muted-foreground! outline-none rounded-lg shadow-sm bg-card focus:ring-2 focus:ring-primary/80 transition-colors"
+                    <input ref={inputRef} type="text" className="w-full pl-12 pr-12 h-[56px] text-foreground placeholder:text-muted-foreground! outline-none rounded-lg shadow-sm bg-card focus:ring-2 focus:ring-primary/80 transition-colors"
                        placeholder={`Nachricht an ${roomNamePrefix}${roomName} schreiben...`}
                        value={input} onChange={(e) => {
                             setInput(e.target.value)
@@ -82,9 +89,11 @@ function MessageInput({roomName, type = 'conversation', roomId}) {
                        }}
                     />
                     <div className="absolute right-3 z-10 h-full flex items-center gap-2">
-                        <button className="cursor-pointer text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg px-1 py-1">
-                            <FontAwesomeIcon icon={faFaceSmile} className="" />
-                        </button>
+                        <HasEmojiPicker position="top" orientation="right" onSelect={(emoji) => setInput(prev => prev + emoji)}>
+                            <button className="cursor-pointer text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg px-1 py-1">
+                                <FontAwesomeIcon icon={faFaceSmile} />
+                            </button>
+                        </HasEmojiPicker>
                     </div>
                 </div>
             </div>

@@ -19,7 +19,7 @@ function MemberList() {
                     <div className="flex justify-between items-center px-4 py-2 border-b border-border">
                         Alle Mitglieder dieses Servers
                         <input type="text" placeholder="Nach Benutzername oder ID suchen"
-                           className="bg-card text-sm w-[300px] rounded-md border border-border outline-none py-1 px-2 text-foreground focus:ring-2 focus:ring-primary placeholder:text-muted-foreground" />
+                           className="bg-card text-sm w-[300px] rounded-md border border-border outline-none py-1 px-2 text-foreground focus:ring-2 focus:ring-primary placeholder:text-muted-foreground!" />
                     </div>
                     <div className="flex items-center justify-center h-[300px] border-b border-border">
                         <NoResultsMessage icon={<FontAwesomeIcon icon={faUsers} />} title="Keine Mitglieder" message="Es sind noch keine Mitglieder in diesem Server." />

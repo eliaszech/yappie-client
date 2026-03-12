@@ -54,8 +54,8 @@ export function VoiceProvider({ children }) {
             channelName: channel.name,
             serverId: server.id,
             serverName: server.name,
-            muted: false,
-            deafened: false,
+            muted: voiceState.muted,
+            deafened: voiceState.deafened,
         });
 
         playJoinSound();
