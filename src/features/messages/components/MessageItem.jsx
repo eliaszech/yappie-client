@@ -53,9 +53,9 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
                     <UserAvatar size="w-10 h-10" displayOnline={false} avatar={messageUser.avatar} icon={messageUser.username.charAt(0).toUpperCase()} />
                 </HasUserPopup>
                 <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-start gap-2">
                         <HasUserPopup user={messageUser} >
-                            <span className="text-lg font-bold text-foreground hover:underline">{messageUser.username}</span>
+                            <span className="text-lg mt-0.5 font-bold text-foreground hover:underline">{messageUser.username}</span>
                         </HasUserPopup>
                         <span className="text-sm text-muted-foreground">{dateTimeString}</span>
                     </div>
