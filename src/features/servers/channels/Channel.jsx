@@ -37,6 +37,8 @@ function Channel() {
     if(isLoading) return <Spinner size="w-10 h-10" />;
     if(isError) return <ErrorMessage message="Channel konnte nicht geladen werden" icon={<FontAwesomeIcon icon={faMessage} />} />;
 
+    console.log('rendering channel')
+
     return (
         <>
             <ContentHeader>

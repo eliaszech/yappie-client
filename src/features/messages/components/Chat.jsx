@@ -7,6 +7,8 @@ import ErrorMessage from "../../components/static/ErrorMessage.jsx";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faMessages} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 
+const scrollPositions = new Map();
+
 function Chat({children, type = 'conversation', roomId}) {
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
@@ -23,25 +25,58 @@ function Chat({children, type = 'conversation', roomId}) {
     function isNearBottom() {
         const container = messagesContainerRef.current;
         if (!container) return true;
-        const threshold = 100;
-        return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+        return container.scrollHeight - container.scrollTop - container.clientHeight < 100;
     }
 
-    useEffect(() => {
-        if(!messages) return;
-        const currentCount = messages?.length || 0;
+// Effect 1: Scroll-Listener (nur einmal pro roomId)
+    const lastScrollTop = useRef(0);
 
-        if (currentCount > prevMessageCount.current && isNearBottom()) {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    useEffect(() => {
+        const container = messagesContainerRef.current;
+        if (!container) return;
+
+        function handleScroll() {
+            lastScrollTop.current = container.scrollTop;
+            scrollPositions.set(roomId, container.scrollTop);
         }
 
-        if(!scrollInitialized.current) {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        container.addEventListener('scroll', handleScroll);
+
+        return () => {
+            // Nutze den letzten bekannten Wert, nicht den aktuellen
+            if (lastScrollTop.current > 0) {
+                scrollPositions.set(roomId, lastScrollTop.current);
+            }
+            container.removeEventListener('scroll', handleScroll);
+        };
+    }, [roomId]);
+
+// Effect 2: Scroll-Position wiederherstellen beim Room-Wechsel
+    useEffect(() => {
+        scrollInitialized.current = false;
+        prevMessageCount.current = 0;
+    }, [roomId]);
+
+// Effect 3: Auto-Scroll bei neuen Nachrichten
+    useEffect(() => {
+        if (!messages) return;
+        const currentCount = messages.length;
+
+        if (!scrollInitialized.current) {
+            // Erster Load: gespeicherte Position oder ganz nach unten
+            const savedPosition = scrollPositions.get(roomId);
+            if (savedPosition !== undefined) {
+                messagesContainerRef.current.scrollTop = savedPosition;
+            } else {
+                messagesEndRef.current?.scrollIntoView();
+            }
             scrollInitialized.current = true;
+        } else if (currentCount > prevMessageCount.current && isNearBottom()) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }
 
         prevMessageCount.current = currentCount;
-    }, [messages?.length]);
+    }, [messages?.length, roomId]);
 
     function shouldPrependDateLine(current, previous) {
         if (!previous) return true;
@@ -61,9 +96,7 @@ function Chat({children, type = 'conversation', roomId}) {
     if(isLoading /*|| isFetchingNextPage*/) return <Spinner size="w-10 h-10" />
     if(isError) return <ErrorMessage title="Nachrichten laden" message="Nachrichten konnten nicht geladen werden" icon={<FontAwesomeIcon icon={faMessages} />} />
 
-    /*const messages = [...(data?.pages ?? [])]
-        .reverse()
-        .flatMap(page => page.messages);*/
+    console.log('rendering chat')
 
     return (
         <div ref={messagesContainerRef} className="relative flex grow flex-col pb-8 overflow-y-auto">
