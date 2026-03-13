@@ -8,9 +8,9 @@ import {AuthProvider} from "./context/AuthProvider.jsx";
 const queryClient = new QueryClient();
 
 createRoot(document.getElementById('root')).render(
-    <AuthProvider>
-        <QueryClientProvider client={queryClient}>
-            <App />
-        </QueryClientProvider>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+                <App />
+        </AuthProvider>
+    </QueryClientProvider>
 )

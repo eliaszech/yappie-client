@@ -12,12 +12,21 @@ import {useNavigate} from "react-router-dom";
 import {useQueryClient} from "@tanstack/react-query";
 import {useVoice} from "../../hooks/useVoice.jsx";
 import {faMicrophoneSlash, faPhoneSlash} from "@awesome.me/kit-95376d5d61/icons/classic/light";
+import StatusPicker from "./user/StatusPicker.jsx";
+import {useState} from "react";
+import HasUserPopup from "./user/HasUserPopup.jsx";
+import StatusText from "./user/StatusText.jsx";
+import {useIsOnline, useUserStatus} from "../../hooks/usePresence.js";
 
 function UserPanel() {
     const { user, logout } = useAuth();
+    const [ changeStatusVisible, setChangeStatusVisible ] = useState(false);
     const { isConnected, channelName, serverName, krisp, setKrisp, leaveVoice, muted, toggleMute } = useVoice();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+
+    const online = useIsOnline(user.id) ?? user.online;
+    const status = useUserStatus(user.id) ?? user.status;
 
     function handleLogout() {
         logout();
@@ -56,17 +65,19 @@ function UserPanel() {
                 </div>
             )}
             <div className="flex items-center justify-between pl-1 pr-2 py-1">
-                <div className="flex items-center gap-3 hover:bg-card px-2 grow py-1 rounded-lg cursor-pointer">
-                    <UserAvatar icon={user.username.charAt(0).toUpperCase()} avatar={user.avatar} online={user.online} />
-                    <div className="flex flex-col ">
-                        <span className="text-foreground text-base font-medium">
-                            {user.username}
-                        </span>
-                        <span className="text-muted-foreground text-xs">
-                            {user.online ? 'Online' : 'Offline'}
-                        </span>
+                <HasUserPopup classes="w-full" isProfilePopup={true} user={user} orientation="top">
+                    <div className="flex items-center gap-3 hover:bg-card px-2 grow py-1 rounded-lg cursor-pointer" onClick={() => setChangeStatusVisible(true)}>
+                        <UserAvatar icon={user.username.charAt(0).toUpperCase()} avatar={user.avatar} online={online} status={status} />
+                        <div className="flex flex-col ">
+                            <span className="text-foreground text-base font-medium">
+                                {user.username}
+                            </span>
+                            <span className="text-muted-foreground text-xs">
+                                <StatusText hideBubble={true} hideDescription={true} online={online} userStatus={status} />
+                            </span>
+                        </div>
                     </div>
-                </div>
+                </HasUserPopup>
                 <div className="flex items-center gap-1">
                     <button onClick={toggleMute} className={`cursor-pointer rounded-lg ${muted ? 'text-red-400' : 'text-foreground'}  text-xl hover:bg-card/80 hover:text-foreground px-1.5 py-1.5`}>
                         <FontAwesomeIcon icon={muted ? faMicrophoneSlash : faMicrophone} />

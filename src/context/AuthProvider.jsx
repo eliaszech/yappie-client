@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { getToken, setToken, removeToken } from '../services/api';
-import { connectSocket, disconnectSocket } from '../services/socket';
+import { connectSocket, disconnectSocket, onPresenceChange } from '../services/socket';
 import {AuthContext} from "./AuthContext.jsx";
+import {useQueryClient} from "@tanstack/react-query";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -9,6 +10,7 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(() => !!getToken());
     const [error, setError] = useState(false);
+    const queryClient = useQueryClient();
 
     useEffect(() => {
         const token = getToken();
@@ -24,6 +26,10 @@ export function AuthProvider({ children }) {
             .then(data => {
                 connectSocket();
                 setUser({...data.user, online: true})
+                queryClient.setQueryData(['presence'], (old = {}) => ({
+                    ...old,
+                    [data.id]: { online: true, status: data.status || 'online' }
+                }));
             })
             .catch(e => {
                 if(e.message === '404') {
@@ -40,6 +46,10 @@ export function AuthProvider({ children }) {
         setToken(token);
         connectSocket();
         setUser({...userData, online: true});
+        queryClient.setQueryData(['presence'], (old = {}) => ({
+            ...old,
+            [userData.id]: { online: true, status: userData.status || 'online' }
+        }));
     }
 
     function logout() {
@@ -49,7 +59,7 @@ export function AuthProvider({ children }) {
     }
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading, error }}>
+        <AuthContext.Provider value={{ user, setUser, login, logout, loading, error }}>
             {children}
         </AuthContext.Provider>
     );

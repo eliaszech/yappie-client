@@ -12,23 +12,22 @@ let reactionCallback = null;
 
 let voiceCallback = null;
 
-export function connectSocket() {
-    if (socket) return socket;
+let eventsRegistered = false;
 
-    socket = io(API_URL, {
-        auth: { token: getToken() },
-    });
+function registerEvents() {
+    if (!socket || eventsRegistered) return;
 
-    socket.on('connect', () => {
-        console.log('Socket connected:', socket.id);
-    });
-
-    socket.on('user:online', ({ userId }) => {
-        if (presenceCallback) presenceCallback(userId, true);
+    socket.on('user:online', ({userId, online, status}) => {
+        if (presenceCallback) presenceCallback(userId, online, status);
     });
 
     socket.on('user:offline', ({ userId }) => {
         if (presenceCallback) presenceCallback(userId, false);
+    });
+
+    socket.on('user:statusChange', (data) => {
+        console.log('statusChange received, callback:', presenceCallback ? 'set' : 'null');
+        if (presenceCallback) presenceCallback(data.userId, data.online, data.status);
     });
 
     socket.on('message:new', (message) => {
@@ -50,6 +49,22 @@ export function connectSocket() {
     socket.on('voice:leave', (data) => {
         if (voiceCallback) voiceCallback('leave', data);
     });
+
+    eventsRegistered = true;
+}
+
+export function connectSocket() {
+    if (socket) return socket;
+
+    socket = io(API_URL, {
+        auth: { token: getToken() },
+    });
+
+    socket.on('connect', () => {
+        console.log('Socket connected:', socket.id);
+    });
+
+    if (presenceCallback) registerEvents();
 
     return socket;
 }
@@ -82,6 +97,6 @@ export function disconnectSocket() {
     if (socket) {
         socket.disconnect();
         socket = null;
-        presenceCallback = null;
+        eventsRegistered = false;
     }
 }

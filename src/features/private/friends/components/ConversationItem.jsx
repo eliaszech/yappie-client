@@ -1,5 +1,5 @@
 import UserAvatar from "../../../components/UserAvatar.jsx";
-import {useIsOnline} from "../../../../hooks/usePresence.js";
+import {useIsOnline, useUserStatus} from "../../../../hooks/usePresence.js";
 import UserAvatarGroup from "../../../components/UserAvatarGroup.jsx";
 import {NavLink} from "react-router-dom";
 import {useAuth} from "../../../../hooks/useAuth.js";
@@ -11,8 +11,8 @@ function ConversationItem({conversation}) {
     const isSingle = otherUsers.length === 1;
     const conversationTitle = otherUsers.map(participant => participant.user.username).join(', ');
 
-    const isOnline = useIsOnline(otherUsers[0].user.id);
-    const online = isOnline !== undefined ? isOnline : otherUsers[0].user.online;
+    const online = useIsOnline(otherUsers[0].user.id) || otherUsers[0].user.online;
+    const status = useUserStatus(otherUsers[0].user.id) || otherUsers[0].user.status;
 
     const icons = otherUsers.map(participant => participant.user.username.charAt(0).toUpperCase());
     const avatars = otherUsers.map(participant => participant.user.avatar);
@@ -22,7 +22,7 @@ function ConversationItem({conversation}) {
                  className={({isActive}) => `${isActive ? 'bg-muted/50 text-foreground' : 'text-foreground/80'} w-full flex items-center px-2 py-1 rounded-md font-medium transition-all justify-between hover:text-foreground hover:bg-muted/50`}>
             <div className="flex items-center gap-2.5" >
                 {isSingle
-                    ? <UserAvatar avatar={otherUsers[0].user.avatar} online={online} icon={icons[0]}/>
+                    ? <UserAvatar avatar={otherUsers[0].user.avatar} online={online} status={status} icon={icons[0]}/>
                     : <UserAvatarGroup avatars={avatars} icons={icons} />
                 }
                 <div className="flex flex-col">

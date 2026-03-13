@@ -6,14 +6,27 @@ export function usePresence() {
     const queryClient = useQueryClient();
 
     useEffect(() => {
-        onPresenceChange((userId, online) => {
+        onPresenceChange((userId, online, status) => {
+            console.log('Presence changed:', userId, online, status);
             queryClient.setQueryData(['presence'], (old = {}) => ({
-                ...old, [userId]: online
+                ...old, [userId]: { online, status }
             }));
         });
 
-        return () => onPresenceChange(null);
+        return () => {
+            onPresenceChange(null);
+        };
     }, [queryClient]);
+}
+
+export function useUserStatus(userId) {
+    const { data: statuses = {} } = useQuery({
+        queryKey: ['presence'],
+        queryFn: () => ({}),
+        staleTime: Infinity,
+    });
+
+    return statuses[userId]?.status;
 }
 
 export function useIsOnline(userId) {
@@ -23,5 +36,5 @@ export function useIsOnline(userId) {
         staleTime: Infinity,
     });
 
-    return presence[userId];
+    return presence[userId]?.online;
 }

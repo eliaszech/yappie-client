@@ -79,7 +79,7 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
     ) : (
         <div onMouseMove={() => !hovered && setHovered(true)}
              onMouseLeave={() => setHovered(false)}
-            id={`message-${message.id}`} className="relative flex items-start pl-6 pr-4 transition-colors duration-700 hover:bg-muted/50 py-0.5 group">
+            id={`message-${message.id}`} className={`${replyTo && replyTo.id === message.id ? 'bg-primary/10 border-l-2 border-primary hover:bg-primary/15' : 'hover:bg-muted/50'} relative flex items-start pl-6 pr-4 transition-colors duration-700 py-0.5 group`}>
             <span className="w-11 text-[10px] text-foreground/70 shrink-0 opacity-0 group-hover:opacity-100 relative top-1">{timeString}</span>
             <div className="flex flex-col">
                 <span className={`${message.pending ? 'text-foreground animate animate-pulse' : 'text-foreground'} whitespace-pre-wrap text-base flex items-center`}>

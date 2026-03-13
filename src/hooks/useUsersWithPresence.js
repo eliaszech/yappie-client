@@ -16,11 +16,15 @@ export function useUsersWithPresence({queryKey = ['users'], fetchFunction, getUs
 
     const usersWithPresence = users.map(item => {
         const userId = getUserId(item);
-        const onlineStatus = presence[userId] !== undefined ? presence[userId] : (item.online ?? item.user?.online);
+        const presenceData = presence[userId];
+        const onlineStatus = presenceData?.online !== undefined ? presenceData.online : (item.online ?? item.user?.online);
+        const userStatus = presenceData?.status || item.status || item.user?.status || 'offline';
+
         return {
             ...item,
             online: onlineStatus,
-            user: item.user ? { ...item.user, online: onlineStatus } : undefined,
+            status: userStatus,
+            user: item.user ? { ...item.user, online: onlineStatus, status: userStatus } : undefined,
         };
     });
 
