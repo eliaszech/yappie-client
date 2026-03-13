@@ -1,43 +1,47 @@
 import MessageItem from "./MessageItem.jsx";
-import {useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
+import {useQuery} from "@tanstack/react-query";
+import {fetchMessages} from "../../../services/api.js";
+import Spinner from "../../components/static/Spinner.jsx";
+import ErrorMessage from "../../components/static/ErrorMessage.jsx";
+import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import {faMessages} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 
-function Chat({children, messages, channelId}) {
+function Chat({children, type = 'conversation', roomId}) {
     const messagesEndRef = useRef(null);
-    const [isAtBottom, setIsAtBottom] = useState(true);
-    const chatRef = useRef();
+    const messagesContainerRef = useRef(null);
+    const prevMessageCount = useRef(0);
+    const scrollInitialized = useRef(false);
 
-    // Only scroll with the messages if the user is at the bottom
+    const {data: messages, isLoading, isError} = useQuery({
+        queryKey: ['messages', roomId],
+        queryFn: () => fetchMessages(type, roomId),
+        staleTime: 10 * 60 * 1000,
+        retry: 1,
+    })
+
+    function isNearBottom() {
+        const container = messagesContainerRef.current;
+        if (!container) return true;
+        const threshold = 100;
+        return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+    }
+
     useEffect(() => {
-        console.log(isAtBottom)
-        if (!isAtBottom) return;
+        if(!messages) return;
+        const currentCount = messages?.length || 0;
 
-        setTimeout(() => {
+        if (currentCount > prevMessageCount.current && isNearBottom()) {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-    }, [messages]);
+        }
 
-    // Beim ersten Laden nach unten scrollen
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
-    }, []);
+        if(!scrollInitialized.current) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            scrollInitialized.current = true;
+        }
 
-    //Save the scroll position
-    useEffect(() => {
-        const chatEl = chatRef.current;
-        if (!chatEl) return;
-
-        const handleScroll = () => {
-            const isAtBottom = Math.abs(chatEl.scrollTop - (chatEl.scrollHeight - chatEl.offsetHeight)) < 5;
-            setIsAtBottom(isAtBottom);
-        };
-
-        chatEl.addEventListener('scroll', handleScroll);
-
-        return () => {
-            console.log('cleanup');
-            chatEl.removeEventListener('scroll', handleScroll);
-        };
-    }, [channelId]);
+        prevMessageCount.current = currentCount;
+    }, [messages?.length]);
 
     function shouldPrependDateLine(current, previous) {
         if (!previous) return true;
@@ -54,8 +58,15 @@ function Chat({children, messages, channelId}) {
         return timeDiff < oneHour;
     }
 
+    if(isLoading /*|| isFetchingNextPage*/) return <Spinner size="w-10 h-10" />
+    if(isError) return <ErrorMessage title="Nachrichten laden" message="Nachrichten konnten nicht geladen werden" icon={<FontAwesomeIcon icon={faMessages} />} />
+
+    /*const messages = [...(data?.pages ?? [])]
+        .reverse()
+        .flatMap(page => page.messages);*/
+
     return (
-        <div ref={chatRef} className="relative flex grow flex-col pb-8 overflow-y-auto">
+        <div ref={messagesContainerRef} className="relative flex grow flex-col pb-8 overflow-y-auto">
             <div className="grow"></div>
             {children}
             { messages.length > 0 && messages.map((message, index) => {

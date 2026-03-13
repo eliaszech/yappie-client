@@ -87,7 +87,7 @@ function Conversation() {
             </ContentHeader>
             <div className="flex h-full w-full overflow-hidden">
                 <div className="flex flex-col w-full h-full relative">
-                    <Chat messages={conversation.messages} icon={faMessages} >
+                    <Chat type="conversation" roomId={conversationId} >
                         <div className="flex flex-col px-8 text-foreground gap-2.5 pb-8">
                             <div className="mb-2">
                                 {isSingle ? <UserAvatar displayOnline={false} size="w-[100px] h-[100px] text-5xl" icon={icons[0]}/> : <UserAvatar size="w-[100px] h-[100px]" displayOnline={false} icon={<FontAwesomeIcon className="text-5xl" icon={faUsers} />} />}

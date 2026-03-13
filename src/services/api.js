@@ -26,6 +26,23 @@ async function apiRequest(method, path, body = null) {
     return res.json();
 }
 
+async function apiRequestWithCursor(method, path, body = null, cursor = null, limit = '50') {
+    const params = new URLSearchParams({ limit });
+    if (cursor) params.set('cursor', cursor);
+
+    const res = await fetch(`${API_URL}${path}?${params}`, {
+        method,
+        body: body ? JSON.stringify(body) : null,
+        headers: {
+            'Authorization': `Bearer ${getToken()}`,
+            'Content-Type': 'application/json',
+        }
+    });
+
+    if (!res.ok && res.status !== 304) throw new Error(`API Fehler: ${res.status}`);
+    return res.json();
+}
+
 //export const fetchUsers = () => apiRequest('GET', '/users');
 
 export const fetchFriends = () => apiRequest('GET', `/@me/friends`);
@@ -35,6 +52,8 @@ export const fetchServer = (serverId) => apiRequest('GET', `/servers/${serverId}
 export const fetchChannels = (serverId) => apiRequest('GET', `/servers/${serverId}/channels`);
 export const fetchMembers = (serverId) => apiRequest('GET', `/servers/${serverId}/members`);
 export const fetchChannel = (channelId) => apiRequest('GET', `/channels/${channelId}`);
+export const fetchMessages = (type = 'conversation',channelId) => apiRequest('GET',
+    type === 'channel' ? `/channels/${channelId}/messages` : `/conversations/${channelId}/messages`);
 
 export const fetchVoiceToken = (data) => apiRequest('POST', `/voice/token`, data);
 export const fetchChannelParticipants = (channelId) => apiRequest('GET', `/voice/participants/${channelId}`);

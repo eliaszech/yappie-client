@@ -47,7 +47,7 @@ function Channel() {
             </ContentHeader>
             <div className="flex h-full w-full overflow-hidden">
                 <div className="flex flex-col w-full h-full relative">
-                    <Chat channelId={channel.id} messages={channel.messages} >
+                    <Chat type="channel" roomId={channel.id}>
                         <div className="flex flex-col px-8 text-foreground gap-2.5 pb-8">
                             <div className="text-5xl flex items-center justify-center rounded-full bg-muted w-[100px] h-[100px] mb-2"><FontAwesomeIcon icon={faHashtag} /></div>
                             <div className="text-4xl font-bold">Willkommen in #{channel.name}</div>

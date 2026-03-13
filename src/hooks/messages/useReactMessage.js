@@ -7,22 +7,20 @@ export function useReactMessage() {
 
     useEffect(() => {
         onReactionUpdate((type, roomId, reaction, action) => {
-            queryClient.setQueriesData({ queryKey: [type, roomId] }, (old) => {
-                if (!old?.messages) return old;
-                return {
-                    ...old,
-                    messages: old.messages.map(msg => {
-                        if (msg.id !== reaction.messageId) return msg;
-                        const reactions = [...(msg.reactions || [])];
-                        if (action === 'added') {
-                            reactions.push({ emoji: reaction.emoji, userId: reaction.userId });
-                        } else {
-                            const index = reactions.findIndex(r => r.emoji === reaction.emoji && r.userId === reaction.userId);
-                            if (index !== -1) reactions.splice(index, 1);
-                        }
-                        return { ...msg, reactions };
-                    })
-                };
+            queryClient.setQueriesData({ queryKey: ['messages', roomId] }, (old) => {
+                if (!old) return old;
+
+                return old.map(msg => {
+                    if (msg.id !== reaction.messageId) return msg;
+                    const reactions = [...(msg.reactions || [])];
+                    if (action === 'added') {
+                        reactions.push({ emoji: reaction.emoji, userId: reaction.userId });
+                    } else {
+                        const index = reactions.findIndex(r => r.emoji === reaction.emoji && r.userId === reaction.userId);
+                        if (index !== -1) reactions.splice(index, 1);
+                    }
+                    return { ...msg, reactions };
+                })
             });
         })
     }, []);

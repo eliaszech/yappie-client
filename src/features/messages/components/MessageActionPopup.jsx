@@ -4,7 +4,7 @@ import {
     faEllipsis,
     faPen,
     faTrash,
-    faFaceSmile
+    faFaceSmile, faArrowTurnLeft
 } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import {useReplyState} from "../../../hooks/messages/useReplyState.js";
 import {useAuth} from "../../../hooks/useAuth.js";
@@ -33,7 +33,7 @@ function MessageActionPopup({message}) {
                 {message.user.id === user.id && (
                     <button className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50 "><FontAwesomeIcon icon={faPen} /></button>
                 )}
-                <button className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50" onClick={() => setReplyState(message)}><FontAwesomeIcon icon={faArrowTurnRight} /></button>
+                <button className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50" onClick={() => setReplyState(message)}><FontAwesomeIcon icon={faArrowTurnLeft} /></button>
                 <button className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50"><FontAwesomeIcon icon={faEllipsis} /></button>
                 {message.user.id === user.id && (
                     <button className="cursor-pointer px-1.5 py-1.25 hover:bg-dnd/10 rounded-tr-lg rounded-br-lg  text-dnd"

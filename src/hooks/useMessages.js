@@ -9,20 +9,22 @@ export function useMessages() {
 
     useEffect(() => {
         onNewMessage((message) => {
+            const roomId = message.conversationId || message.channelId;
+
+            queryClient.setQueryData(['messages', roomId], (old) => {
+                if (!old) return old;
+
+                if (message.userId === user.id) {
+                    const withoutTemp = old.filter(m =>
+                        !(m.pending && m.userId === user.id && m.text === message.text)
+                    );
+                    return [...withoutTemp, message];
+                }
+
+                return [...old, message];
+            });
+
             if(message.conversationId) {
-                queryClient.setQueryData(['conversation', message.conversationId], (old) => {
-                    if (!old) return old;
-
-                    if (message.userId === user.id) {
-                        const withoutTemp = old.messages.filter(m =>
-                            !(m.pending && m.userId === user.id && m.text === message.text)
-                        );
-                        return {...old, messages: [...withoutTemp, message]};
-                    }
-
-                    return {...old, messages: [...old.messages, message]};
-                });
-
                 // Conversations-Liste updaten und sortieren
                 queryClient.setQueryData(['conversations', user?.id], (old) => {
                     if (!old) return old;
@@ -40,21 +42,6 @@ export function useMessages() {
                         return new Date(bDate).getTime() - new Date(aDate).getTime();
                     });
                 });
-            }
-
-            if(message.channelId) {
-                queryClient.setQueryData(['channel', message.channelId], (old) => {
-                    if (!old) return old;
-
-                    if (message.userId === user.id) {
-                        const withoutTemp = old.messages.filter(m =>
-                            !(m.pending && m.userId === user.id && m.text === message.text)
-                        );
-                        return { ...old, messages: [...withoutTemp, message] };
-                    }
-
-                    return { ...old, messages: [...old.messages, message] };
-                })
             }
         });
 
