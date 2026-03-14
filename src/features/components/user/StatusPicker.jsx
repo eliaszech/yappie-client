@@ -4,7 +4,6 @@ import {useEffect, useRef} from "react";
 
 function StatusPicker({setVisible}) {
     const socket = getSocket();
-    const { setUser } = useAuth();
     const ref = useRef(null);
 
     useEffect(() => {

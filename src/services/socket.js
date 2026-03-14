@@ -26,7 +26,6 @@ function registerEvents() {
     });
 
     socket.on('user:statusChange', (data) => {
-        console.log('statusChange received, callback:', presenceCallback ? 'set' : 'null');
         if (presenceCallback) presenceCallback(data.userId, data.online, data.status);
     });
 

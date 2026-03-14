@@ -6,9 +6,9 @@ const statuses = [
     { key: 'invisible', label: 'Unsichtbar', color: 'bg-offline', description: 'Du erscheinst als offline' },
 ];
 
-function StatusIndicator({ online, userStatus, hideBubble = false, hideDescription = false }) {
+function StatusIndicator({ online, userStatus, hideBubble = false, hideDescription = false, showRealStatus = false }) {
     const status = userStatus || (online ? 'online' : 'offline');
-    const displayStatus = !online ? 'offline' : status;
+    const displayStatus = showRealStatus ? status : (!online ? 'offline' : status);
 
     return (
         <div className="flex items-center gap-4">

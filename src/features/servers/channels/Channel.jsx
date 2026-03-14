@@ -55,7 +55,7 @@ function Channel() {
                         </div>
                     </Chat>
                     <div className="absolute z-2 bottom-[64px] left-0 w-full h-16 bg-gradient-to-b from-transparent to-background pointer-events-none"></div>
-                    <MessageInput type="channel" roomId={channel.id} roomName={channel.name} />
+                    <MessageInput type="channel" serverId={channel.serverId} roomId={channel.id} roomName={channel.name} />
                 </div>
                 <div className="max-w-xs w-full bg-card/70 h-full border-l border-border">
                     <MemberSidebarList serverId={channel.serverId} />

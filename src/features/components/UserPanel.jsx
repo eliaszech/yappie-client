@@ -73,7 +73,7 @@ function UserPanel() {
                                 {user.username}
                             </span>
                             <span className="text-muted-foreground text-xs">
-                                <StatusText hideBubble={true} hideDescription={true} online={online} userStatus={status} />
+                                <StatusText hideBubble={true} hideDescription={true} online={online} userStatus={status} showRealStatus={true} />
                             </span>
                         </div>
                     </div>

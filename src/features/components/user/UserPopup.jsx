@@ -84,7 +84,7 @@ function UserPopup() {
                         <div className="mt-4 rounded-lg bg-muted text-foreground">
                             <Dropdown offset="4" trigger={
                                 <button className="rounded-lg cursor-pointer text-left px-3 py-3 w-full hover:bg-card/50 text-sm font-medium">
-                                    <StatusText online={online} userStatus={ status } />
+                                    <StatusText online={online} userStatus={ status } showRealStatus={true} />
                                 </button>
                             } content={
                                 <StatusPicker />

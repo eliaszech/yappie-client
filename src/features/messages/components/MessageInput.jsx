@@ -7,19 +7,58 @@ import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faArrowTurnRight, faFaceSmile, faPlus, faTimesCircle} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import {useReplyState} from "../../../hooks/messages/useReplyState.js";
 import HasEmojiPicker from "./HasEmojiPicker.jsx";
+import Suggestions from "./Suggestions.jsx";
 
-function MessageInput({roomName, type = 'conversation', roomId}) {
+const MENTION_REGEX = /@(\w*)$/;
+
+function MessageInput({roomName, type = 'conversation', roomId, serverId = null}) {
     const {user} = useAuth();
     const [input, setInput] = useState('');
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [mentionQuery, setMentionQuery] = useState('');
     const queryClient = useQueryClient();
     const { replyTo, clearReplyState } = useReplyState(roomId);
     const { typingUsers, sendTyping, stopTyping } = useTyping(type, roomId);
     const inputRef = useRef(null);
+    const inputContainerRef = useRef(null);
 
     useEffect(() => {
         if(!replyTo) return
         inputRef.current.focus();
     }, [replyTo]);
+
+    useEffect(() => {
+        const ref = inputContainerRef.current;
+
+        function handleFocusIn() {
+            setShowSuggestions(true);
+        }
+
+        ref.addEventListener('focusin', handleFocusIn);
+        return () => {
+            ref.removeEventListener('focusIn', handleFocusIn);
+        }
+    }, []);
+
+    function handleInputChangeForSuggestions(value) {
+        const cursorPos = inputRef.current.selectionStart;
+        const textUpToCursor = value.slice(0, cursorPos);
+        const match = textUpToCursor.match(MENTION_REGEX);
+
+        if(match) {
+            setMentionQuery('@' + match[1]);
+            setShowSuggestions(true);
+        } else {
+            setShowSuggestions(false);
+            setMentionQuery('');
+        }
+    }
+
+    function setMember(member) {
+        setInput(prev => prev.replace(MENTION_REGEX, `@${member.user.username}`));
+        setShowSuggestions(false);
+        setMentionQuery('');
+    }
 
     function sendMessage() {
         if (!input.trim()) return;
@@ -56,10 +95,13 @@ function MessageInput({roomName, type = 'conversation', roomId}) {
     const roomNamePrefix = type === 'conversation' ? '' : '#';
 
     return (
-        <div className="relative h-max flex flex-col px-1.5 pb-2 z-3">
+        <div ref={inputContainerRef} className="relative h-max flex flex-col px-1.5 pb-2 z-3">
             { typingUsers.length > 0 && (
                 <div className="absolute animate animate-pulse -top-6 rounded-lg text-xs bg-transparent text-foreground w-full px-2 py-1">{typingUsersString} is typing...</div>
             )}
+            { showSuggestions && mentionQuery.length > 0 && (
+                <Suggestions serverId={serverId} query={mentionQuery} clickFunction={(member) => setMember(member)} hideFunction={() => setShowSuggestions(false)} />
+             )}
             <div className="flex flex-col items-center h-max relative bg-card rounded-lg border border-border">
                 { replyTo && (
                     <div className="flex w-full justify-between items-center rounded-t-lg border-b border-border px-4 py-2 bg-guild-bar">
@@ -78,6 +120,7 @@ function MessageInput({roomName, type = 'conversation', roomId}) {
                        placeholder={`Nachricht an ${roomNamePrefix}${roomName} schreiben...`}
                        value={input} onChange={(e) => {
                             setInput(e.target.value);
+                            handleInputChangeForSuggestions(e.target.value);
                             sendTyping();
                         }}
                        onKeyDown={(e) => {

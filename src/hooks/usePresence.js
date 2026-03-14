@@ -7,7 +7,6 @@ export function usePresence() {
 
     useEffect(() => {
         onPresenceChange((userId, online, status) => {
-            console.log('Presence changed:', userId, online, status);
             queryClient.setQueryData(['presence'], (old = {}) => ({
                 ...old, [userId]: { online, status }
             }));

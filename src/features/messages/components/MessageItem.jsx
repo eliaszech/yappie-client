@@ -5,7 +5,9 @@ import MessageActionPopup from "./MessageActionPopup.jsx";
 import HasUserPopup from "../../components/user/HasUserPopup.jsx";
 import Reactions from "./Reactions.jsx";
 import {useReplyState} from "../../../hooks/messages/useReplyState.js";
-import {useRef, useState} from "react";
+import {useState} from "react";
+
+const PARSE_MENTIONS_REGEX = /@(\w+)/g;
 
 function MessageItem({message, isGrouped = false, disabled = false}) {
     const { user: messageUser } = message;
@@ -19,6 +21,7 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
         hour: '2-digit',
         minute: '2-digit'
     })
+
     const timeString = dateTimeString.split(',')[1].trim();
 
     function scrollToMessage(messageId) {
@@ -64,7 +67,7 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
                         <span className="text-sm mt-1 text-muted-foreground">{dateTimeString}</span>
                     </div>
                     <span className={`${message.pending ? 'text-muted-foreground' : 'text-foreground'} whitespace-pre-wrap text-base`}>
-                        {message.text}
+                        <div>{message.text}</div>
                         {message.pending && (
                             <span className="text-xs text-foreground ml-1"><FontAwesomeIcon spin={true} icon={faSpinnerThird} /></span>
                         )}
