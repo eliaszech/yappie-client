@@ -2,14 +2,19 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { onNewMessage } from '../services/socket';
 import { useAuth } from './useAuth';
+import {playMessageSound} from "../services/sounds.js";
 
 export function useMessages() {
     const queryClient = useQueryClient();
-    const { user } = useAuth();
+    const { user } = useAuth()
 
     useEffect(() => {
         onNewMessage((message) => {
             const roomId = message.conversationId || message.channelId;
+
+            if(message.userId !== user.id && user.status !== 'dnd') {
+                playMessageSound();
+            }
 
             queryClient.setQueryData(['messages', roomId], (old) => {
                 if (!old) return old;

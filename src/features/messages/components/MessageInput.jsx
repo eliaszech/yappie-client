@@ -33,10 +33,10 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
     const inputRef = useRef(null);
     const inputContainerRef = useRef(null);
 
-    useEffect(() => {
+    /*useEffect(() => {
         if(!replyTo) return
         inputRef.current.focus();
-    }, [replyTo]);
+    }, [replyTo]);*/
 
     useEffect(() => {
         const ref = inputContainerRef.current;
@@ -143,6 +143,7 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
             userId: user.id,
             user: user,
             roomId,
+            mentions: [],
             createdAt: new Date().toISOString(),
             pending: true,
         };
@@ -160,10 +161,18 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
         });
 
         // Editor zurücksetzen
-        Transforms.select(editor, []);
-        editor.children = initialValue;
+        Transforms.select(editor, {
+            anchor: Editor.start(editor, []),
+            focus: Editor.end(editor, []),
+        });
+        Transforms.delete(editor);
+        if (editor.children.length === 0) {
+            Transforms.insertNodes(editor, {
+                type: 'paragraph',
+                children: [{ text: '' }],
+            });
+        }
         setInput(initialValue);
-
         clearReplyState();
         stopTyping();
     }
@@ -184,7 +193,7 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
                 <div className="absolute animate animate-pulse -top-6 rounded-lg text-xs bg-transparent text-foreground w-full px-2 py-1">{typingUsersString} is typing...</div>
             )}
             { showSuggestions && mentionQuery.length > 0 && (
-                <Suggestions serverId={serverId} query={mentionQuery} clickFunction={(member) => insertMention(member)} hideFunction={() => setShowSuggestions(false)} />
+                <Suggestions bottom={replyTo ? 'bottom-28' : 'bottom-18'} serverId={serverId} query={mentionQuery} clickFunction={(member) => insertMention(member)} hideFunction={() => setShowSuggestions(false)} />
              )}
             <div className="flex flex-col items-center h-max relative bg-card rounded-lg border border-border">
                 { replyTo && (
@@ -200,12 +209,11 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
                     <button className="absolute z-10 left-3 top-3 cursor-pointer text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg px-1 py-1">
                         <FontAwesomeIcon icon={faPlus} className="" />
                     </button>
-                    <Slate editor={editor} initialValue={initialValue} onChange={(newValue) => {
+                    <Slate editor={editor} initialValue={initialValue} onValueChange={(newValue) => {
                         setInput(newValue);
                         handleInputChangeForSuggestions();
-                        sendTyping();
-                    }} >
-
+                        sendTyping()
+                    }}>
                         <Editable renderElement={renderElement} className="pt-4 min-h-[56px] pb-4 w-full pl-12 pr-12 outline-none text-foreground placeholder:text-muted-foreground! rounded-lg focus:ring-2 focus:ring-primary/80 transition-colors" placeholder={`Nachricht an ${roomNamePrefix}${roomName} schreiben...`}
                               onKeyDown={(e) => {
                                   e.stopPropagation();
