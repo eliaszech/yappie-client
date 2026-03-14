@@ -67,12 +67,12 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
         return parts;
     }
 
-    const amIMentioned = message && message.mentions.some(mention => mention.user.id === user.id);
+    const amIMentioned = (message && message.mentions.some(mention => mention.user.id === user.id)) || (message.replyTo && message.replyTo.user.id === user.id && message.userId !== user.id);
 
     return disabled || !isGrouped || message.replyTo ? (
         <div onMouseMove={() => !hovered && setHovered(true)}
              onMouseLeave={() => setHovered(false)}
-            id={`message-${message.id}`} className={`${disabled ? 'pointer-events-none' : ''} ${amIMentioned ? 'bg-idle/10! border-idle! hover:bg-idle/5!' : ''} ${replyTo && replyTo.id === message.id ? 'bg-primary/10 border-primary hover:bg-primary/15' : 'hover:bg-muted/50 border-transparent'} relative border-l-2 flex flex-col mt-4 transition-colors duration-300  group`}>
+            id={`message-${message.id}`} className={`${disabled ? 'pointer-events-none' : ''} ${amIMentioned ? 'bg-idle/5! border-idle! hover:bg-idle/10!' : ''} ${replyTo && replyTo.id === message.id ? 'bg-primary/10 border-primary hover:bg-primary/15' : 'hover:bg-muted/50 border-transparent'} relative border-l-2 flex flex-col mt-4 transition-colors duration-300  group`}>
             {message.replyTo && (
                 <div onClick={() => scrollToMessage(message.replyTo.id)} className="flex items-center bg-primary/3  py-1 pl-4 relative hover:bg-primary/10 cursor-pointer">
                     <div className="absolute top-1/2 left-8 w-6 h-3 border-l-2 border-t-2 border-primary/80 rounded-tl-md"></div>
@@ -123,7 +123,7 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
     ) : (
         <div onMouseMove={() => !hovered && setHovered(true)}
              onMouseLeave={() => setHovered(false)}
-            id={`message-${message.id}`} className={`${disabled ? 'pointer-events-none' : ''} ${amIMentioned ? 'bg-idle/10! border-idle! hover:bg-idle/5!' : ''} ${replyTo && replyTo.id === message.id ? 'bg-primary/10 border-primary hover:bg-primary/15' : 'hover:bg-muted/50 border-transparent'} border-l-2 relative flex items-start pl-6 pr-4 transition-colors duration-700 py-0.5 group`}>
+            id={`message-${message.id}`} className={`${disabled ? 'pointer-events-none' : ''} ${amIMentioned ? 'bg-idle/5! border-idle! hover:bg-idle/10!' : ''} ${replyTo && replyTo.id === message.id ? 'bg-primary/10 border-primary hover:bg-primary/15' : 'hover:bg-muted/50 border-transparent'} border-l-2 relative flex items-start pl-6 pr-4 transition-colors duration-700 py-0.5 group`}>
             <span className="w-11 text-[10px] text-foreground/70 shrink-0 opacity-0 group-hover:opacity-100 relative top-1">{timeString}</span>
             <div className="flex flex-col">
                 <div className={`${message.pending ? 'text-muted-foreground' : 'text-foreground'} flex gap-1 items-center whitespace-pre-wrap text-base`}>
