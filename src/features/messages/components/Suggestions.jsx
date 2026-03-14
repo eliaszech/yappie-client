@@ -41,7 +41,7 @@ function Suggestions({type = 'members', serverId, query, clickFunction, hideFunc
                 </span>
                 <div className="flex flex-col gap-1">
                     {filteredMembers.map((member) => (
-                        <div key={member.userId} onClick={() => selectMember(member)} className="cursor-pointer py-1 flex items-center text-sm rounded-md hover:bg-card/50 px-2">
+                        <div key={member.userId} onClick={() => selectMember(member.user)} className="cursor-pointer py-1 flex items-center text-sm rounded-md hover:bg-card/50 px-2">
                             <div className="flex items-center gap-2">
                                 <UserAvatar icon={member.user.username.charAt(0).toUpperCase()} onlineSize="w-3 h-3 -bottom-1 -right-1" size="w-5 h-5" />
                                 {member.user.username}
