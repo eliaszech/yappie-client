@@ -5,9 +5,13 @@ import { faPlus, faCompass, faSparkles } from "@awesome.me/kit-95376d5d61/icons/
 import {useQuery} from "@tanstack/react-query";
 import {useAuth} from "../../hooks/useAuth.js";
 import {fetchServers} from "../../services/api.js";
+import {useState} from "react";
+import CreateServerDialog from "../messages/dialogs/CreateServerDialog.jsx";
 
 function ServerSelector() {
     const { user } = useAuth();
+    const [showCreateServerDialog, setShowCreateServerDialog] = useState(false);
+
     const {data: servers = [] , isError, isLoading} = useQuery({
         queryKey: ['servers', user?.id],
         queryFn: fetchServers,
@@ -32,13 +36,17 @@ function ServerSelector() {
             ))}
 
             <div className="w-8 h-px bg-border mb-1"></div>
-            <a href="#" className="w-12 h-12 rounded-2xl text-lg bg-card text-muted-foreground hover:text-primary hover:bg-primary/10 flex items-center justify-center transition-all" title="Discover">
+            <button onClick={() => setShowCreateServerDialog(true)}
+                className={`text-muted-foreground bg-card w-12 h-12 cursor-pointer rounded-2xl text-lg hover:text-primary hover:bg-primary/10 flex items-center justify-center transition-all`} title="Discover">
                 <FontAwesomeIcon icon={faPlus}/>
-            </a>
+            </button>
             <NavLink to="/discover"
                      className={({isActive}) => `${isActive ? 'text-foreground bg-primary/80' : 'bg-card text-muted-foreground'} w-12 h-12 rounded-2xl text-xl  hover:text-primary hover:bg-primary/10 flex items-center justify-center transition-all`}>
                 <FontAwesomeIcon icon={faCompass}/>
             </NavLink>
+            {showCreateServerDialog && (
+                <CreateServerDialog onCancel={() => setShowCreateServerDialog(false)} />
+            )}
         </div>
     )
 }

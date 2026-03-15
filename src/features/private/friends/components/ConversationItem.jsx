@@ -9,7 +9,7 @@ function ConversationItem({conversation}) {
 
     const otherUsers = conversation.participants.filter(participant => participant.user.id !== user.id);
     const isSingle = otherUsers.length === 1;
-    const conversationTitle = otherUsers.map(participant => participant.user.username).join(', ');
+    const conversationTitle = otherUsers.map(participant => participant.user.displayName ?? participant.user.username).join(', ');
 
     const online = useIsOnline(otherUsers[0].user.id) || otherUsers[0].user.online;
     const status = useUserStatus(otherUsers[0].user.id) || otherUsers[0].user.status;

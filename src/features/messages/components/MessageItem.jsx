@@ -81,7 +81,7 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
                         <HasUserPopup user={message.replyTo.user}>
                             <div className="flex items-center hover:underline">
                                 <UserAvatar size="w-3.5 h-3.5 text-xs" displayOnline={false} icon={message.replyTo.user.username.charAt(0).toUpperCase()} />
-                                <span className="ml-1 mr-1">{message.replyTo.user.username}: </span>
+                                <span className="ml-1 mr-1">{message.replyTo.user.displayName ?? message.replyTo.user.username}: </span>
                             </div>
                         </HasUserPopup>
                         <div className="truncate">{message.replyTo.text.slice(0, 100)}</div>
@@ -95,7 +95,7 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
                 <div className="flex flex-col">
                     <div className="flex items-start gap-2">
                         <HasUserPopup user={messageUser} >
-                            <span className="text-lg mt-0.5 font-bold text-foreground hover:underline">{messageUser.username}</span>
+                            <span className="text-lg mt-0.5 font-bold text-foreground hover:underline">{messageUser.displayName ?? messageUser.username}</span>
                         </HasUserPopup>
                         <span className="text-sm mt-1 text-muted-foreground">{dateTimeString}</span>
                     </div>

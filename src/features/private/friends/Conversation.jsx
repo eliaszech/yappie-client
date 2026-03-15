@@ -71,7 +71,7 @@ function Conversation() {
     const avatars = otherUsers.map(participant => participant.user.avatar);
     const isSingle = otherUsers.length === 1;
 
-    const conversationTitle = otherUsers.map(participant => participant.user.username).join(', ');
+    const conversationTitle = otherUsers.map(participant => participant.user.displayName ?? participant.user.username).join(', ');
 
     return (
         <>

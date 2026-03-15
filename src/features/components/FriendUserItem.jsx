@@ -5,8 +5,7 @@ import {denyFriendRequest, fetchGetOrCreateConversation} from "../../services/ap
 import {useQueryClient} from "@tanstack/react-query";
 import {useNavigate} from "react-router-dom";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faMessage} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
-import {faTimes} from "@awesome.me/kit-95376d5d61/icons/classic/light";
+import {faMessage, faUserMinus} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import {useAuth} from "../../hooks/useAuth.js";
 import {getSocket} from "../../services/socket.js";
 
@@ -47,18 +46,18 @@ function UserItem({friend, paddings = 'px-2 py-1'}) {
             <div className="flex items-center gap-3" onClick={() => openConversation()}>
                 <UserAvatar icon={friend.username.charAt(0).toUpperCase()} online={online} status={status} />
                 <div className="flex flex-col">
-                    <span className="text-foreground font-medium">{friend.username}</span>
+                    <span className="text-foreground font-medium">{friend.displayName ?? friend.username}</span>
                     <span className="text-xs text-foreground/60">
                     <StatusText hideBubble={true} hideDescription={true} online={online} userStatus={status} />
                 </span>
                 </div>
             </div>
             <div className="flex items-center gap-2">
-                <button onClick={() => openConversation()} className="cursor-pointer hover:bg-card/50 hover:text-foreground text-muted-foreground bg-card px-2 py-1 rounded-lg text-sm">
+                <button onClick={() => openConversation()} className="cursor-pointer hover:bg-primary/30 text-primary bg-primary/20 px-2 py-1 rounded-lg text-sm">
                     <FontAwesomeIcon icon={faMessage} />
                 </button>
-                <button onClick={() => handleRemoveFriend()} className="cursor-pointer hover:bg-card/50 hover:text-foreground text-muted-foreground bg-card px-2 py-1 rounded-lg text-sm">
-                    <FontAwesomeIcon icon={faTimes} />
+                <button onClick={() => handleRemoveFriend()} className="cursor-pointer hover:bg-red-500/30 text-red-400 bg-red-500/20 px-2 py-1 rounded-lg text-sm">
+                    <FontAwesomeIcon icon={faUserMinus} />
                 </button>
             </div>
         </div>

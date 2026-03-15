@@ -55,7 +55,7 @@ export const acceptFriendRequest = (friendId, userId) => apiRequest('POST', `/@m
 
 export const fetchServer = (serverId) => apiRequest('GET', `/servers/${serverId}`);
 export const fetchChannels = (serverId) => apiRequest('GET', `/servers/${serverId}/channels`);
-export const fetchMembers = (serverId) => apiRequest('GET', `/servers/${serverId}/members`);
+export const fetchMembers = (type, id) => apiRequest('GET', type === 'members' ? `/servers/${id}/members` : `/conversations/${id}/participants`);
 export const fetchChannel = (channelId) => apiRequest('GET', `/channels/${channelId}`);
 export const fetchMessages = (type = 'conversation',channelId) => apiRequest('GET',
     type === 'channel' ? `/channels/${channelId}/messages` : `/conversations/${channelId}/messages`);

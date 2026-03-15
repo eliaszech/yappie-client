@@ -3,14 +3,13 @@ import {useUsersWithPresence} from "../../../hooks/useUsersWithPresence.js";
 import Spinner from "../../components/static/Spinner.jsx";
 import UserAvatar from "../../components/UserAvatar.jsx";
 import {useEffect, useRef} from "react";
-import {useReplyState} from "../../../hooks/messages/useReplyState.js";
 
 function Suggestions({type = 'members', bottom = 'bottom-18', serverId, query, clickFunction, hideFunction}) {
     const ref = useRef(null);
 
     const { users: members, isLoading, isError } = useUsersWithPresence({
         queryKey: [type, serverId],
-        fetchFunction: () => fetchMembers(serverId),
+        fetchFunction: () => fetchMembers(type, serverId),
         getUserId: (member) => member.user.id,
     });
 
@@ -45,7 +44,7 @@ function Suggestions({type = 'members', bottom = 'bottom-18', serverId, query, c
                         <div key={member.userId} onClick={() => selectMember(member.user)} className="cursor-pointer py-1 flex items-center text-sm rounded-md hover:bg-muted/50 px-2">
                             <div className="flex items-center gap-2">
                                 <UserAvatar icon={member.user.username.charAt(0).toUpperCase()} onlineSize="w-3 h-3 -bottom-1 -right-1" size="w-5 h-5" />
-                                {member.user.username}
+                                {member.user.displayName ?? member.user.username}
                             </div>
                         </div>
                     ))}

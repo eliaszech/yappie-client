@@ -193,7 +193,7 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
                 <div className="absolute animate animate-pulse -top-6 rounded-lg text-xs bg-transparent text-foreground w-full px-2 py-1">{typingUsersString} is typing...</div>
             )}
             { showSuggestions && mentionQuery.length > 0 && (
-                <Suggestions bottom={replyTo ? 'bottom-28' : 'bottom-18'} serverId={serverId} query={mentionQuery} clickFunction={(member) => insertMention(member)} hideFunction={() => setShowSuggestions(false)} />
+                <Suggestions type={type === 'conversation' ? 'participants' : 'members'} bottom={replyTo ? 'bottom-28' : 'bottom-18'} serverId={type === 'conversation' ? roomId : serverId} query={mentionQuery} clickFunction={(member) => insertMention(member)} hideFunction={() => setShowSuggestions(false)} />
              )}
             <div className="flex flex-col items-center h-max relative bg-card rounded-lg border border-border">
                 { replyTo && (
