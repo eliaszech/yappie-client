@@ -1,11 +1,13 @@
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faChevronRight, faCompass, faUserPlus} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
+import {faChevronRight, faCompass} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
+import {faUserPlus} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {Link, useNavigate} from "react-router-dom";
 import {useState} from "react";
 import {fetchSearchUsers, sendFriendRequest} from "../../../services/api.js";
 import UserAvatar from "../../components/UserAvatar.jsx";
 import {useAuth} from "../../../hooks/useAuth.js";
 import {useQueryClient} from "@tanstack/react-query";
+import NoResultsMessage from "../../components/static/NoResultsMessage.jsx";
 
 function AddFriend() {
     const {user} = useAuth();
@@ -58,7 +60,7 @@ function AddFriend() {
                 </div>
 
                 <div className="mt-4 flex flex-col gap-1">
-                    {users && users.length > 0 && users.map((user) => (
+                    {users && users.length > 0 ? users.map((user) => (
                         <div key={user.id} className={`flex items-center group justify-between gap-3 px-2 py-1 rounded-md hover:bg-border transition duration-200`}>
                             <div className="flex items-center gap-3">
                                 <UserAvatar icon={user.username.charAt(0).toUpperCase()} displayOnline={false} />
@@ -71,7 +73,9 @@ function AddFriend() {
                                 Freund hinzufügen
                             </button>
                         </div>
-                    ))}
+                    )) : (
+                        <NoResultsMessage title="Keine Ergebnisse" message="Keine Benutzer gefunden die du noch nicht angefragt hast" icon={<FontAwesomeIcon icon={faUserPlus} />} />
+                    )}
                 </div>
             </div>
             <div className="p-4 border-b border-border">

@@ -1,7 +1,7 @@
 import {useTranslation} from "react-i18next";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faSearch} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
-import {faUsers} from "@awesome.me/kit-95376d5d61/icons/classic/light";
+import {faArrowRight, faSearch} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
+import {faArrowLeft, faUsers} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {AnimatePresence, motion} from "framer-motion";
 import {faTimes} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import Spinner from "../../components/static/Spinner.jsx";
@@ -14,6 +14,7 @@ import {fetchFriends, fetchGetOrCreateConversation} from "../../../services/api.
 import {useAuth} from "../../../hooks/useAuth.js";
 import {useQueryClient} from "@tanstack/react-query";
 import {useNavigate} from "react-router-dom";
+import UserAvatar from "../../components/UserAvatar.jsx";
 
 function FriendsListPending({filter}) {
     const { user } = useAuth();
@@ -23,14 +24,20 @@ function FriendsListPending({filter}) {
         getUserId: (user) => user.id,
     });
     const [search, setSearch] = useState('');
-    const queryClient = useQueryClient();
-    const navigate = useNavigate();
 
-    const filteredUsers = users.filter(user => (user.friendStatus === 'PENDING'))
-        .filter(user => user.username.toLowerCase().includes(search.toLowerCase()));
+    function denyFriendRequest(friendId) {
+
+    }
+
+    function acceptFriendRequest(friendId) {
+
+    }
 
     if (isLoading) return <Spinner size="w-10 h-10" />;
     if(isError) return <ErrorMessage title="Fehler beim Laden der Benutzer" message="Benutzer konnten nicht geladen werden" icon={<FontAwesomeIcon icon={faUsers} />} />;
+
+    const filteredUsers = users.filter(user => (user.friendStatus === 'PENDING'))
+        .filter(user => user.username.toLowerCase().includes(search.toLowerCase()));
 
     return (
         <div className="flex flex-col h-full overflow-hidden pt-4">
@@ -61,7 +68,35 @@ function FriendsListPending({filter}) {
                                         exit={{ opacity: 0, y: -50 }}
                                         transition={{ duration: 0.25 }}
                                     >
-                                        <UserItem user={friend} paddings={'px-2 py-3'} />
+                                        <div key={friend.id} className={`flex items-center group justify-between gap-3 px-2 py-2 rounded-md hover:bg-border transition duration-200`}>
+                                            <div className="flex items-center gap-3">
+                                                {friend.isSender ? (
+                                                    <FontAwesomeIcon icon={faArrowLeft} className="text-red-400 text-lg" />
+                                                ) : (
+                                                    <FontAwesomeIcon icon={faArrowRight} className="text-green-300 text-lg" />
+                                                )}
+                                                <UserAvatar icon={friend.username.charAt(0).toUpperCase()} displayOnline={false} />
+                                                <div className="flex flex-col">
+                                                    <span className="text-foreground font-medium">{friend.displayName ?? friend.username}</span>
+                                                    <span className="text-muted-foreground text-xs">{friend.username}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <button disabled={friend.isSender} className={`${friend.isSender ? 'disabled bg-card text-muted-foreground' : 'cursor-pointer bg-green-300 text-primary-foreground hover:bg-green-200'} text-sm block rounded-lg  px-2 py-1`}>
+                                                    {friend.isSender ? 'Angefragt' : 'Annehmen' }
+                                                </button>
+                                                {!friend.isSender && (
+                                                    <button className={`cursor-pointer bg-red-400 hover:bg-red-300 text-primary-foreground text-sm block rounded-lg  px-2 py-1`}>
+                                                        Ablehnen
+                                                    </button>
+                                                )}
+                                                {friend.isSender && (
+                                                    <button className="cursor-pointer hover:bg-red-300 bg-red-400 px-1 py-1 rounded-lg text-sm text-primary-foreground">
+                                                        <FontAwesomeIcon icon={faTimes} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
                                     </motion.div>
                                 ))}
                             </AnimatePresence>

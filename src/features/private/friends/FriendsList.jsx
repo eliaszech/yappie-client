@@ -71,7 +71,7 @@ function FriendsList({filter}) {
                                         transition={{ duration: 0.25 }}
                                     >
                                         <div onClick={() => openConversation({friendId: friend.id})}>
-                                            <UserItem user={friend} paddings={'px-2 py-3'} />
+                                            <UserItem user={friend} paddings={'px-2 py-2'} />
                                         </div>
                                     </motion.div>
                                 ))}
