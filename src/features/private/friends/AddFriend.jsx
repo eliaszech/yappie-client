@@ -8,6 +8,7 @@ import UserAvatar from "../../components/UserAvatar.jsx";
 import {useAuth} from "../../../hooks/useAuth.js";
 import {useQueryClient} from "@tanstack/react-query";
 import NoResultsMessage from "../../components/static/NoResultsMessage.jsx";
+import {getSocket} from "../../../services/socket.js";
 
 function AddFriend() {
     const {user} = useAuth();
@@ -27,6 +28,9 @@ function AddFriend() {
     }
 
     async function handleAddFriend(userId) {
+        const socket = getSocket();
+        if(!socket) return;
+
         const res = await sendFriendRequest(user.id, userId);
 
         if(res.status !== 400) {
@@ -36,6 +40,7 @@ function AddFriend() {
                 return [...old, res];
             });
 
+            socket.emit('friend:request', user.id, userId);
             navigate('/@me/friends/pending');
         }
     }
@@ -69,13 +74,11 @@ function AddFriend() {
                                     <span className="text-muted-foreground text-xs">{user.username}</span>
                                 </div>
                             </div>
-                            <button onClick={() => handleAddFriend(user.id)} className="cursor-pointer text-sm group-hover:block hidden rounded-full bg-primary text-primary-foreground px-2 py-1">
+                            <button onClick={() => handleAddFriend(user.id)} className="cursor-pointer text-sm group-hover:block hidden rounded-lg bg-primary text-primary-foreground px-2 py-1">
                                 Freund hinzufügen
                             </button>
                         </div>
-                    )) : (
-                        <NoResultsMessage title="Keine Ergebnisse" message="Keine Benutzer gefunden die du noch nicht angefragt hast" icon={<FontAwesomeIcon icon={faUserPlus} />} />
-                    )}
+                    )) : (null)}
                 </div>
             </div>
             <div className="p-4 border-b border-border">

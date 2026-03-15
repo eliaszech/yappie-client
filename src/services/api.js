@@ -50,6 +50,8 @@ export const fetchServers = () => apiRequest('GET', `/@me/servers`);
 
 export const fetchSearchUsers = (query) => apiRequest('GET', `/users/search?query=${query}`);
 export const sendFriendRequest = (selfId, userId) => apiRequest('POST', `/@me/friends/request`, { selfId, userId });
+export const denyFriendRequest = (friendId, userId) => apiRequest('POST', `/@me/friends/request/deny`, { friendId, userId });
+export const acceptFriendRequest = (friendId, userId) => apiRequest('POST', `/@me/friends/request/accept`, { friendId, userId });
 
 export const fetchServer = (serverId) => apiRequest('GET', `/servers/${serverId}`);
 export const fetchChannels = (serverId) => apiRequest('GET', `/servers/${serverId}/channels`);

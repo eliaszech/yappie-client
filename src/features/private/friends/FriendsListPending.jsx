@@ -10,11 +10,11 @@ import {useState} from "react";
 import NoResultsMessage from "../../components/static/NoResultsMessage.jsx";
 import UserItem from "../../components/UserItem.jsx";
 import {useUsersWithPresence} from "../../../hooks/useUsersWithPresence.js";
-import {fetchFriends, fetchGetOrCreateConversation} from "../../../services/api.js";
+import {fetchFriends, denyFriendRequest, acceptFriendRequest} from "../../../services/api.js";
 import {useAuth} from "../../../hooks/useAuth.js";
 import {useQueryClient} from "@tanstack/react-query";
-import {useNavigate} from "react-router-dom";
 import UserAvatar from "../../components/UserAvatar.jsx";
+import {getSocket} from "../../../services/socket.js";
 
 function FriendsListPending({filter}) {
     const { user } = useAuth();
@@ -24,13 +24,45 @@ function FriendsListPending({filter}) {
         getUserId: (user) => user.id,
     });
     const [search, setSearch] = useState('');
+    const queryClient = useQueryClient();
 
-    function denyFriendRequest(friendId) {
+    async function handleDenyFriendRequest(friendId, userId) {
+        const socket = getSocket();
+        if(!socket) return;
 
+        const res = await denyFriendRequest(friendId);
+
+        if(res.status !== 400) {
+            queryClient.setQueryData(['friends'], (old) => {
+                if (!old) return old;
+
+                return old.filter(f => f.friendId !== friendId);
+            });
+
+            socket.emit('friend:decline', friendId, userId);
+        }
     }
 
-    function acceptFriendRequest(friendId) {
+    async function handleAcceptFriendRequest(friendId, userId) {
+        const socket = getSocket();
+        if(!socket) return;
 
+        const res = await acceptFriendRequest(friendId);
+
+        if(res.status !== 400) {
+            queryClient.setQueryData(['friends'], (old) => {
+                if (!old) return old;
+
+                return old.map(f => {
+                    if(f.friendId === friendId) {
+                        return {...f, friendStatus: 'ACCEPTED'};
+                    }
+                    return f;
+                })
+            });
+
+            socket.emit('friend:accept', friendId, userId);
+        }
     }
 
     if (isLoading) return <Spinner size="w-10 h-10" />;
@@ -82,16 +114,18 @@ function FriendsListPending({filter}) {
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <button disabled={friend.isSender} className={`${friend.isSender ? 'disabled bg-card text-muted-foreground' : 'cursor-pointer bg-green-300 text-primary-foreground hover:bg-green-200'} text-sm block rounded-lg  px-2 py-1`}>
+                                                <button disabled={friend.isSender}
+                                                    onClick={() => handleAcceptFriendRequest(friend.friendId, friend.id)}
+                                                    className={`${friend.isSender ? 'disabled bg-card text-muted-foreground' : 'cursor-pointer bg-green-300 text-primary-foreground hover:bg-green-200'} text-sm block rounded-lg  px-2 py-1`}>
                                                     {friend.isSender ? 'Angefragt' : 'Annehmen' }
                                                 </button>
                                                 {!friend.isSender && (
-                                                    <button className={`cursor-pointer bg-red-400 hover:bg-red-300 text-primary-foreground text-sm block rounded-lg  px-2 py-1`}>
+                                                    <button onClick={() => handleDenyFriendRequest(friend.friendId, friend.id)} className={`cursor-pointer bg-red-400 hover:bg-red-300 text-primary-foreground text-sm block rounded-lg  px-2 py-1`}>
                                                         Ablehnen
                                                     </button>
                                                 )}
                                                 {friend.isSender && (
-                                                    <button className="cursor-pointer hover:bg-red-300 bg-red-400 px-1 py-1 rounded-lg text-sm text-primary-foreground">
+                                                    <button onClick={() => handleDenyFriendRequest(friend.friendId, friend.id)} className="cursor-pointer hover:bg-red-300 bg-red-400 px-1 py-1 rounded-lg text-sm text-primary-foreground">
                                                         <FontAwesomeIcon icon={faTimes} />
                                                     </button>
                                                 )}

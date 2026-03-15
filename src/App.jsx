@@ -23,6 +23,7 @@ import MemberList from "./features/servers/members/MemberList.jsx";
 import {useReactMessage} from "./hooks/messages/useReactMessage.js";
 import Register from "./features/auth/Register.jsx";
 import FriendsListPending from "./features/private/friends/FriendsListPending.jsx";
+import {useFriendRequests} from "./hooks/friends/useFriendRequests.js";
 
 function App() {
     usePresence();
@@ -30,6 +31,7 @@ function App() {
     useDeleteMessage();
     useReactMessage();
     useMessages();
+    useFriendRequests();
 
     return (
         <BrowserRouter>

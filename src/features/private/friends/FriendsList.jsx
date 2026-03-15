@@ -11,32 +11,20 @@ import NoResultsMessage from "../../components/static/NoResultsMessage.jsx";
 import UserItem from "../../components/UserItem.jsx";
 import {useUsersWithPresence} from "../../../hooks/useUsersWithPresence.js";
 import {fetchFriends, fetchGetOrCreateConversation} from "../../../services/api.js";
-import {useAuth} from "../../../hooks/useAuth.js";
-import {useQueryClient} from "@tanstack/react-query";
-import {useNavigate} from "react-router-dom";
+import FriendUserItem from "../../components/FriendUserItem.jsx";
 
 function FriendsList({filter}) {
-    const { user } = useAuth();
     const { users, isLoading, isError } = useUsersWithPresence({
         queryKey: ['friends'],
         fetchFunction: () => fetchFriends(),
         getUserId: (user) => user.id,
     });
     const [search, setSearch] = useState('');
-    const queryClient = useQueryClient();
-    const navigate = useNavigate();
 
-    const filteredUsers = users.filter(user => (user.online && (filter === 'online' || filter === 'all') && user.friendStatus === 'ACCEPTED'))
+    const filteredUsers = users.filter(user => ((user.online && filter === 'online') || filter === 'all') && user.friendStatus === 'ACCEPTED')
         .filter(user => user.username.toLowerCase().includes(search.toLowerCase()));
 
     const {t} = useTranslation();
-
-    async function openConversation({friendId}) {
-        const res = await fetchGetOrCreateConversation(user.id, friendId);
-
-        queryClient.invalidateQueries({ queryKey: ['conversations'] });
-        navigate(`/@me/messages/${res.id}`);
-    }
 
     if (isLoading) return <Spinner size="w-10 h-10" />;
     if(isError) return <ErrorMessage message="Benutzer konnten nicht geladen werden" icon={<FontAwesomeIcon icon={faUsers} />} />;
@@ -70,9 +58,7 @@ function FriendsList({filter}) {
                                         exit={{ opacity: 0, y: -50 }}
                                         transition={{ duration: 0.25 }}
                                     >
-                                        <div onClick={() => openConversation({friendId: friend.id})}>
-                                            <UserItem user={friend} paddings={'px-2 py-2'} />
-                                        </div>
+                                        <FriendUserItem friend={friend} paddings={'px-2 py-2'} />
                                     </motion.div>
                                 ))}
                             </AnimatePresence>

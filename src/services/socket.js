@@ -9,6 +9,7 @@ let presenceCallback = null;
 let messageCallback = null;
 let messageDeleteCallback = null;
 let reactionCallback = null;
+let friendRequestCallback = null;
 
 let voiceCallback = null;
 
@@ -32,6 +33,18 @@ function registerEvents() {
     socket.on('message:new', (message) => {
         if (messageCallback) messageCallback(message);
     });
+
+    socket.on('friend:request:new', (friendRequest) => {
+        if(friendRequestCallback) friendRequestCallback('new', friendRequest);
+    })
+
+    socket.on('friend:request:declined', (friendId) => {
+        if(friendRequestCallback) friendRequestCallback('declined', friendId);
+    })
+
+    socket.on('friend:request:accepted', (friendId) => {
+        if(friendRequestCallback) friendRequestCallback('accepted', friendId);
+    })
 
     socket.on('reaction:update', (type, roomId, reaction, action) => {
         if(reactionCallback) reactionCallback(type, roomId, reaction, action);
@@ -78,6 +91,10 @@ export function onNewMessage(callback) {
 
 export function onReactionUpdate(callback) {
     reactionCallback = callback;
+}
+
+export function onFriendRequest(callback) {
+    friendRequestCallback = callback;
 }
 
 export function onMessageDelete(callback) {
