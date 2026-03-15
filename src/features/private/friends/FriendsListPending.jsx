@@ -15,7 +15,7 @@ import {useAuth} from "../../../hooks/useAuth.js";
 import {useQueryClient} from "@tanstack/react-query";
 import {useNavigate} from "react-router-dom";
 
-function FriendsList({filter}) {
+function FriendsListPending({filter}) {
     const { user } = useAuth();
     const { users, isLoading, isError } = useUsersWithPresence({
         queryKey: ['friends'],
@@ -26,20 +26,11 @@ function FriendsList({filter}) {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
 
-    const filteredUsers = users.filter(user => (user.online && (filter === 'online' || filter === 'all') && user.friendStatus === 'ACCEPTED'))
+    const filteredUsers = users.filter(user => (user.friendStatus === 'PENDING'))
         .filter(user => user.username.toLowerCase().includes(search.toLowerCase()));
 
-    const {t} = useTranslation();
-
-    async function openConversation({friendId}) {
-        const res = await fetchGetOrCreateConversation(user.id, friendId);
-
-        queryClient.invalidateQueries({ queryKey: ['conversations'] });
-        navigate(`/@me/messages/${res.id}`);
-    }
-
     if (isLoading) return <Spinner size="w-10 h-10" />;
-    if(isError) return <ErrorMessage message="Benutzer konnten nicht geladen werden" icon={<FontAwesomeIcon icon={faUsers} />} />;
+    if(isError) return <ErrorMessage title="Fehler beim Laden der Benutzer" message="Benutzer konnten nicht geladen werden" icon={<FontAwesomeIcon icon={faUsers} />} />;
 
     return (
         <div className="flex flex-col h-full overflow-hidden pt-4">
@@ -58,7 +49,7 @@ function FriendsList({filter}) {
                 {filteredUsers.length > 0 ? (
                     <>
                         <span className="text-sm font-semibold uppercase tracking-wide text-foreground mb-2">
-                            {t('messages.friends.filters.texts.' + filter.toLowerCase()) + ' - ' + filteredUsers.length}
+                            {'Ausstehende Freundesanfragen - ' + filteredUsers.length}
                         </span>
                         <div className="flex flex-col divide-y divide-border">
                             <AnimatePresence mode="popLayout">
@@ -70,17 +61,15 @@ function FriendsList({filter}) {
                                         exit={{ opacity: 0, y: -50 }}
                                         transition={{ duration: 0.25 }}
                                     >
-                                        <div onClick={() => openConversation({friendId: friend.id})}>
-                                            <UserItem user={friend} paddings={'px-2 py-3'} />
-                                        </div>
+                                        <UserItem user={friend} paddings={'px-2 py-3'} />
                                     </motion.div>
                                 ))}
                             </AnimatePresence>
                         </div>
                     </>
                 ) : (
-                    <NoResultsMessage title="Keine Freunde"
-                        message={filter === 'online' ? t('messages.friends.empty.online') : t('messages.friends.empty.all')}
+                    <NoResultsMessage title="Keine Anfragen"
+                        message="Es gibt keine ausstehenden Freundesanfragen"
                         icon={<FontAwesomeIcon icon={faUsers} />}/>
                 )}
             </div>
@@ -88,4 +77,4 @@ function FriendsList({filter}) {
     )
 }
 
-export default FriendsList;
+export default FriendsListPending;

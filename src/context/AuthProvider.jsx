@@ -52,6 +52,16 @@ export function AuthProvider({ children }) {
         }));
     }
 
+    function register(token, userData) {
+        setToken(token);
+        connectSocket();
+        setUser({...userData, online: true});
+        queryClient.setQueryData(['presence'], (old = {}) => ({
+            ...old,
+            [userData.id]: { online: true, status: userData.status || 'online' }
+        }));
+    }
+
     function logout() {
         disconnectSocket();
         removeToken();
@@ -59,7 +69,7 @@ export function AuthProvider({ children }) {
     }
 
     return (
-        <AuthContext.Provider value={{ user, setUser, login, logout, loading, error }}>
+        <AuthContext.Provider value={{ user, setUser, login, register, logout, loading, error }}>
             {children}
         </AuthContext.Provider>
     );

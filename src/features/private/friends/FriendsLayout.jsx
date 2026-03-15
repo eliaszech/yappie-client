@@ -30,6 +30,10 @@ function FriendsLayout() {
                                  className={({isActive}) => `${isActive ? 'text-foreground bg-muted font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'} cursor-pointer text-sm px-2 py-1 rounded-md transition-colors `}>
                             {t('messages.friends.filters.all')}
                         </NavLink>
+                        <NavLink to="/@me/friends/pending"
+                                 className={({isActive}) => `${isActive ? 'text-foreground bg-muted font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'} cursor-pointer text-sm px-2 py-1 rounded-md transition-colors `}>
+                            Ausstehend
+                        </NavLink>
                         <NavLink to="/@me/friends/add"
                             className={({isActive}) => `${isActive ? 'bg-primary/50 text-primary-foreground' : 'bg-primary text-primary-foreground'} cursor-pointer px-2 text-sm py-1 font-medium rounded-sm transition-colors `}>
                             {t('messages.addFriend')}

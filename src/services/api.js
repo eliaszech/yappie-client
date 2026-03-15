@@ -48,6 +48,9 @@ async function apiRequestWithCursor(method, path, body = null, cursor = null, li
 export const fetchFriends = () => apiRequest('GET', `/@me/friends`);
 export const fetchServers = () => apiRequest('GET', `/@me/servers`);
 
+export const fetchSearchUsers = (query) => apiRequest('GET', `/users/search?query=${query}`);
+export const sendFriendRequest = (selfId, userId) => apiRequest('POST', `/@me/friends/request`, { selfId, userId });
+
 export const fetchServer = (serverId) => apiRequest('GET', `/servers/${serverId}`);
 export const fetchChannels = (serverId) => apiRequest('GET', `/servers/${serverId}/channels`);
 export const fetchMembers = (serverId) => apiRequest('GET', `/servers/${serverId}/members`);

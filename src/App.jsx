@@ -21,6 +21,8 @@ import {useVoiceEvents} from "./hooks/useVoiceParticipants.js";
 import {useDeleteMessage} from "./hooks/messages/useDeleteMessage.js";
 import MemberList from "./features/servers/members/MemberList.jsx";
 import {useReactMessage} from "./hooks/messages/useReactMessage.js";
+import Register from "./features/auth/Register.jsx";
+import FriendsListPending from "./features/private/friends/FriendsListPending.jsx";
 
 function App() {
     usePresence();
@@ -33,7 +35,7 @@ function App() {
         <BrowserRouter>
             <Routes>
                 <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
-                <Route path="/register" element={<GuestRoute>Register</GuestRoute>} />
+                <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
                 <Route path="/*" element={
                     <ProtectedRoute>
                         <GlobalVoiceComponent />
@@ -58,6 +60,7 @@ function App() {
                                         <Route index element={<LastPathRedirect pathKey="friends" defaultPath="/@me/friends/online" />} />
                                         <Route path="online" element={<FriendsList filter="online" />} />
                                         <Route path="all" element={<FriendsList filter="all" />} />
+                                        <Route path="pending" element={<FriendsListPending filter="pending" />} />
                                         <Route path="add" element={<AddFriend />} />
                                     </Route>
                                     <Route path="messages/:conversationId" element={<Conversation />} />

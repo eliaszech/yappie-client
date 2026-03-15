@@ -1,8 +1,43 @@
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faChevronRight, faCompass} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
-import {Link} from "react-router-dom";
+import {faChevronRight, faCompass, faUserPlus} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
+import {Link, useNavigate} from "react-router-dom";
+import {useState} from "react";
+import {fetchSearchUsers, sendFriendRequest} from "../../../services/api.js";
+import UserAvatar from "../../components/UserAvatar.jsx";
+import {useAuth} from "../../../hooks/useAuth.js";
+import {useQueryClient} from "@tanstack/react-query";
 
 function AddFriend() {
+    const {user} = useAuth();
+    const [input, setInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [users, setUsers] = useState([]);
+    const queryClient = useQueryClient();
+    const navigate = useNavigate();
+
+    async function searchUsers() {
+        setIsLoading(true);
+        const res = await fetchSearchUsers(input);
+
+        setUsers(res);
+
+        setIsLoading(false);
+    }
+
+    async function handleAddFriend(userId) {
+        const res = await sendFriendRequest(user.id, userId);
+
+        if(res.status !== 400) {
+            queryClient.setQueryData(['friends'], (old) => {
+                if (!old) return old;
+
+                return [...old, res];
+            });
+
+            navigate('/@me/friends/pending');
+        }
+    }
+
     return (
         <div>
             <div className="p-4 border-b border-border">
@@ -10,12 +45,33 @@ function AddFriend() {
                 <p className="text-sm text-muted-foreground mb-4">You can add friends with their username.</p>
                 <div
                     className="flex items-center gap-2 p-1.5 rounded-md border border-border bg-card focus-within:ring-2 focus-within:ring-primary/80 transition-colors">
-                    <input type="text"
+                    <input onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            searchUsers();
+                        }
+                    }} onChange={(e) => setInput(e.target.value)} type="text"
                         className="flex-1 bg-transparent px-3 py-2 text-[15px] text-foreground outline-none placeholder:text-muted-foreground!"
-                        placeholder="You can add friends with their username. e.g. CoolUser#1234" />
-                    <button disabled className="px-5 py-2 rounded cursor-pointer bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 hover:bg-primary transition-all shrink-0">
-                        Add Friend
+                        placeholder="You can add friends with their username. e.g. CoolUser" />
+                    <button onClick={searchUsers} disabled={input.length === 0} className="px-5 py-2 rounded cursor-pointer bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 hover:bg-primary transition-all shrink-0">
+                        Suchen
                     </button>
+                </div>
+
+                <div className="mt-4 flex flex-col gap-1">
+                    {users && users.length > 0 && users.map((user) => (
+                        <div key={user.id} className={`flex items-center group justify-between gap-3 px-2 py-1 rounded-md hover:bg-border transition duration-200`}>
+                            <div className="flex items-center gap-3">
+                                <UserAvatar icon={user.username.charAt(0).toUpperCase()} displayOnline={false} />
+                                <div className="flex flex-col">
+                                    <span className="text-foreground font-medium">{user.displayName ?? user.username}</span>
+                                    <span className="text-muted-foreground text-xs">{user.username}</span>
+                                </div>
+                            </div>
+                            <button onClick={() => handleAddFriend(user.id)} className="cursor-pointer text-sm group-hover:block hidden rounded-full bg-primary text-primary-foreground px-2 py-1">
+                                Freund hinzufügen
+                            </button>
+                        </div>
+                    ))}
                 </div>
             </div>
             <div className="p-4 border-b border-border">

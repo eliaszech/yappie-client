@@ -66,8 +66,8 @@ function UserPopup() {
 
                 {/* User Info */}
                 <div className="p-4">
-                    <div className="text-xl font-bold text-foreground">{popup.user.username}</div>
-                    <div className="text-sm text-muted-foreground">{popup.user.id}</div>
+                    <div className="text-xl font-bold text-foreground">{popup.user.displayName ?? popup.user.username}</div>
+                    <div className="text-sm text-muted-foreground">{popup.user.username}</div>
 
                     <div className="mt-2">
                         <span className="text-xs font-semibold text-foreground">Mitglied seit</span>

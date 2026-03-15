@@ -70,7 +70,7 @@ function UserPanel() {
                         <UserAvatar icon={user.username.charAt(0).toUpperCase()} avatar={user.avatar} online={online} status={status} />
                         <div className="flex flex-col ">
                             <span className="text-foreground text-base font-medium">
-                                {user.username}
+                                {user.displayName ?? user.username}
                             </span>
                             <span className="text-muted-foreground text-xs">
                                 <StatusText hideBubble={true} hideDescription={true} online={online} userStatus={status} showRealStatus={true} />
