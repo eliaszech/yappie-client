@@ -10,7 +10,7 @@ import HasUserPopup from "../../components/user/HasUserPopup.jsx";
 function MemberSidebarList({serverId}) {
     const { users: members, isLoading, isError } = useUsersWithPresence({
         queryKey: ['members', serverId],
-        fetchFunction: () => fetchMembers(serverId),
+        fetchFunction: () => fetchMembers('members', serverId),
         getUserId: (member) => member.user.id,
     });
 

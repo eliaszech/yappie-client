@@ -6,7 +6,7 @@ import {useQuery} from "@tanstack/react-query";
 import {useAuth} from "../../hooks/useAuth.js";
 import {fetchServers} from "../../services/api.js";
 import {useState} from "react";
-import CreateServerDialog from "../messages/dialogs/CreateServerDialog.jsx";
+import CreateServerDialog from "./dialogs/CreateServerDialog.jsx";
 
 function ServerSelector() {
     const { user } = useAuth();

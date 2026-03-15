@@ -1,16 +1,32 @@
-import MessageItem from "../components/MessageItem.jsx";
+import MessageItem from "../../messages/components/MessageItem.jsx";
 import {useAuth} from "../../../hooks/useAuth.js";
 import Input from "../../components/static/Input.jsx";
 import {useState} from "react";
+import {createServer} from "../../../services/api.js";
+import {useQueryClient} from "@tanstack/react-query";
+import {useNavigate} from "react-router-dom";
 
 function CreateServerDialog({onCancel}) {
     const {user} = useAuth();
     const [serverName, setServerName] = useState('');
+    const queryClient = useQueryClient();
+    const navigate = useNavigate();
 
     async function handleCreateServer() {
         if(!serverName) return;
 
+        const res = await createServer(serverName);
 
+        if(res.status !== 400) {
+            queryClient.setQueryData(['servers', user?.id], (old) => {
+                if(!old) return old;
+
+                return [...old, res];
+            })
+
+            onCancel();
+            navigate('/servers/' + res.id);
+        }
     }
 
     return (
@@ -23,7 +39,7 @@ function CreateServerDialog({onCancel}) {
                     Erstelle einen Server, um deine eigenen Nachrichten zu teilen und mit anderen zu kommunizieren.
                 </div>
                 <div className="flex flex-col gap-2 mt-6">
-                    <Input setValue={setServerName} value={serverName} type="text" placeholder="Servername" className="w-full" />
+                    <Input setValue={setServerName} noLeftPadding={true} value={serverName} type="text" placeholder="Servername" className="w-full" />
                 </div>
                 <div className="flex justify-evenly gap-2 mt-6">
                     <button onClick={onCancel}
