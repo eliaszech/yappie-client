@@ -24,6 +24,8 @@ import {useReactMessage} from "./hooks/messages/useReactMessage.js";
 import Register from "./features/auth/Register.jsx";
 import FriendsListPending from "./features/private/friends/FriendsListPending.jsx";
 import {useFriendRequests} from "./hooks/friends/useFriendRequests.js";
+import PageNotFound from "./errors/PageNotFound.jsx";
+import PageNotFoundSidebar from "./errors/PageNotFoundSidebar.jsx";
 
 function App() {
     usePresence();
@@ -49,6 +51,7 @@ function App() {
                                         <Routes>
                                             <Route path="/@me/*" element={<MessagesSidebar />} />
                                             <Route path="/servers/:serverId/*" element={<ServerSidebar />} />
+                                            <Route path="/error/404" element={<PageNotFoundSidebar />} />
                                         </Routes>
                                     </div>
                                 </div>
@@ -74,6 +77,7 @@ function App() {
                                     <Route path="channels/:channelId" element={<Channel />} />
                                     <Route path="settings" element={<div>Settings</div>} />
                                 </Route>
+                                <Route path="/error/404" element={<PageNotFound />} />
                             </Routes>
                         </div>
                     </ProtectedRoute>

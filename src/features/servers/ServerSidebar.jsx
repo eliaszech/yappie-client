@@ -1,4 +1,4 @@
-import {NavLink, Outlet, useLocation, useParams} from "react-router-dom";
+import {Navigate, NavLink, Outlet, useLocation, useParams} from "react-router-dom";
 import {useTranslation} from "react-i18next";
 import {useLastPath} from "../../hooks/useLastPath.js";
 import {useEffect, useState} from "react";
@@ -9,6 +9,8 @@ import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faChevronDown, faUserPlus, faUsers} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import ChannelList from "./channels/ChannelList.jsx";
 import ServerDropdown from "./ServerDropdown.jsx";
+import ErrorMessage from "../components/static/ErrorMessage.jsx";
+import {faServer} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 
 function ServerSidebar() {
     const { serverId } = useParams();
@@ -17,7 +19,7 @@ function ServerSidebar() {
     const { savePath } = useLastPath(`server-${serverId}`);
     const [serverDropdownOpen, setServerDropdownOpen] = useState(false);
 
-    const { data: server = null, isLoading, isError } = useQuery( {
+    const { data: server = null, isLoading, isError, error } = useQuery( {
         queryKey: ['server', serverId],
         queryFn: () => fetchServer(serverId),
         staleTime: 10 * 60 * 1000,
@@ -29,11 +31,12 @@ function ServerSidebar() {
     }, [location.pathname]);
 
     if(isLoading) return <Spinner size="w-10 h-10" />
+    if(isError) return <Navigate to="/error/404" replace={true} />
 
     return(
         <div className="w-full h-full bg-card rounded-tl-2xl border-l border-border flex flex-col grow overflow-y-auto pb-[65px]">
             <div className="relative px-2 h-12 flex justify-between items-center border-b-2 border-border shrink-0 text-foreground bg-guild-bar">
-                <button onClick={() => setServerDropdownOpen(!serverDropdownOpen)} className="cursor-pointer font-bold flex items-center gap-2.5 hover:bg-muted/50 rounded-md px-2 py-1 transition-all">
+                <button onClick={() => setServerDropdownOpen(true)} className="cursor-pointer font-bold flex items-center gap-2.5 hover:bg-muted/50 rounded-md px-2 py-1 transition-all">
                     {server.name} <FontAwesomeIcon className="text-xs" icon={faChevronDown} />
                 </button>
                 <button className="cursor-pointer font-bold flex text-sm items-center gap-2.5 hover:bg-muted/50 rounded-md px-2 py-1.5 transition-all">

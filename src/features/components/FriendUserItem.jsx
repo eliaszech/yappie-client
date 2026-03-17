@@ -1,7 +1,7 @@
 import {useIsOnline, useUserStatus} from "../../hooks/usePresence.js";
 import UserAvatar from "./UserAvatar.jsx";
 import StatusText from "./user/StatusText.jsx";
-import {denyFriendRequest, fetchGetOrCreateConversation} from "../../services/api.js";
+import {denyFriendRequest, fetchOrCreateConversationWith} from "../../services/api.js";
 import {useQueryClient} from "@tanstack/react-query";
 import {useNavigate} from "react-router-dom";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
@@ -18,7 +18,7 @@ function UserItem({friend, paddings = 'px-2 py-1'}) {
     const navigate = useNavigate();
 
     async function openConversation() {
-        const res = await fetchGetOrCreateConversation(user.id, friend.id);
+        const res = await fetchOrCreateConversationWith(friend.id);
 
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
         navigate(`/@me/messages/${res.id}`);

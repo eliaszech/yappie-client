@@ -13,17 +13,22 @@ export function removeToken() {
 }
 
 async function apiRequest(method, path, body = null) {
-    const res = await fetch(`${API_URL}${path}`, {
-        method,
-        body: body ? JSON.stringify(body) : null,
-        headers: {
-            'Authorization': `Bearer ${getToken()}`,
-            'Content-Type': 'application/json',
-        }
-    });
+    try {
+        const res = await fetch(`${API_URL}${path}`, {
+            method,
+            body: body ? JSON.stringify(body) : null,
+            headers: {
+                'Authorization': `Bearer ${getToken()}`,
+                'Content-Type': 'application/json',
+            }
+        });
 
-    if (!res.ok && res.status !== 304) throw new Error(`API Fehler: ${res.status}`);
-    return res.json();
+        if(res.status === 404) throw new Error('Server nicht gefunden!');
+        if (!res.ok && res.status !== 304) throw new Error(`API Fehler: ${res.status}`);
+        return res.json();
+    } catch (err) {
+        throw new Error(err.message);
+    }
 }
 
 async function apiRequestWithCursor(method, path, body = null, cursor = null, limit = '50') {
@@ -62,11 +67,11 @@ export const fetchChannel = (channelId) => apiRequest('GET', `/channels/${channe
 export const fetchMessages = (type = 'conversation',channelId) => apiRequest('GET',
     type === 'channel' ? `/channels/${channelId}/messages` : `/conversations/${channelId}/messages`);
 
+export const createInvite = (serverId, targetUserId) => apiRequest('POST', `/servers/${serverId}/invites/create`, { targetUserId });
+
 export const fetchVoiceToken = (data) => apiRequest('POST', `/voice/token`, data);
 export const fetchChannelParticipants = (channelId) => apiRequest('GET', `/voice/participants/${channelId}`);
 
-export const fetchGetOrCreateConversation = (userId, targetUserId) => apiRequest('POST', `/conversations/getOrCreate`, { userId: userId, targetUserId: targetUserId });
-
 export const fetchConversations = (userId) => apiRequest('POST', `/conversations/list`, { userId: userId });
-
 export const fetchConversation = (conversationId) => apiRequest('GET', `/conversations/${conversationId}`);
+export const fetchOrCreateConversationWith = (receiverId) => apiRequest('POST', `/conversations/getOrCreate`, { targetUserId: receiverId });

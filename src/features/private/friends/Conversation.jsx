@@ -15,6 +15,44 @@ import UserItem from "../../components/UserItem.jsx";
 import MessageInput from "../../messages/components/MessageInput.jsx";
 import Chat from "../../messages/components/Chat.jsx";
 import HasUserPopup from "../../components/user/HasUserPopup.jsx";
+import Dropdown from "../../components/Dropdown.jsx";
+import StatusText from "../../components/user/StatusText.jsx";
+import StatusPicker from "../../components/user/StatusPicker.jsx";
+import {useIsOnline, useUserStatus} from "../../../hooks/usePresence.js";
+
+function UserSidebar({user}) {
+    const online = useIsOnline(user.id) || user.online;
+    const status = useUserStatus(user.id) || user.status;
+
+    return (
+        <div className="max-w-xs border-l border-border w-full bg-card/70 h-full">
+            <div className="h-16 bg-primary rounded-b-lg" />
+            {/* Avatar */}
+            <div className="px-4 -mt-8">
+                <UserAvatar size="w-16 h-16 text-2xl border-4 border-card"
+                    onlineSize="w-5 h-5 bottom-0 right-0" icon={user.username.charAt(0).toUpperCase()}
+                    online={online} status={status}
+                />
+            </div>
+            {/* User Info */}
+            <div className="p-4">
+                <div className="text-xl font-bold text-foreground">{user.displayName ?? user.username}</div>
+                <div className="text-sm text-muted-foreground">{user.username}</div>
+
+                <div className="mt-2">
+                    <span className="text-xs font-semibold text-foreground">Mitglied seit</span>
+                    <p className="text-xs text-muted-foreground mt-1">
+                        {new Date(user.createdAt).toLocaleDateString('de-DE', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                        })}
+                    </p>
+                </div>
+            </div>
+        </div>
+    )
+}
 
 function Conversation() {
     const {user} = useAuth();
@@ -70,7 +108,6 @@ function Conversation() {
     const icons = otherUsers.map(participant => participant.user.username.charAt(0).toUpperCase());
     const avatars = otherUsers.map(participant => participant.user.avatar);
     const isSingle = otherUsers.length === 1;
-
     const conversationTitle = otherUsers.map(participant => participant.user.displayName ?? participant.user.username).join(', ');
 
     return (
@@ -101,12 +138,9 @@ function Conversation() {
                     <div className="absolute z-2 bottom-[64px] left-0 w-full h-16 bg-gradient-to-b from-transparent to-background pointer-events-none"></div>
                     <MessageInput type="conversation" roomId={conversationId} roomName={conversationTitle} />
                 </div>
-                { isSingle ? (
-                    <div className="max-w-xs w-full bg-card/70 h-full">
-
-                    </div>
-                ) : (
-                    <div className="max-w-xs flex flex-col px-2 py-4 w-full h-full bg-card/70">
+                { isSingle && <UserSidebar user={otherUsers[0].user} />}
+                { !isSingle && (
+                    <div className="max-w-xs flex flex-col border-l border-border px-2 py-4 w-full h-full bg-card/70">
                         <span className="text-sm px-2 text-foreground mb-2">Teilnehmer - {conversation.participants.length}</span>
                         { conversation.participants.map((participant) => (
                             <HasUserPopup user={participant.user} orientation="left" key={participant.user.id}>
@@ -115,7 +149,6 @@ function Conversation() {
                         ))}
                     </div>
                 )}
-
             </div>
 
         </>

@@ -22,8 +22,8 @@ function registerEvents() {
         if (presenceCallback) presenceCallback(userId, online, status);
     });
 
-    socket.on('user:offline', ({ userId }) => {
-        if (presenceCallback) presenceCallback(userId, false);
+    socket.on('user:offline', (data) => {
+        if (presenceCallback) presenceCallback(data.userId, false, 'invisible');
     });
 
     socket.on('user:statusChange', (data) => {
