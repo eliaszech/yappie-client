@@ -10,7 +10,7 @@ import {useState} from "react";
 import NoResultsMessage from "../../components/static/NoResultsMessage.jsx";
 import UserItem from "../../components/UserItem.jsx";
 import {useUsersWithPresence} from "../../../hooks/useUsersWithPresence.js";
-import {fetchFriends, fetchGetOrCreateConversation} from "../../../services/api.js";
+import {fetchFriends} from "../../../services/api.js";
 import FriendUserItem from "../../components/FriendUserItem.jsx";
 
 function FriendsList({filter}) {

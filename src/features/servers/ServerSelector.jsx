@@ -13,7 +13,7 @@ function ServerSelector() {
     const [showCreateServerDialog, setShowCreateServerDialog] = useState(false);
 
     const {data: servers = [] , isError, isLoading} = useQuery({
-        queryKey: ['servers', user?.id],
+        queryKey: ['servers'],
         queryFn: fetchServers,
         staleTime: 10 * 60 * 1000,
         retry: 1,

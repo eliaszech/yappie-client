@@ -9,8 +9,6 @@ import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faChevronDown, faUserPlus, faUsers} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import ChannelList from "./channels/ChannelList.jsx";
 import ServerDropdown from "./ServerDropdown.jsx";
-import ErrorMessage from "../components/static/ErrorMessage.jsx";
-import {faServer} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 
 function ServerSidebar() {
     const { serverId } = useParams();
@@ -31,7 +29,7 @@ function ServerSidebar() {
     }, [location.pathname]);
 
     if(isLoading) return <Spinner size="w-10 h-10" />
-    if(isError) return <Navigate to="/error/404" replace={true} />
+    if(isError || server.status === 404) return <Navigate to="/error/404" replace={true} />
 
     return(
         <div className="w-full h-full bg-card rounded-tl-2xl border-l border-border flex flex-col grow overflow-y-auto pb-[65px]">

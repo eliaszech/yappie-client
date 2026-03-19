@@ -9,7 +9,6 @@ import {faUserPlus} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import InviteDialog from "./dialogs/InviteDialog.jsx";
 
 export function ServerDropdown({server, closeDropdown}) {
-    const {user} = useAuth();
     const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
     const navigate = useNavigate();
     const dropdownRef = useRef(null);
@@ -29,7 +28,7 @@ export function ServerDropdown({server, closeDropdown}) {
         const res = deleteServer(server.id);
 
         if(res.status !== 400) {
-            queryClient.setQueryData(['servers', user?.id], (old) => {
+            queryClient.setQueryData(['servers'], (old) => {
                 if(!old) return old;
 
                 return old.filter(s => s.id !== server.id);

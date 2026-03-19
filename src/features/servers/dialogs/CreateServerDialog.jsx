@@ -7,7 +7,6 @@ import {useQueryClient} from "@tanstack/react-query";
 import {useNavigate} from "react-router-dom";
 
 function CreateServerDialog({onCancel}) {
-    const {user} = useAuth();
     const [serverName, setServerName] = useState('');
     const queryClient = useQueryClient();
     const navigate = useNavigate();
@@ -18,7 +17,7 @@ function CreateServerDialog({onCancel}) {
         const res = await createServer(serverName);
 
         if(res.status !== 400) {
-            queryClient.setQueryData(['servers', user?.id], (old) => {
+            queryClient.setQueryData(['servers'], (old) => {
                 if(!old) return old;
 
                 return [...old, res];

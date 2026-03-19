@@ -23,11 +23,13 @@ async function apiRequest(method, path, body = null) {
             }
         });
 
-        if(res.status === 404) throw new Error('Server nicht gefunden!');
-        if (!res.ok && res.status !== 304) throw new Error(`API Fehler: ${res.status}`);
+        if (!res.ok && res.status !== 304) {
+            const errorMessage = await res.json();
+            return { status: res.status, error: `API Fehler: ${errorMessage.error || 'Unbekannter Fehler'}` };
+        }
         return res.json();
-    } catch (err) {
-        throw new Error(err.message);
+    } catch (error) {
+        return { status: 400, error: error.message };
     }
 }
 
@@ -67,7 +69,8 @@ export const fetchChannel = (channelId) => apiRequest('GET', `/channels/${channe
 export const fetchMessages = (type = 'conversation',channelId) => apiRequest('GET',
     type === 'channel' ? `/channels/${channelId}/messages` : `/conversations/${channelId}/messages`);
 
-export const createInvite = (serverId, targetUserId) => apiRequest('POST', `/servers/${serverId}/invites/create`, { targetUserId });
+export const createInvite = (serverId) => apiRequest('POST', `/servers/${serverId}/invites/create`);
+export const joinServer = (inviteCode) => apiRequest('POST', `/servers/join`, { inviteCode });
 
 export const fetchVoiceToken = (data) => apiRequest('POST', `/voice/token`, data);
 export const fetchChannelParticipants = (channelId) => apiRequest('GET', `/voice/participants/${channelId}`);

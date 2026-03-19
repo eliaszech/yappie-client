@@ -1,6 +1,6 @@
 
 import {useQuery} from "@tanstack/react-query";
-import {fetchFriends, fetchOrCreateConversationWith} from "../../../services/api.js";
+import {createInvite, fetchFriends, fetchOrCreateConversationWith} from "../../../services/api.js";
 import UserAvatar from "../../components/UserAvatar.jsx";
 import {useState} from "react";
 import Spinner from "../../components/static/Spinner.jsx";
@@ -8,6 +8,7 @@ import {faUsers} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import NoResultsMessage from "../../components/static/NoResultsMessage.jsx";
 import {getSocket} from "../../../services/socket.js";
+import {useNavigate} from "react-router-dom";
 
 function InviteFriendItem({friend, onInvite}) {
     return (
@@ -21,8 +22,8 @@ function InviteFriendItem({friend, onInvite}) {
                 </span>
                 </div>
             </div>
-            <button onClick={() => onInvite(friend)} className="bg-primary/10 text-primary px-3 py-1.5 text-sm rounded-lg hover:bg-primary/20 cursor-pointer transition duration-200">
-                EInladen
+            <button onClick={() => onInvite(friend.id)} className="bg-primary/10 text-primary px-3 py-1.5 text-sm rounded-lg hover:bg-primary/20 cursor-pointer transition duration-200">
+                Einladen
             </button>
         </div>
     )
@@ -30,6 +31,7 @@ function InviteFriendItem({friend, onInvite}) {
 
 function InviteDialog({server, onCancel}) {
     const [search, setSearch] = useState('');
+    const navigate = useNavigate();
 
     const {data: friends, isLoading, error} = useQuery({
         queryKey: ['friends'],
@@ -38,12 +40,24 @@ function InviteDialog({server, onCancel}) {
         retry: 1,
     });
 
-    async function handleInvite({receiverId}) {
+    async function handleInvite(friendId) {
         const socket = getSocket();
         if(!socket) return;
 
-        const conversation = await fetchOrCreateConversationWith(receiverId);
-        const invite = await createInvite(targetUserId);
+        const conversation = await fetchOrCreateConversationWith(friendId);
+        const invite = await createInvite(server.id);
+
+        if(conversation && invite) {
+            socket.emit('message:send', {
+                text: 'yappie.gg/invite/' + invite.code,
+                type: 'conversation',
+                roomId: conversation.id,
+                messageType: 'server_invite',
+                inviteId: invite.id,
+            })
+
+            navigate(`/@me/messages/${conversation.id}`);
+        }
     }
 
     const filteredUsers = friends?.filter(friend => friend.username.toLowerCase().includes(search.toLowerCase()));
@@ -62,7 +76,7 @@ function InviteDialog({server, onCancel}) {
                     </div>
                     <div className="flex flex-col gap-2 mt-4 overflow-y-auto max-h-[450px]">
                         {!isLoading && filteredUsers?.map((friend) => (
-                            <InviteFriendItem key={friend.id} friend={friend} onInvite={handleInvite} />
+                            <InviteFriendItem key={friend.id} friend={friend} onInvite={async (friendId) => await handleInvite(friendId)} />
                         ))}
                         {isLoading && (
                             <Spinner size="w-10 h-10" />

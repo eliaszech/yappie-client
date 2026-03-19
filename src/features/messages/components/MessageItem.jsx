@@ -7,8 +7,53 @@ import Reactions from "./Reactions.jsx";
 import {useReplyState} from "../../../hooks/messages/useReplyState.js";
 import {useState} from "react";
 import {useAuth} from "../../../hooks/useAuth.js";
+import {faServer} from "@awesome.me/kit-95376d5d61/icons/classic/light";
+import {useNavigate} from "react-router-dom";
+import {joinServer} from "../../../services/api.js";
+import {useQueryClient} from "@tanstack/react-query";
 
 const PARSE_MENTIONS_REGEX = /@(\w+)/g;
+
+function InviteMessage({invite}) {
+    const navigate = useNavigate();
+    const queryClient = useQueryClient();
+
+    async function join(inviteCode) {
+        const member = await joinServer(inviteCode);
+
+        if(!member.error) {
+            queryClient.setQueryData(['servers'], (old) => {
+                if (!old) return old;
+
+                return [...old, member.server];
+            })
+
+            navigate(`/servers/${invite.server.id}`);
+        } else {
+            alert(member.error);
+        }
+    }
+
+    return (
+        <div className="rounded-lg bg-card w-[250px]">
+            <div className="h-12 bg-primary rounded-t-lg" />
+
+            {/* Avatar */}
+            <div className="px-4 -mt-8">
+                <UserAvatar size="w-14 h-14 text-2xl border-4 border-card"
+                    displayOnline={false} icon={<FontAwesomeIcon icon={faServer} />}
+                />
+            </div>
+
+            <div className="px-4 flex flex-col pt-2 pb-4">
+                <div className="font-bold text-lg">{invite.server.name}</div>
+                <div className="text-xs text-muted-foreground mb-4">{`Gegründet am ${new Date(invite.server.createdAt).toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})}`}</div>
+                <button onClick={async () => await join(invite.code)}
+                    className="cursor-pointer bg-primary text-sm text-primary-foreground hover:bg-primary/90 px-2 py-1 rounded-md">Beitreten</button>
+            </div>
+        </div>
+    )
+}
 
 function MessageItem({message, isGrouped = false, disabled = false}) {
     const { user: messageUser } = message;
@@ -99,7 +144,7 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
                         </HasUserPopup>
                         <span className="text-sm mt-1 text-muted-foreground">{dateTimeString}</span>
                     </div>
-                    <div className={`${message.pending ? 'text-muted-foreground' : 'text-foreground'} flex items-center gap-1 whitespace-pre-wrap text-base`}>
+                    <div className={`${message.pending ? 'text-muted-foreground' : 'text-foreground'} flex flex-col gap-1 whitespace-pre-wrap text-base`}>
                         {parseMessageText(message.text, message.mentions).map((part, index) =>
                             part.type === 'mention' ? (
                                 <HasUserPopup key={index} user={part.mentionUser}>
@@ -109,6 +154,7 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
                                 <span key={index}>{part.content}</span>
                             )
                         )}
+                        {message.type === 'server_invite' && <InviteMessage invite={message.invite} />}
                         {message.pending && (
                             <span className="text-xs text-foreground ml-1"><FontAwesomeIcon spin={true} icon={faSpinnerThird} /></span>
                         )}
@@ -126,7 +172,7 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
             id={`message-${message.id}`} className={`${disabled ? 'pointer-events-none' : ''} ${amIMentioned ? 'bg-idle/5! border-idle! hover:bg-idle/10!' : ''} ${replyTo && replyTo.id === message.id ? 'bg-primary/10 border-primary hover:bg-primary/15' : 'hover:bg-muted/50 border-transparent'} border-l-2 relative flex items-start pl-6 pr-4 transition-colors duration-700 py-0.5 group`}>
             <span className="w-11 text-[10px] text-foreground/70 shrink-0 opacity-0 group-hover:opacity-100 relative top-1">{timeString}</span>
             <div className="flex flex-col">
-                <div className={`${message.pending ? 'text-muted-foreground' : 'text-foreground'} flex gap-1 items-center whitespace-pre-wrap text-base`}>
+                <div className={`${message.pending ? 'text-muted-foreground' : 'text-foreground'} flex flex-col gap-1 whitespace-pre-wrap text-base`}>
                     {parseMessageText(message.text, message.mentions).map((part, index) =>
                         part.type === 'mention' ? (
                             <HasUserPopup key={index} user={part.mentionUser}>
@@ -136,6 +182,7 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
                             <span key={index}>{part.content}</span>
                         )
                     )}
+                    {message.type === 'server_invite' && <InviteMessage invite={message.invite} />}
                     {message.pending && (
                         <span className="text-xs text-foreground ml-1"><FontAwesomeIcon spin={true} icon={faSpinnerThird} /></span>
                     )}
