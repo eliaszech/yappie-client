@@ -66,8 +66,8 @@ export const deleteServer = (serverId) => apiRequest('POST', `/servers/delete`, 
 export const fetchChannels = (serverId) => apiRequest('GET', `/servers/${serverId}/channels`);
 export const fetchMembers = (type, id) => apiRequest('GET', type === 'members' ? `/servers/${id}/members` : `/conversations/${id}/participants`);
 export const fetchChannel = (channelId) => apiRequest('GET', `/channels/${channelId}`);
-export const fetchMessages = (type = 'conversation',channelId) => apiRequest('GET',
-    type === 'channel' ? `/channels/${channelId}/messages` : `/conversations/${channelId}/messages`);
+export const fetchMessages = (type = 'conversation',channelId, cursor = '') => apiRequest('GET',
+    type === 'channel' ? `/channels/${channelId}/messages?cursor=${cursor}` : `/conversations/${channelId}/messages?cursor=${cursor}`);
 
 export const createInvite = (serverId) => apiRequest('POST', `/servers/${serverId}/invites/create`);
 export const joinServer = (inviteCode) => apiRequest('POST', `/servers/join`, { inviteCode });

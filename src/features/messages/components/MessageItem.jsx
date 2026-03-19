@@ -155,9 +155,6 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
                             )
                         )}
                         {message.type === 'server_invite' && <InviteMessage invite={message.invite} />}
-                        {message.pending && (
-                            <span className="text-xs text-foreground ml-1"><FontAwesomeIcon spin={true} icon={faSpinnerThird} /></span>
-                        )}
                     </div>
                     <Reactions disabled={disabled} message={message} />
                 </div>
@@ -183,9 +180,6 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
                         )
                     )}
                     {message.type === 'server_invite' && <InviteMessage invite={message.invite} />}
-                    {message.pending && (
-                        <span className="text-xs text-foreground ml-1"><FontAwesomeIcon spin={true} icon={faSpinnerThird} /></span>
-                    )}
                 </div>
                 <Reactions disabled={disabled} message={message} />
             </div>

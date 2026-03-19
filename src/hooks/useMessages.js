@@ -20,13 +20,20 @@ export function useMessages() {
                 if (!old) return old;
 
                 if (message.userId === user.id) {
-                    const withoutTemp = old.filter(m =>
+                    const withoutTemp = old.messages.filter(m =>
                         !(m.pending && m.userId === user.id && m.text === message.text)
                     );
-                    return [...withoutTemp, message];
+
+                    return {
+                        ...old,
+                        messages: [...withoutTemp, message],
+                    };
                 }
 
-                return [...old, message];
+                return {
+                    ...old,
+                    messages: [...old.messages, message],
+                };
             });
 
             if(message.conversationId) {

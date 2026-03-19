@@ -1,6 +1,6 @@
 import MessageItem from "./MessageItem.jsx";
-import {useRef} from "react";
-import {useQuery} from "@tanstack/react-query";
+import {useEffect, useRef, useState} from "react";
+import {useQuery, useQueryClient} from "@tanstack/react-query";
 import {fetchMessages} from "../../../services/api.js";
 import Spinner from "../../components/static/Spinner.jsx";
 import ErrorMessage from "../../components/static/ErrorMessage.jsx";
@@ -10,13 +10,56 @@ import {faMessages} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 function Chat({children, type = 'conversation', roomId}) {
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const queryClient = useQueryClient();
 
     const {data: messages, isLoading, isError} = useQuery({
         queryKey: ['messages', roomId],
         queryFn: () => fetchMessages(type, roomId),
+        select: (data) => data.messages,
         staleTime: 10 * 60 * 1000,
         retry: 1,
     })
+
+    async function fetchOlderMessages() {
+        const queryData = queryClient.getQueryData(['messages', roomId]);
+
+        if(queryData && queryData.nextCursor) {
+            const cursor = queryData.nextCursor;
+            setLoadingMore(true);
+            const moreMessages = await fetchMessages(type, roomId, cursor);
+
+            console.log(moreMessages);
+
+            queryClient.setQueryData(['messages', roomId], (old) => {
+                return {
+                    ...old,
+                    messages: [...moreMessages.messages, ...old.messages],
+                    nextCursor: moreMessages.nextCursor,
+                }
+            })
+
+            setLoadingMore(false);
+        }
+    }
+
+    useEffect(() => {
+        if(!messagesContainerRef.current) return;
+        const messagesContainer = messagesContainerRef.current;
+
+        async function handleScroll() {
+            if(Math.abs(messagesContainer.scrollTop) === (messagesContainer.scrollHeight - messagesContainer.clientHeight)) {
+                await fetchOlderMessages();
+            }
+        }
+
+        messagesContainer.addEventListener('scroll', handleScroll)
+        return () => {
+            messagesContainer.removeEventListener('scroll', handleScroll)
+        }
+    }, [fetchOlderMessages, roomId])
+
+
 
     function shouldPrependDateLine(current, previous) {
         if (!previous) return true;

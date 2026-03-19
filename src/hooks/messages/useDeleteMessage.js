@@ -10,13 +10,17 @@ export function useDeleteMessage() {
             queryClient.setQueryData(['messages', roomId], (old) => {
                 if (!old) return old;
 
-                return old.filter(m => m.id !== messageId)
-                    .map(m => {
-                        if (replies?.includes(m.id)) {
-                            return { ...m, replyTo: null, replyToId: null };
-                        }
-                        return m;
-                    })
+                const withoutDeletedMessage = old.messages.filter(m => m.id !== messageId).map(m => {
+                    if (replies?.includes(m.id)) {
+                        return { ...m, replyTo: null, replyToId: null };
+                    }
+                    return m;
+                })
+
+                return {
+                    ...old,
+                    messages: withoutDeletedMessage,
+                }
             });
         })
 

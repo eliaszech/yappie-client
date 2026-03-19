@@ -10,7 +10,7 @@ export function useReactMessage() {
             queryClient.setQueriesData({ queryKey: ['messages', roomId] }, (old) => {
                 if (!old) return old;
 
-                return old.map(msg => {
+                const messages = old.messages.map(msg => {
                     if (msg.id !== reaction.messageId) return msg;
                     const reactions = [...(msg.reactions || [])];
                     if (action === 'added') {
@@ -21,6 +21,11 @@ export function useReactMessage() {
                     }
                     return { ...msg, reactions };
                 })
+
+                return {
+                    ...old,
+                    messages,
+                }
             });
         })
     }, []);
