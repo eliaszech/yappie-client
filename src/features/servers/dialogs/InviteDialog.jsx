@@ -2,7 +2,7 @@
 import {useQuery} from "@tanstack/react-query";
 import {createInvite, fetchFriends, fetchOrCreateConversationWith} from "../../../services/api.js";
 import UserAvatar from "../../components/UserAvatar.jsx";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import Spinner from "../../components/static/Spinner.jsx";
 import {faUsers} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
@@ -31,6 +31,7 @@ function InviteFriendItem({friend, onInvite}) {
 
 function InviteDialog({server, onCancel}) {
     const [search, setSearch] = useState('');
+    const [invite, setInvite] = useState({});
     const navigate = useNavigate();
 
     const {data: friends, isLoading, error} = useQuery({
@@ -40,12 +41,19 @@ function InviteDialog({server, onCancel}) {
         retry: 1,
     });
 
+    useEffect(() => {
+        async function fetchInvite() {
+            const inviteObject = await createInvite(server.id);
+            setInvite(inviteObject);
+        }
+        fetchInvite();
+    }, [server])
+
     async function handleInvite(friendId) {
         const socket = getSocket();
-        if(!socket) return;
+        if (!socket) return;
 
         const conversation = await fetchOrCreateConversationWith(friendId);
-        const invite = await createInvite(server.id);
 
         if(conversation && invite) {
             socket.emit('message:send', {
@@ -90,7 +98,7 @@ function InviteDialog({server, onCancel}) {
                     <div className="text-foreground text-sm mb-4">
                         Oder schick einen Server-Einladungslink an einen Freund
                     </div>
-                    <input type="text" readOnly={true} placeholder="Server-Einladungslink" className="w-full text-sm outline-none focus:ring-2 focus:ring-primary px-4 py-2.5 rounded-lg bg-card border border-border text-foreground" />
+                    <input type="text" value={`yappie.gg/invite/${invite?.code}`} readOnly={true} placeholder="Server-Einladungslink" className="w-full text-sm outline-none focus:ring-2 focus:ring-primary px-4 py-2.5 rounded-lg bg-card border border-border text-foreground" />
                 </div>
             </div>
         </div>

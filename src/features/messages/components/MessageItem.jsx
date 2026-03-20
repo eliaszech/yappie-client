@@ -46,7 +46,7 @@ function InviteMessage({invite}) {
             </div>
 
             <div className="px-4 flex flex-col pt-2 pb-4">
-                <div className="font-bold text-lg">{invite.server.name}</div>
+                <div className="font-bold text-lg">{invite?.server.name}</div>
                 <div className="text-xs text-muted-foreground mb-4">{`Gegründet am ${new Date(invite.server.createdAt).toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})}`}</div>
                 <button onClick={async () => await join(invite.code)}
                     className="cursor-pointer bg-primary text-sm text-primary-foreground hover:bg-primary/90 px-2 py-1 rounded-md">Beitreten</button>
