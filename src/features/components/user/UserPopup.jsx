@@ -1,17 +1,23 @@
 import {useUserPopup} from "../../../hooks/user/useUserPopup.js";
-import {useEffect, useRef} from "react";
+import {useEffect, useRef, useState} from "react";
 import {useIsOnline, useUserStatus} from "../../../hooks/usePresence.js";
 import UserAvatar from "../UserAvatar.jsx";
 import {useAuth} from "../../../hooks/useAuth.js";
 import Dropdown from "../Dropdown.jsx";
 import StatusPicker from "./StatusPicker.jsx";
 import StatusText from "./StatusText.jsx";
+import {getSocket} from "../../../services/socket.js";
+import {fetchOrCreateConversationWith} from "../../../services/api.js";
+import {useQueryClient} from "@tanstack/react-query";
+import {useNavigate} from "react-router-dom";
 
 function UserPopup() {
     const { popup, closePopup } = useUserPopup();
     const { user } = useAuth();
+    const [input, setInput] = useState('');
     const ref = useRef(null);
     const isSelf = user.id === popup.user.id;
+    const navigate = useNavigate();
 
     const online = useIsOnline(popup.user.id) ?? popup.user.online;
     const status = useUserStatus(popup.user.id) ?? popup.user.status;
@@ -25,6 +31,28 @@ function UserPopup() {
         document.addEventListener('mousedown', handleClick);
         return () => document.removeEventListener('mousedown', handleClick);
     }, [closePopup]);
+
+    async function sendMessage() {
+        const socket = getSocket();
+        if (!socket) return;
+
+        if(input.trim() === '') return;
+
+        const conversation = await fetchOrCreateConversationWith(popup.user.id);
+
+        if(!conversation.error) {
+            socket.emit('message:send', {
+                type: 'conversation',
+                roomId: conversation.id,
+                text: input,
+            });
+
+            navigate(`/@me/messages/${conversation.id}`);
+            closePopup();
+        } else {
+            alert('Konnte Nachricht nicht senden');
+        }
+    }
 
     const style = {
         top: popup.position.top,
@@ -95,6 +123,12 @@ function UserPopup() {
                     {!isSelf && (
                         <div className="mt-4">
                             <input placeholder="Nachricht senden..."
+                                   onKeyDown={async (e) => {
+                                       if (e.key === 'Enter') {
+                                           await sendMessage();
+                                       }
+                                   }}
+                                   onChange={(e) => setInput(e.target.value)}
                                    className="w-full px-3 py-2 text-sm rounded bg-input border border-border outline-none focus:ring-2 focus:ring-primary/80 text-foreground placeholder:text-muted-foreground!"/>
                         </div>
                     )}

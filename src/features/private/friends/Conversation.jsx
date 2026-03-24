@@ -1,28 +1,35 @@
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {useParams} from "react-router-dom";
+import {Link, useParams} from "react-router-dom";
 import ContentHeader from "../../components/ContentHeader.jsx";
 import {useQuery, useQueryClient} from "@tanstack/react-query";
-import {fetchConversation} from "../../../services/api.js";
+import {fetchCommonServersWith, fetchConversation} from "../../../services/api.js";
 import ErrorMessage from "../../components/static/ErrorMessage.jsx";
-import {faMessage, faMessages, faUsers} from "@awesome.me/kit-95376d5d61/icons/classic/light";
+import {faMessage, faUsers} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import Spinner from "../../components/static/Spinner.jsx";
 import UserAvatar from "../../components/UserAvatar.jsx";
 import UserAvatarGroup from "../../components/UserAvatarGroup.jsx";
-import {useEffect, useRef} from "react";
+import {useEffect, useRef, useState} from "react";
 import {getSocket} from "../../../services/socket.js";
 import {useAuth} from "../../../hooks/useAuth.js";
 import UserItem from "../../components/UserItem.jsx";
 import MessageInput from "../../messages/components/MessageInput.jsx";
 import Chat from "../../messages/components/Chat.jsx";
 import HasUserPopup from "../../components/user/HasUserPopup.jsx";
-import Dropdown from "../../components/Dropdown.jsx";
-import StatusText from "../../components/user/StatusText.jsx";
-import StatusPicker from "../../components/user/StatusPicker.jsx";
 import {useIsOnline, useUserStatus} from "../../../hooks/usePresence.js";
+import {faChevronRight} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
+import {AnimatePresence, motion} from "framer-motion";
 
 function UserSidebar({user}) {
     const online = useIsOnline(user.id) || user.online;
     const status = useUserStatus(user.id) || user.status;
+    const [showCommonServersWith, setShowCommonServersWith] = useState(false);
+
+    const {data: commonServers = [], isLoading, isError} = useQuery({
+        queryKey: ['common-servers', user.id],
+        queryFn: () => fetchCommonServersWith(user.id),
+        staleTime: 10 * 60 * 1000,
+        retry: 1,
+    })
 
     return (
         <div className="max-w-xs border-l border-border w-full bg-card/70 h-full">
@@ -48,6 +55,25 @@ function UserSidebar({user}) {
                             year: 'numeric'
                         })}
                     </p>
+                </div>
+                <div className="mt-4 rounded-lg bg-muted/50 text-foreground overflow-hidden">
+                    <div onClick={() => setShowCommonServersWith(!showCommonServersWith)} className="flex border-b border-card items-center justify-between cursor-pointer p-2 hover:bg-muted/80">
+                        <div className="flex items-center gap-2 text-xs">Gemeinsame Server - {commonServers?.length ?? 0}</div>
+                        <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+                    </div>
+                    <AnimatePresence>
+                        {showCommonServersWith && commonServers?.length > 0 && (
+                            <motion.div initial={{opacity: 0, height: 0}} animate={{opacity: 1, height: 'auto'}} exit={{opacity: 0, height: 0}}>
+                                <div className="flex flex-col">
+                                    {commonServers.map((server) => (
+                                        <Link to={`/servers/${server.id}`} className="px-2 py-2 flex text-sm hover:bg-muted/80">
+                                            {server.name}
+                                        </Link>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
         </div>

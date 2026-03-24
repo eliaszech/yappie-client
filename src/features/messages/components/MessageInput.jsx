@@ -147,6 +147,7 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
             createdAt: new Date().toISOString(),
             pending: true,
         };
+
         queryClient.setQueryData(['messages', roomId], (old) => {
             if (!old) return old;
             return {
