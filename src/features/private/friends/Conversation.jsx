@@ -4,7 +4,7 @@ import ContentHeader from "../../components/ContentHeader.jsx";
 import {useQuery, useQueryClient} from "@tanstack/react-query";
 import {fetchCommonServersWith, fetchConversation} from "../../../services/api.js";
 import ErrorMessage from "../../components/static/ErrorMessage.jsx";
-import {faMessage, faUsers} from "@awesome.me/kit-95376d5d61/icons/classic/light";
+import {faMessage, faServer, faUsers} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import Spinner from "../../components/static/Spinner.jsx";
 import UserAvatar from "../../components/UserAvatar.jsx";
 import UserAvatarGroup from "../../components/UserAvatarGroup.jsx";
@@ -23,6 +23,7 @@ function UserSidebar({user}) {
     const online = useIsOnline(user.id) || user.online;
     const status = useUserStatus(user.id) || user.status;
     const [showCommonServersWith, setShowCommonServersWith] = useState(false);
+    const [showCommonFriendsWith, setShowCommonFriendsWith] = useState(false);
 
     const {data: commonServers = [], isLoading, isError} = useQuery({
         queryKey: ['common-servers', user.id],
@@ -46,9 +47,9 @@ function UserSidebar({user}) {
                 <div className="text-xl font-bold text-foreground">{user.displayName ?? user.username}</div>
                 <div className="text-sm text-muted-foreground">{user.username}</div>
 
-                <div className="mt-2">
-                    <span className="text-xs font-semibold text-foreground">Mitglied seit</span>
-                    <p className="text-xs text-muted-foreground mt-1">
+                <div className="mt-4 px-3 py-3 rounded-lg bg-muted/50 text-foreground overflow-hidden">
+                    <span className="text-sm font-semibold text-foreground">Mitglied seit</span>
+                    <p className="text-sm text-muted-foreground">
                         {new Date(user.createdAt).toLocaleDateString('de-DE', {
                             day: 'numeric',
                             month: 'long',
@@ -56,25 +57,35 @@ function UserSidebar({user}) {
                         })}
                     </p>
                 </div>
-                <div className="mt-4 rounded-lg bg-muted/50 text-foreground overflow-hidden">
-                    <div onClick={() => setShowCommonServersWith(!showCommonServersWith)} className="flex border-b border-card items-center justify-between cursor-pointer p-2 hover:bg-muted/80">
-                        <div className="flex items-center gap-2 text-xs">Gemeinsame Server - {commonServers?.length ?? 0}</div>
-                        <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+                {isLoading && <Spinner size="w-10 h-10" />}
+                {!isLoading && !isError && commonServers.length > 0 && (
+                    <div className="mt-4 rounded-lg bg-muted/50 text-foreground overflow-hidden">
+                        <div onClick={() => setShowCommonServersWith(!showCommonServersWith)} className="flex border-b border-card items-center justify-between cursor-pointer px-3 py-3 hover:bg-muted/80">
+                            <div className="flex items-center gap-2 text-sm">Gemeinsame Server - {commonServers?.length ?? 0}</div>
+                            <FontAwesomeIcon icon={faChevronRight} className={`text-xs transition-transform duration-300 ${showCommonServersWith ? 'rotate-90' : ''}`} />
+                        </div>
+                        <AnimatePresence>
+                            {showCommonServersWith && commonServers?.length > 0 && (
+                                <motion.div initial={{opacity: 0, height: 0}} animate={{opacity: 1, height: 'auto'}} exit={{opacity: 0, height: 0}}>
+                                    <div className="flex flex-col">
+                                        {commonServers.map((server) => (
+                                            <Link to={`/servers/${server.id}`} className="px-3 py-2 flex items-center hover:bg-muted/80">
+                                                <div className="flex items-center justify-center w-8 h-8 rounded-md bg-primary text-primary-foreground mr-2">
+                                                    <FontAwesomeIcon icon={faServer} className="text-lg" />
+                                                </div>
+                                                {server.name}
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                        <div className="flex border-b border-card items-center justify-between cursor-pointer px-3 py-3 hover:bg-muted/80">
+                            <div className="flex items-center gap-2 text-sm">Gemeinsame Freunde - 0</div>
+                            <FontAwesomeIcon icon={faChevronRight} className={`text-xs transition-transform duration-300 ${showCommonFriendsWith ? 'rotate-90' : ''}`} />
+                        </div>
                     </div>
-                    <AnimatePresence>
-                        {showCommonServersWith && commonServers?.length > 0 && (
-                            <motion.div initial={{opacity: 0, height: 0}} animate={{opacity: 1, height: 'auto'}} exit={{opacity: 0, height: 0}}>
-                                <div className="flex flex-col">
-                                    {commonServers.map((server) => (
-                                        <Link to={`/servers/${server.id}`} className="px-2 py-2 flex text-sm hover:bg-muted/80">
-                                            {server.name}
-                                        </Link>
-                                    ))}
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
+                )}
             </div>
         </div>
     )
