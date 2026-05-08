@@ -8,6 +8,7 @@ let presenceCallback = null;
 
 let messageCallback = null;
 let messageDeleteCallback = null;
+let messageEditCallback = null;
 let reactionCallback = null;
 let friendRequestCallback = null;
 
@@ -52,6 +53,10 @@ function registerEvents() {
 
     socket.on('message:deleted', (type, roomId, messageId, replies) => {
         if (messageDeleteCallback) messageDeleteCallback(type, roomId, messageId, replies);
+    });
+
+    socket.on('message:edited', (type, roomId, message) => {
+        if (messageEditCallback) messageEditCallback(type, roomId, message);
     });
 
     socket.on('voice:join', (data) => {
@@ -99,6 +104,10 @@ export function onFriendRequest(callback) {
 
 export function onMessageDelete(callback) {
     messageDeleteCallback = callback;
+}
+
+export function onMessageEdit(callback) {
+    messageEditCallback = callback;
 }
 
 export function onVoiceChange(callback) {

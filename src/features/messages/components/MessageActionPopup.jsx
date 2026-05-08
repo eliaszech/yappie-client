@@ -15,7 +15,7 @@ import HasEmojiPicker from "./HasEmojiPicker.jsx";
 import {toggleReaction} from "../../../hooks/messages/useReactMessage.js";
 
 
-function MessageActionPopup({message}) {
+function MessageActionPopup({message, onEdit}) {
     const { user } = useAuth();
     const roomType = message.conversationId ? 'conversation' : 'channel';
     const { setReplyState } = useReplyState(roomType === 'channel' ? message.channelId : message.conversationId);
@@ -23,15 +23,15 @@ function MessageActionPopup({message}) {
 
     return (
         <>
-            <div className="absolute text-foreground hidden group-hover:flex right-0 border border-border -top-4 right-4 w-max bg-card rounded-lg bg-guild-bar shadow-lg z-10">
+            <div className="absolute text-foreground hidden group-hover:flex right-0 border border-border -top-4 right-4 w-max rounded-lg bg-guild-bar shadow-lg z-10">
                 <button onClick={() => toggleReaction(message.id, '👍')} className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50 rounded-tl-lg rounded-bl-lg">👍</button>
                 <button onClick={() => toggleReaction(message.id, '🔥')} className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50">🔥</button>
                 <button onClick={() => toggleReaction(message.id, '😂')} className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50 border-r border-border">😂</button>
-                <HasEmojiPicker onSelect={() => {}} position="top" orientation="right">
+                <HasEmojiPicker onSelect={(emoji) => toggleReaction(message.id, emoji)} position="top" orientation="right">
                     <button className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50"><FontAwesomeIcon icon={faFaceSmile} /></button>
                 </HasEmojiPicker>
                 {message.user.id === user.id && (
-                    <button className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50 "><FontAwesomeIcon icon={faPen} /></button>
+                    <button className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50" onClick={onEdit}><FontAwesomeIcon icon={faPen} /></button>
                 )}
                 <button className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50" onClick={() => setReplyState(message)}><FontAwesomeIcon icon={faArrowTurnLeft} /></button>
                 <button className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50"><FontAwesomeIcon icon={faEllipsis} /></button>

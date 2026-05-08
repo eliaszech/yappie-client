@@ -2,6 +2,7 @@ import {toggleReaction} from "../../../hooks/messages/useReactMessage.js";
 import {useAuth} from "../../../hooks/useAuth.js";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faFaceSmilePlus} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
+import HasEmojiPicker from "./HasEmojiPicker.jsx";
 
 function Reactions({message, disabled = false}) {
     const { user } = useAuth();
@@ -30,9 +31,12 @@ function Reactions({message, disabled = false}) {
                     </button>
                 ))}
                 {!disabled && Object.entries(groupedReactions).length > 0 && (
-                    <button className={`flex cursor-pointer items-center w-max text-muted-foreground gap-1 px-2 py-0.5 rounded-lg text-base bg-card hover:bg-muted`}>
-                        <FontAwesomeIcon icon={faFaceSmilePlus} />
-                    </button>
+                    <HasEmojiPicker onSelect={(emoji) => toggleReaction(message.id, emoji)} position="top" orientation="left">
+                        <button className={`flex cursor-pointer items-center w-max text-muted-foreground gap-1 px-2 py-1.5 rounded-lg text-base bg-card hover:bg-muted`}>
+                            <FontAwesomeIcon icon={faFaceSmilePlus} />
+                        </button>
+                    </HasEmojiPicker>
+
                 )}
             </div>
         )}

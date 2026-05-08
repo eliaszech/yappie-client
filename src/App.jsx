@@ -19,6 +19,7 @@ import Channel from "./features/servers/channels/Channel.jsx";
 import GlobalVoiceComponent from "./features/components/GlobalVoiceComponent.jsx";
 import {useVoiceEvents} from "./hooks/useVoiceParticipants.js";
 import {useDeleteMessage} from "./hooks/messages/useDeleteMessage.js";
+import {useEditMessage} from "./hooks/messages/useEditMessage.js";
 import MemberList from "./features/servers/members/MemberList.jsx";
 import {useReactMessage} from "./hooks/messages/useReactMessage.js";
 import Register from "./features/auth/Register.jsx";
@@ -31,6 +32,7 @@ function App() {
     usePresence();
     useVoiceEvents();
     useDeleteMessage();
+    useEditMessage();
     useReactMessage();
     useMessages();
     useFriendRequests();

@@ -5,14 +5,18 @@ import MessageActionPopup from "./MessageActionPopup.jsx";
 import HasUserPopup from "../../components/user/HasUserPopup.jsx";
 import Reactions from "./Reactions.jsx";
 import {useReplyState} from "../../../hooks/messages/useReplyState.js";
-import {useState} from "react";
+import {useState, useRef, useEffect} from "react";
 import {useAuth} from "../../../hooks/useAuth.js";
+import {editMessage} from "../../../hooks/messages/useEditMessage.js";
+import LinkEmbed, {extractFirstUrl} from "./LinkEmbed.jsx";
 import {faServer} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {useNavigate} from "react-router-dom";
 import {joinServer} from "../../../services/api.js";
 import {useQueryClient} from "@tanstack/react-query";
+import MessageInput from "./MessageInput.jsx";
 
-const PARSE_MENTIONS_REGEX = /@(\w+)/g;
+const MENTION_REGEX = /@(\w+)/g;
+const LINK_REGEX = /https?:\/\/[^\s<>"[\]{}|\\^`]+/g;
 
 function InviteMessage({invite}) {
     const navigate = useNavigate();
@@ -61,7 +65,42 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
     const { user: messageUser } = message;
     const { user } = useAuth();
     const [hovered, setHovered] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editText, setEditText] = useState('');
+    const textareaRef = useRef(null);
     const { replyTo } = useReplyState(message.conversationId || message.channelId);
+    const roomType = message.conversationId ? 'conversation' : 'channel';
+
+    useEffect(() => {
+        if (isEditing && textareaRef.current) {
+            const el = textareaRef.current;
+            el.focus();
+            el.setSelectionRange(el.value.length, el.value.length);
+        }
+    }, [isEditing]);
+
+    function startEditing() {
+        setEditText(message.text);
+        setIsEditing(true);
+    }
+
+    function submitEdit() {
+        const trimmed = editText.trim();
+        if (trimmed && trimmed !== message.text) {
+            editMessage(roomType, message.id, trimmed);
+        }
+        setIsEditing(false);
+    }
+
+    function handleEditKeyDown(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            submitEdit();
+        }
+        if (e.key === 'Escape') {
+            setIsEditing(false);
+        }
+    }
 
     const dateTimeString = new Date(message.createdAt).toLocaleString('de-DE', {
         day: '2-digit',
@@ -86,35 +125,40 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
     }
 
     function parseMessageText(text, mentions) {
-        if (!mentions || mentions.length === 0) return [{ type: 'text', content: text }];
+        const segments = [];
+
+        for (const match of text.matchAll(MENTION_REGEX)) {
+            const mention = (mentions || []).find(m => m.user.username === match[1]);
+            if (mention) {
+                segments.push({ start: match.index, end: match.index + match[0].length, type: 'mention', content: match[0], mentionUser: mention.user });
+            }
+        }
+
+        for (const match of text.matchAll(LINK_REGEX)) {
+            const overlaps = segments.some(s => match.index < s.end && match.index + match[0].length > s.start);
+            if (!overlaps) {
+                segments.push({ start: match.index, end: match.index + match[0].length, type: 'link', content: match[0], href: match[0] });
+            }
+        }
+
+        if (segments.length === 0) return [{ type: 'text', content: text }];
+
+        segments.sort((a, b) => a.start - b.start);
 
         const parts = [];
         let lastIndex = 0;
-
-        for (const match of text.matchAll(PARSE_MENTIONS_REGEX)) {
-            const matchedUsername = match[1];
-            const mention = mentions.find(m => m.user.username === matchedUsername);
-
-            if (!mention) continue;
-
-            // Text vor der Mention
-            if (match.index > lastIndex) {
-                parts.push({ type: 'text', content: text.slice(lastIndex, match.index) });
-            }
-
-            parts.push({ type: 'mention', content: `@${matchedUsername}`, mentionUser: mention.user });
-            lastIndex = match.index + match[0].length;
+        for (const seg of segments) {
+            if (seg.start > lastIndex) parts.push({ type: 'text', content: text.slice(lastIndex, seg.start) });
+            parts.push(seg);
+            lastIndex = seg.end;
         }
-
-        // Rest nach letzter Mention
-        if (lastIndex < text.length) {
-            parts.push({ type: 'text', content: text.slice(lastIndex) });
-        }
+        if (lastIndex < text.length) parts.push({ type: 'text', content: text.slice(lastIndex) });
 
         return parts;
     }
 
     const amIMentioned = (message && message.mentions.some(mention => mention.user.id === user.id)) || (message.replyTo && message.replyTo.user.id === user.id && message.userId !== user.id);
+    const embedUrl = !message.pending && message.type !== 'server_invite' ? extractFirstUrl(message.text) : null;
 
     return disabled || !isGrouped || message.replyTo ? (
         <div onMouseMove={() => !hovered && setHovered(true)}
@@ -139,29 +183,51 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
                 <HasUserPopup user={messageUser}>
                     <UserAvatar size="w-10 h-10 relative top-2" displayOnline={false} avatar={messageUser.avatar} icon={messageUser.username.charAt(0).toUpperCase()} />
                 </HasUserPopup>
-                <div className="flex flex-col">
+                <div className="flex flex-col w-full">
                     <div className="flex items-start gap-2">
                         <HasUserPopup user={messageUser} >
                             <span className="text-lg mt-0.5 font-bold text-foreground hover:underline">{messageUser.displayName ?? messageUser.username}</span>
                         </HasUserPopup>
                         <span className="text-sm mt-1 text-muted-foreground">{dateTimeString}</span>
                     </div>
-                    <div className={`${message.pending ? 'text-muted-foreground' : 'text-foreground'} flex flex-col gap-1 whitespace-pre-wrap text-base`}>
-                        {parseMessageText(message.text, message.mentions).map((part, index) =>
-                            part.type === 'mention' ? (
-                                <HasUserPopup key={index} user={part.mentionUser}>
-                                    <span className="text-primary hover:underline cursor-pointer">{part.content}</span>
-                                </HasUserPopup>
-                            ) : (
-                                <span key={index}>{part.content}</span>
-                            )
-                        )}
-                        {message.type === 'server_invite' && <InviteMessage invite={message.invite} />}
-                    </div>
+                    {isEditing ? (
+                        <div className="flex flex-col gap-1.5 w-full mt-0.5 pr-4">
+                            <textarea
+                                ref={textareaRef}
+                                value={editText}
+                                onChange={e => setEditText(e.target.value)}
+                                onKeyDown={handleEditKeyDown}
+                                className="bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring resize-none w-full min-w-64"
+                                rows={Math.max(1, editText.split('\n').length)}
+                            />
+                            <span className="text-xs text-muted-foreground">
+                                <kbd className="bg-muted/80 px-1.5 py-0.5 rounded text-xs font-mono">Esc</kbd> Abbrechen
+                                {' · '}
+                                <kbd className="bg-muted/80 px-1.5 py-0.5 rounded text-xs font-mono">Enter</kbd> Speichern
+                            </span>
+                        </div>
+                    ) : (
+                        <div className={`${message.pending ? 'text-muted-foreground' : 'text-foreground'} flex flex-col gap-1 whitespace-pre-wrap text-base`}>
+                            {message.edited && <span className="text-[10px] leading-1 pt-1 text-muted-foreground">(bearbeitet)</span>}
+                            {parseMessageText(message.text, message.mentions).map((part, index) =>
+                                part.type === 'mention' ? (
+                                    <HasUserPopup key={index} user={part.mentionUser}>
+                                        <span className="text-primary hover:underline cursor-pointer">{part.content}</span>
+                                    </HasUserPopup>
+                                ) : part.type === 'link' ? (
+                                    <a key={index} href={part.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part.content}</a>
+                                ) : (
+                                    <span key={index}>{part.content}</span>
+                                )
+                            )}
+                            {message.type === 'server_invite' && <InviteMessage invite={message.invite} />}
+                        </div>
+                    )}
+                    {embedUrl && !isEditing && <LinkEmbed url={embedUrl} />}
                     <Reactions disabled={disabled} message={message} />
                 </div>
-                {!disabled && hovered && (
-                    <MessageActionPopup message={message} />
+                {!disabled && hovered && !isEditing && (
+                    <MessageActionPopup message={message} onEdit={startEditing} />
                 )}
             </div>
         </div>
@@ -170,23 +236,45 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
              onMouseLeave={() => setHovered(false)}
             id={`message-${message.id}`} className={`${disabled ? 'pointer-events-none' : ''} ${amIMentioned ? 'bg-idle/5! border-idle! hover:bg-idle/10!' : ''} ${replyTo && replyTo.id === message.id ? 'bg-primary/10 border-primary hover:bg-primary/15' : 'hover:bg-muted/50 border-transparent'} border-l-2 relative flex items-start pl-6 pr-4 transition-colors duration-700 py-0.5 group`}>
             <span className="w-11 text-[10px] text-foreground/70 shrink-0 opacity-0 group-hover:opacity-100 relative top-1">{timeString}</span>
-            <div className="flex flex-col">
-                <div className={`${message.pending ? 'text-muted-foreground' : 'text-foreground'} flex flex-col gap-1 whitespace-pre-wrap text-base`}>
-                    {parseMessageText(message.text, message.mentions).map((part, index) =>
-                        part.type === 'mention' ? (
-                            <HasUserPopup key={index} user={part.mentionUser}>
-                                <span className="text-primary hover:underline cursor-pointer">{part.content}</span>
-                            </HasUserPopup>
-                        ) : (
-                            <span key={index}>{part.content}</span>
-                        )
-                    )}
-                    {message.type === 'server_invite' && <InviteMessage invite={message.invite} />}
-                </div>
+            <div className="flex flex-col w-full">
+                {isEditing ? (
+                    <div className="flex flex-col gap-1.5 mt-0.5 pr-4">
+                        <textarea
+                            ref={textareaRef}
+                            value={editText}
+                            onChange={e => setEditText(e.target.value)}
+                            onKeyDown={handleEditKeyDown}
+                            className="bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring resize-none w-full min-w-64"
+                            rows={Math.max(1, editText.split('\n').length)}
+                        />
+                        <span className="text-xs text-muted-foreground">
+                            <kbd className="bg-muted/80 px-1.5 py-0.5 rounded text-xs font-mono">Esc</kbd> Abbrechen
+                            {' · '}
+                            <kbd className="bg-muted/80 px-1.5 py-0.5 rounded text-xs font-mono">Enter</kbd> Speichern
+                        </span>
+                    </div>
+                ) : (
+                    <div className={`${message.pending ? 'text-muted-foreground' : 'text-foreground'} flex flex-col gap-1 whitespace-pre-wrap text-base`}>
+                        {message.edited && <span className="text-[10px] leading-1 pt-1 text-muted-foreground">(bearbeitet)</span>}
+                        {parseMessageText(message.text, message.mentions).map((part, index) =>
+                            part.type === 'mention' ? (
+                                <HasUserPopup key={index} user={part.mentionUser}>
+                                    <span className="text-primary hover:underline cursor-pointer">{part.content}</span>
+                                </HasUserPopup>
+                            ) : part.type === 'link' ? (
+                                <a key={index} href={part.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part.content}</a>
+                            ) : (
+                                <span key={index}>{part.content}</span>
+                            )
+                        )}
+                        {message.type === 'server_invite' && <InviteMessage invite={message.invite} />}
+                    </div>
+                )}
+                {embedUrl && !isEditing && <LinkEmbed url={embedUrl} />}
                 <Reactions disabled={disabled} message={message} />
             </div>
-            {!disabled && hovered && (
-                <MessageActionPopup message={message} />
+            {!disabled && hovered && !isEditing && (
+                <MessageActionPopup message={message} onEdit={startEditing} />
             )}
         </div>
     );
