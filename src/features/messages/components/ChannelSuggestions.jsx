@@ -1,20 +1,21 @@
 import { forwardRef, useImperativeHandle, useEffect, useRef } from 'react';
-import { useUsersWithPresence } from "../../../hooks/useUsersWithPresence.js";
-import { fetchMembers } from "../../../services/api.js";
-import Spinner from "../../components/static/Spinner.jsx";
-import UserAvatar from "../../components/UserAvatar.jsx";
+import { useQuery } from '@tanstack/react-query';
+import { fetchChannels } from '../../../services/api.js';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHashtag } from '@awesome.me/kit-95376d5d61/icons/classic/regular';
 
-const Suggestions = forwardRef(function Suggestions(
-    { type = 'members', bottom = 'bottom-18', serverId, query, clickFunction, hideFunction, selectedIndex = 0 },
+const ChannelSuggestions = forwardRef(function ChannelSuggestions(
+    { serverId, query, bottom = 'bottom-18', clickFunction, hideFunction, selectedIndex = 0 },
     imperativeRef
 ) {
     const wrapperRef = useRef(null);
     const selectedItemRef = useRef(null);
 
-    const { users: members, isLoading } = useUsersWithPresence({
-        queryKey: [type, serverId],
-        fetchFunction: () => fetchMembers(type, serverId),
-        getUserId: (member) => member.user.id,
+    const { data: channels = [] } = useQuery({
+        queryKey: ['channels', serverId],
+        queryFn: () => fetchChannels(serverId),
+        staleTime: 10 * 60 * 1000,
+        retry: 1,
     });
 
     useEffect(() => {
@@ -27,27 +28,26 @@ const Suggestions = forwardRef(function Suggestions(
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [hideFunction]);
 
-    if (isLoading) return <Spinner size="w-10 h-10" />;
+    const channelQuery = query.substring(1);
+    const textChannels = channels.filter(c => c.type === 'text');
+    const filtered = channelQuery.length > 0
+        ? textChannels.filter(c => c.name.toLowerCase().includes(channelQuery.toLowerCase()))
+        : textChannels;
 
-    const suggestionQuery = query.substring(1);
-    const filteredMembers = members.filter(member =>
-        member.user.username.toLowerCase().includes(suggestionQuery.toLowerCase())
-    );
-
-    const clampedIndex = Math.min(selectedIndex, Math.max(0, filteredMembers.length - 1));
+    const clampedIndex = Math.min(selectedIndex, Math.max(0, filtered.length - 1));
 
     useImperativeHandle(imperativeRef, () => ({
         selectCurrent() {
-            const member = filteredMembers[clampedIndex];
-            if (member) clickFunction(member.user);
+            const channel = filtered[clampedIndex];
+            if (channel) clickFunction(channel);
         },
-    }), [filteredMembers, clampedIndex, clickFunction]);
+    }), [filtered, clampedIndex, clickFunction]);
 
     useEffect(() => {
         selectedItemRef.current?.scrollIntoView({ block: 'nearest' });
     }, [clampedIndex]);
 
-    if (!filteredMembers.length) return null;
+    if (!filtered.length) return null;
 
     return (
         <div
@@ -57,25 +57,21 @@ const Suggestions = forwardRef(function Suggestions(
         >
             <div className="bg-guild-bar flex flex-col w-full text-foreground shadow-md rounded-lg py-2 px-2 max-h-48 overflow-y-auto">
                 <span className="text-xs mb-2 text-muted-foreground shrink-0">
-                    {suggestionQuery.length > 0 ? `Mitglieder mit ${query}` : 'Mitglieder auf diesem Server'}
+                    {channelQuery.length > 0 ? `Kanäle mit ${query}` : 'Textkanäle'}
                 </span>
                 <div className="flex flex-col gap-1">
-                    {filteredMembers.map((member, index) => (
+                    {filtered.map((channel, index) => (
                         <div
-                            key={member.userId}
+                            key={channel.id}
                             ref={index === clampedIndex ? selectedItemRef : null}
-                            onClick={() => clickFunction(member.user)}
+                            onClick={() => clickFunction(channel)}
                             className={`cursor-pointer py-1 flex items-center text-sm rounded-md px-2 transition-colors ${
                                 index === clampedIndex ? 'bg-muted text-foreground' : 'hover:bg-muted/50'
                             }`}
                         >
                             <div className="flex items-center gap-2">
-                                <UserAvatar
-                                    icon={member.user.username.charAt(0).toUpperCase()}
-                                    onlineSize="w-3 h-3 -bottom-1 -right-1"
-                                    size="w-5 h-5"
-                                />
-                                {member.user.displayName ?? member.user.username}
+                                <FontAwesomeIcon icon={faHashtag} className="text-muted-foreground w-3 shrink-0" />
+                                {channel.name}
                             </div>
                         </div>
                     ))}
@@ -85,4 +81,4 @@ const Suggestions = forwardRef(function Suggestions(
     );
 });
 
-export default Suggestions;
+export default ChannelSuggestions;

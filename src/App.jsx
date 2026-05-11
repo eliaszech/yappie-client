@@ -27,6 +27,8 @@ import FriendsListPending from "./features/private/friends/FriendsListPending.js
 import {useFriendRequests} from "./hooks/friends/useFriendRequests.js";
 import PageNotFound from "./errors/PageNotFound.jsx";
 import PageNotFoundSidebar from "./errors/PageNotFoundSidebar.jsx";
+import {SettingsProvider} from "./context/SettingsContext.jsx";
+import SettingsModal from "./features/settings/SettingsModal.jsx";
 
 function App() {
     usePresence();
@@ -38,6 +40,7 @@ function App() {
     useFriendRequests();
 
     return (
+        <SettingsProvider>
         <BrowserRouter>
             <Routes>
                 <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
@@ -85,7 +88,9 @@ function App() {
                     </ProtectedRoute>
                 } />
             </Routes>
+            <SettingsModal />
         </BrowserRouter>
+        </SettingsProvider>
     );
 }
 

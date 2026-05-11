@@ -10,12 +10,14 @@ import {useAuth} from "../../../hooks/useAuth.js";
 import {editMessage} from "../../../hooks/messages/useEditMessage.js";
 import LinkEmbed, {extractFirstUrl} from "./LinkEmbed.jsx";
 import {faServer} from "@awesome.me/kit-95376d5d61/icons/classic/light";
-import {useNavigate} from "react-router-dom";
+import {faHashtag} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
+import {useNavigate, useParams} from "react-router-dom";
 import {joinServer} from "../../../services/api.js";
 import {useQueryClient} from "@tanstack/react-query";
 import MessageInput from "./MessageInput.jsx";
 
 const MENTION_REGEX = /@(\w+)/g;
+const CHANNEL_REGEX = /#([\w-]+)/g;
 const LINK_REGEX = /https?:\/\/[^\s<>"[\]{}|\\^`]+/g;
 
 function InviteMessage({invite}) {
@@ -61,13 +63,16 @@ function InviteMessage({invite}) {
     )
 }
 
-function MessageItem({message, isGrouped = false, disabled = false}) {
+function MessageItem({message, color = '', isGrouped = false, disabled = false}) {
     const { user: messageUser } = message;
     const { user } = useAuth();
+    const { serverId } = useParams();
     const [hovered, setHovered] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState('');
     const textareaRef = useRef(null);
+    const queryClient = useQueryClient();
+    const navigate = useNavigate();
     const { replyTo } = useReplyState(message.conversationId || message.channelId);
     const roomType = message.conversationId ? 'conversation' : 'channel';
 
@@ -134,6 +139,13 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
             }
         }
 
+        for (const match of text.matchAll(CHANNEL_REGEX)) {
+            const overlaps = segments.some(s => match.index < s.end && match.index + match[0].length > s.start);
+            if (!overlaps) {
+                segments.push({ start: match.index, end: match.index + match[0].length, type: 'channel', content: match[0], channelName: match[1] });
+            }
+        }
+
         for (const match of text.matchAll(LINK_REGEX)) {
             const overlaps = segments.some(s => match.index < s.end && match.index + match[0].length > s.start);
             if (!overlaps) {
@@ -155,6 +167,13 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
         if (lastIndex < text.length) parts.push({ type: 'text', content: text.slice(lastIndex) });
 
         return parts;
+    }
+
+    function navigateToChannel(channelName) {
+        if (!serverId) return;
+        const channels = queryClient.getQueryData(['channels', serverId]) || [];
+        const ch = channels.find(c => c.name === channelName);
+        if (ch) navigate(`/servers/${serverId}/channels/${ch.id}`);
     }
 
     const amIMentioned = (message && message.mentions.some(mention => mention.user.id === user.id)) || (message.replyTo && message.replyTo.user.id === user.id && message.userId !== user.id);
@@ -214,6 +233,10 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
                                     <HasUserPopup key={index} user={part.mentionUser}>
                                         <span className="text-primary hover:underline cursor-pointer">{part.content}</span>
                                     </HasUserPopup>
+                                ) : part.type === 'channel' ? (
+                                    <span key={index} onClick={() => navigateToChannel(part.channelName)} className="w-max text-primary font-medium cursor-pointer hover:underline">
+                                        {part.content}
+                                    </span>
                                 ) : part.type === 'link' ? (
                                     <a key={index} href={part.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part.content}</a>
                                 ) : (
@@ -261,6 +284,10 @@ function MessageItem({message, isGrouped = false, disabled = false}) {
                                 <HasUserPopup key={index} user={part.mentionUser}>
                                     <span className="text-primary hover:underline cursor-pointer">{part.content}</span>
                                 </HasUserPopup>
+                            ) : part.type === 'channel' ? (
+                                <span key={index} onClick={() => navigateToChannel(part.channelName)} className="w-max text-primary font-medium cursor-pointer hover:underline">
+                                    {part.content}
+                                </span>
                             ) : part.type === 'link' ? (
                                 <a key={index} href={part.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part.content}</a>
                             ) : (

@@ -66,7 +66,17 @@ export const fetchServer = (serverId) => apiRequest('GET', `/servers/${serverId}
 export const createServer = (serverName) => apiRequest('POST', `/servers/create`, { serverName });
 export const deleteServer = (serverId) => apiRequest('POST', `/servers/delete`, { serverId });
 export const fetchChannels = (serverId) => apiRequest('GET', `/servers/${serverId}/channels`);
+export const createChannel = (serverId, name, type) => apiRequest('POST', `/servers/${serverId}/channels`, { name, type });
 export const fetchMembers = (type, id) => apiRequest('GET', type === 'members' ? `/servers/${id}/members` : `/conversations/${id}/participants`);
+export const updateServer = (serverId, data) => apiRequest('PATCH', `/servers/${serverId}`, data);
+export const kickMember = (serverId, userId) => apiRequest('DELETE', `/servers/${serverId}/members/${userId}`);
+
+export const fetchRoles = (serverId) => apiRequest('GET', `/servers/${serverId}/roles`);
+export const createRole = (serverId, data) => apiRequest('POST', `/servers/${serverId}/roles`, data);
+export const updateRole = (serverId, roleId, data) => apiRequest('PATCH', `/servers/${serverId}/roles/${roleId}`, data);
+export const deleteRole = (serverId, roleId) => apiRequest('DELETE', `/servers/${serverId}/roles/${roleId}`);
+export const assignRole = (serverId, memberId, roleId) => apiRequest('POST', `/servers/${serverId}/members/${memberId}/roles`, { roleId });
+export const removeRole = (serverId, userId, roleId) => apiRequest('DELETE', `/servers/${serverId}/members/${userId}/roles/${roleId}`);
 export const fetchChannel = (channelId) => apiRequest('GET', `/channels/${channelId}`);
 export const fetchMessages = (type = 'conversation',channelId, cursor = '') => apiRequest('GET',
     type === 'channel' ? `/channels/${channelId}/messages?cursor=${cursor}` : `/conversations/${channelId}/messages?cursor=${cursor}`);
@@ -80,3 +90,25 @@ export const fetchChannelParticipants = (channelId) => apiRequest('GET', `/voice
 export const fetchConversations = (userId) => apiRequest('POST', `/conversations/list`, { userId: userId });
 export const fetchConversation = (conversationId) => apiRequest('GET', `/conversations/${conversationId}`);
 export const fetchOrCreateConversationWith = (receiverId) => apiRequest('POST', `/conversations/getOrCreate`, { targetUserId: receiverId });
+
+export const updateProfile = (data) => apiRequest('PATCH', `/@me/profile`, data);
+export const changePassword = (data) => apiRequest('PATCH', `/@me/password`, data);
+
+export async function uploadAvatar(file) {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    try {
+        const res = await fetch(`${API_URL}/@me/avatar`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}` },
+            body: formData,
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            return { error: err.error || 'Upload fehlgeschlagen' };
+        }
+        return res.json();
+    } catch (e) {
+        return { error: e.message };
+    }
+}
