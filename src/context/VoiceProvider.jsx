@@ -8,6 +8,8 @@ import {playJoinSound, playLeaveSound} from "../services/sounds.js";
 export function VoiceProvider({ children }) {
     const { user } = useAuth();
     const [krispState, setKrispState] = useState(null);
+    const [screenShares, setScreenSharesState] = useState([]);
+    const [voiceActions, setVoiceActionsState] = useState({});
 
     const [voiceState, setVoiceState] = useState({
         token: null,
@@ -16,6 +18,7 @@ export function VoiceProvider({ children }) {
         channelName: null,
         serverId: null,
         serverName: null,
+        participants: [],
         muted: false,
         deafened: false,
     });
@@ -27,6 +30,14 @@ export function VoiceProvider({ children }) {
 
     function setParticipants(participants) {
         setVoiceState(prev => ({ ...prev, participants }));
+    }
+
+    function setScreenShares(shares) {
+        setScreenSharesState(shares);
+    }
+
+    function registerVoiceActions(actions) {
+        setVoiceActionsState(actions);
     }
 
     async function joinVoice({ channel, server }) {
@@ -44,7 +55,7 @@ export function VoiceProvider({ children }) {
         const res = await fetchVoiceToken({
             roomName: `channel-${channel.id}`,
             userId: user.id,
-            username: user.username,
+            username: user.displayName ?? user.username,
         });
 
         setVoiceState({
@@ -54,6 +65,7 @@ export function VoiceProvider({ children }) {
             channelName: channel.name,
             serverId: server.id,
             serverName: server.name,
+            participants: [],
             muted: voiceState.muted,
             deafened: voiceState.deafened,
         });
@@ -76,9 +88,11 @@ export function VoiceProvider({ children }) {
             channelName: null,
             serverId: null,
             serverName: null,
+            participants: [],
             muted: false,
             deafened: false,
         });
+        setScreenSharesState([]);
     }
     function toggleMute() {
         setVoiceState(prev => ({ ...prev, muted: !prev.muted }));
@@ -92,13 +106,17 @@ export function VoiceProvider({ children }) {
         ...voiceState,
         isConnected: !!voiceState.token,
         krisp: krispState,
+        screenShares,
         joinVoice,
         leaveVoice,
         toggleMute,
         toggleDeafen,
         setParticipants,
+        setScreenShares,
         setKrisp,
-    }), [voiceState, krispState]);
+        registerVoiceActions,
+        setScreenShareEnabled: voiceActions.setScreenShareEnabled,
+    }), [voiceState, krispState, screenShares, voiceActions]);
 
     return (
         <VoiceContext.Provider value={value}>

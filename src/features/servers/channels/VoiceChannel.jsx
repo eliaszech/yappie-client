@@ -3,18 +3,25 @@ import {useVoice} from "../../../hooks/useVoice.jsx";
 import {faMicrophoneSlash, faVolumeHigh} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {useChannelParticipants} from "../../../hooks/useChannelParticipants.js";
 import UserAvatar from "../../components/UserAvatar.jsx";
+import {useNavigate} from "react-router-dom";
 
 function VoiceChannel({ channel, server }) {
     const { joinVoice, channelId: activeChannelId, participants: liveParticipants = [] } = useVoice();
+    const navigate = useNavigate();
     const isActive = activeChannelId === channel.id;
 
     const polledParticipants = useChannelParticipants(isActive ? null : channel.id);
     const participants = isActive ? liveParticipants : polledParticipants;
 
+    async function handleClick() {
+        if (!isActive) await joinVoice({ channel, server });
+        navigate(`/servers/${server.id}/voice/${channel.id}`);
+    }
+
     return (
         <div className="flex flex-col gap-1">
             <button
-                onClick={() => joinVoice({ channel, server })}
+                onClick={handleClick}
                 className={`${isActive ? 'bg-muted/50 text-foreground' : 'text-muted-foreground'} cursor-pointer w-full flex items-center gap-2.5 px-2 py-1 rounded-md font-medium transition-all hover:text-foreground hover:bg-muted/50`}>
                 <FontAwesomeIcon className={`${(participants || []).length > 0 ? 'text-green-300' : '' }`} icon={faVolumeHigh} />
                 {channel.name}
@@ -26,7 +33,7 @@ function VoiceChannel({ channel, server }) {
                             <div className={`ring-3 ${p.isSpeaking ? 'ring-green-300' : 'ring-transparent'} rounded-full`}>
                                 <UserAvatar icon={(p.name || '').charAt(0).toUpperCase()} displayOnline={false} size="w-6 h-6" />
                             </div>
-                            <div className={p.isSpeaking ? 'text-foreground' : 'text-muted-foreground'}>{p.name}</div>
+                            <div className={p.isSpeaking ? 'text-foreground' : 'text-muted-foreground'}>{p.displayName ?? p.name}</div>
                             {p.isMuted && (
                                 <FontAwesomeIcon icon={faMicrophoneSlash} className="text-red-400" />
                             )}

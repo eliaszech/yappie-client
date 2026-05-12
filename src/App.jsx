@@ -16,6 +16,7 @@ import SidebarLayout from "./layouts/SidebarLayout.jsx";
 import ServerSidebar from "./features/servers/ServerSidebar.jsx";
 import ServerRedirect from "./features/servers/ServerRedirect.jsx";
 import Channel from "./features/servers/channels/Channel.jsx";
+import VoiceChannelView from "./features/servers/channels/VoiceChannelView.jsx";
 import GlobalVoiceComponent from "./features/components/GlobalVoiceComponent.jsx";
 import {useVoiceEvents} from "./hooks/useVoiceParticipants.js";
 import {useDeleteMessage} from "./hooks/messages/useDeleteMessage.js";
@@ -80,6 +81,7 @@ function App() {
                                     <Route index element={<ServerRedirect />} />
                                     <Route path="members" element={<MemberList />} />
                                     <Route path="channels/:channelId" element={<Channel />} />
+                                    <Route path="voice/:channelId" element={<VoiceChannelView />} />
                                     <Route path="settings" element={<div>Settings</div>} />
                                 </Route>
                                 <Route path="/error/404" element={<PageNotFound />} />
