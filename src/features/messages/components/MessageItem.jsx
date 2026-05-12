@@ -132,9 +132,14 @@ function MessageItem({message, color = '', isGrouped = false, disabled = false})
     function parseMessageText(text, mentions) {
         const segments = [];
 
+        for (const match of text.matchAll(LINK_REGEX)) {
+            segments.push({ start: match.index, end: match.index + match[0].length, type: 'link', content: match[0], href: match[0] });
+        }
+
         for (const match of text.matchAll(MENTION_REGEX)) {
+            const overlaps = segments.some(s => match.index < s.end && match.index + match[0].length > s.start);
             const mention = (mentions || []).find(m => m.user.username === match[1]);
-            if (mention) {
+            if (!overlaps && mention) {
                 segments.push({ start: match.index, end: match.index + match[0].length, type: 'mention', content: match[0], mentionUser: mention.user });
             }
         }
@@ -143,13 +148,6 @@ function MessageItem({message, color = '', isGrouped = false, disabled = false})
             const overlaps = segments.some(s => match.index < s.end && match.index + match[0].length > s.start);
             if (!overlaps) {
                 segments.push({ start: match.index, end: match.index + match[0].length, type: 'channel', content: match[0], channelName: match[1] });
-            }
-        }
-
-        for (const match of text.matchAll(LINK_REGEX)) {
-            const overlaps = segments.some(s => match.index < s.end && match.index + match[0].length > s.start);
-            if (!overlaps) {
-                segments.push({ start: match.index, end: match.index + match[0].length, type: 'link', content: match[0], href: match[0] });
             }
         }
 

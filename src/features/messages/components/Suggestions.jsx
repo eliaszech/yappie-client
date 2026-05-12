@@ -17,6 +17,13 @@ const Suggestions = forwardRef(function Suggestions(
         getUserId: (member) => member.user.id,
     });
 
+    const suggestionQuery = query.substring(1);
+    const filteredMembers = (members ?? []).filter(member =>
+        member.user.username.toLowerCase().includes(suggestionQuery.toLowerCase())
+    );
+
+    const clampedIndex = Math.min(selectedIndex, Math.max(0, filteredMembers.length - 1));
+
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -26,15 +33,6 @@ const Suggestions = forwardRef(function Suggestions(
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [hideFunction]);
-
-    if (isLoading) return <Spinner size="w-10 h-10" />;
-
-    const suggestionQuery = query.substring(1);
-    const filteredMembers = members.filter(member =>
-        member.user.username.toLowerCase().includes(suggestionQuery.toLowerCase())
-    );
-
-    const clampedIndex = Math.min(selectedIndex, Math.max(0, filteredMembers.length - 1));
 
     useImperativeHandle(imperativeRef, () => ({
         selectCurrent() {
@@ -46,6 +44,8 @@ const Suggestions = forwardRef(function Suggestions(
     useEffect(() => {
         selectedItemRef.current?.scrollIntoView({ block: 'nearest' });
     }, [clampedIndex]);
+
+    if (isLoading) return <Spinner size="w-10 h-10" />;
 
     if (!filteredMembers.length) return null;
 

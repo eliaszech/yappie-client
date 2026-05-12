@@ -17,7 +17,7 @@ import MentionElement from "../../plugins/slate/MentionElement.jsx";
 import ChannelMentionElement from "../../plugins/slate/ChannelMentionElement.jsx";
 
 const MENTION_SUGGESTIONS_REGEX = /(?<!\w)@(\w*)$/;
-const CHANNEL_SUGGESTIONS_REGEX = /(?<!\w)#([\w-]*)$/;
+const CHANNEL_SUGGESTIONS_REGEX = /(?<!\S)#([\w-]*)$/;
 const MENTION_PARSE_REGEX = /@(\w+)/g;
 
 const initialValue = [
@@ -39,10 +39,6 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
     const { replyTo, clearReplyState } = useReplyState(roomId);
     const { typingUsers, sendTyping, stopTyping } = useTyping(type, roomId);
     const inputContainerRef = useRef(null);
-
-    useEffect(() => {
-        setSuggestionsIndex(0);
-    }, [mentionQuery, channelQuery]);
 
     useEffect(() => {
         const ref = inputContainerRef.current;
@@ -80,11 +76,13 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
 
         if (mentionMatch) {
             setMentionQuery('@' + mentionMatch[1]);
+            setSuggestionsIndex(0);
             setShowSuggestions(true);
             setShowChannelSuggestions(false);
             setChannelQuery('');
         } else if (channelMatch && type === 'channel') {
             setChannelQuery('#' + channelMatch[1]);
+            setSuggestionsIndex(0);
             setShowChannelSuggestions(true);
             setShowSuggestions(false);
             setMentionQuery('');
