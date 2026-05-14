@@ -1,0 +1,21 @@
+appId: com.yappie.client
+productName: Yappie
+copyright: Copyright © 2025 Yappie
+
+directories:
+  output: dist-electron
+
+files:
+  - dist/**/*
+  - electron/**/*
+  - package.json
+
+win:
+  target:
+    - target: nsis
+      arch: x64
+  icon: public/icon.ico
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

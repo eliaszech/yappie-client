@@ -1,11 +1,12 @@
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {useVoice} from "../../../hooks/useVoice.jsx";
-import {faMicrophoneSlash, faVolumeHigh} from "@awesome.me/kit-95376d5d61/icons/classic/light";
+import {faDisplay, faMicrophoneSlash, faVolumeHigh} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {faArrowsRotate, faGear} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import {useChannelParticipants} from "../../../hooks/useChannelParticipants.js";
 import UserAvatar from "../../components/UserAvatar.jsx";
 import {useNavigate} from "react-router-dom";
 import {useAuth} from "../../../hooks/useAuth.js";
+import HasUserPopup from "../../components/user/HasUserPopup.jsx";
 
 function VoiceChannel({ channel, server, onSettings }) {
     const { joinVoice, channelId: activeChannelId, participants: liveParticipants = [], connectionStatus, retryCount } = useVoice();
@@ -57,14 +58,19 @@ function VoiceChannel({ channel, server, onSettings }) {
                         </div>
                     )}
                     {(participants || []).filter(p => !isConnecting || !p.isLocal).map(p => (
-                        <button key={p.identity} className="w-full flex text-foreground items-center gap-2 px-2 py-1 rounded-md font-medium transition-all hover:text-foreground hover:bg-muted/50">
+                        <button key={p.identity} className="w-full flex text-foreground cursor-pointer items-center gap-2 px-2 py-1 rounded-md font-medium transition-all hover:text-foreground hover:bg-muted/50">
                             <div className={`ring-3 ${p.isSpeaking ? 'ring-primary' : 'ring-transparent'} rounded-full`}>
                                 <UserAvatar icon={(p.name || '').charAt(0).toUpperCase()} displayOnline={false} size="w-6 h-6" />
                             </div>
                             <div className={p.isSpeaking ? 'text-foreground' : 'text-muted-foreground'}>{p.displayName ?? p.name}</div>
-                            {p.isMuted && (
-                                <FontAwesomeIcon icon={faMicrophoneSlash} className="text-red-400" />
-                            )}
+                            <div className="ml-auto flex items-center gap-1.5">
+                                {p.isScreenSharing && (
+                                    <FontAwesomeIcon icon={faDisplay} className="text-green-400 text-xs" title="Streamt" />
+                                )}
+                                {p.isMuted && (
+                                    <FontAwesomeIcon icon={faMicrophoneSlash} className="text-red-400" />
+                                )}
+                            </div>
                         </button>
                     ))}
                 </div>

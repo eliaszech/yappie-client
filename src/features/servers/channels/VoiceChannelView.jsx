@@ -1,17 +1,19 @@
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faMicrophone,
-    faPhoneSlash,
-    faDisplay,
     faVolumeHigh,
     faMicrophoneSlash,
     faXmark,
     faTriangleExclamation,
     faArrowsRotate,
 } from "@awesome.me/kit-95376d5d61/icons/classic/light";
+import {
+    faDisplay,
+    faPhone
+} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import { fetchChannel } from "../../../services/api.js";
 import { useVoice } from "../../../hooks/useVoice.jsx";
 import { useAuth } from "../../../hooks/useAuth.js";
@@ -25,6 +27,12 @@ import MemberSidebarList from "./MemberSidebarList.jsx";
 function ParticipantTile({ participant }) {
     return (
         <div className={`relative flex flex-col items-center justify-center gap-2 aspect-video rounded-xl bg-card ring-2 transition-all ${participant.isSpeaking ? 'ring-primary' : 'ring-transparent'}`}>
+            {participant.isScreenSharing && (
+                <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-green-500/20 text-green-300 text-xs font-medium">
+                    <FontAwesomeIcon icon={faDisplay} />
+                    <span>Live</span>
+                </div>
+            )}
             <UserAvatar
                 icon={(participant.name || '?').charAt(0).toUpperCase()}
                 displayOnline={false}
@@ -132,6 +140,17 @@ function VoiceChannelView() {
     );
 
     const [focusedShareId, setFocusedShareId] = useState(null);
+    const [shareMenuOpen, setShareMenuOpen] = useState(false);
+    const shareMenuRef = useRef(null);
+
+    useEffect(() => {
+        if (!shareMenuOpen) return;
+        function onMousedown(e) {
+            if (!shareMenuRef.current?.contains(e.target)) setShareMenuOpen(false);
+        }
+        document.addEventListener('mousedown', onMousedown);
+        return () => document.removeEventListener('mousedown', onMousedown);
+    }, [shareMenuOpen]);
     const focusedShare = useMemo(
         () => screenShares.find(s => s.identity === focusedShareId),
         [screenShares, focusedShareId]
@@ -144,6 +163,14 @@ function VoiceChannelView() {
     async function toggleScreenShare() {
         if (!setScreenShareEnabled) return;
         await setScreenShareEnabled(!localShare);
+    }
+
+    async function switchScreenShare() {
+        if (!setScreenShareEnabled) return;
+        setShareMenuOpen(false);
+        await setScreenShareEnabled(false);
+        await new Promise(r => setTimeout(r, 150));
+        await setScreenShareEnabled(true);
     }
 
     async function handleJoin() {
@@ -249,36 +276,70 @@ function VoiceChannelView() {
                         )
                     )}
 
-                    <div className="border-t border-border bg-card/40 px-6 py-3 flex items-center justify-center gap-3">
+                    <div className="relative mx-auto w-max bottom-4 flex items-center justify-center gap-3">
                         {isActive ? (
                             <>
-                                <button
-                                    onClick={toggleMute}
-                                    className={`cursor-pointer rounded-full w-11 h-11 flex items-center justify-center transition-colors ${muted ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-muted text-foreground hover:bg-muted/70'}`}
-                                    title={muted ? 'Stummschaltung aufheben' : 'Stummschalten'}
-                                >
-                                    <FontAwesomeIcon icon={muted ? faMicrophoneSlash : faMicrophone} />
-                                </button>
-                                <button
-                                    onClick={toggleScreenShare}
-                                    className={`cursor-pointer rounded-full w-11 h-11 flex items-center justify-center transition-colors ${localShare ? 'bg-green-500/20 text-green-300 hover:bg-green-500/30' : 'bg-muted text-foreground hover:bg-muted/70'}`}
-                                    title={localShare ? 'Stream beenden' : 'Bildschirm teilen'}
-                                >
-                                    <FontAwesomeIcon icon={faDisplay} />
-                                </button>
+                                <div className="flex items-center gap-2 bg-guild-bar p-1.5 h-14 rounded-xl border border-border">
+                                    <button
+                                        onClick={toggleMute}
+                                        className={`cursor-pointer text-xl rounded-lg w-11 h-11 flex items-center justify-center transition-colors ${muted ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'text-foreground hover:bg-muted/70'}`}
+                                        title={muted ? 'Stummschaltung aufheben' : 'Stummschalten'}
+                                    >
+                                        <FontAwesomeIcon icon={muted ? faMicrophoneSlash : faMicrophone} />
+                                    </button>
+                                    {localShare ? (
+                                        <div ref={shareMenuRef} className="relative">
+                                            <button
+                                                onClick={() => setShareMenuOpen(v => !v)}
+                                                className="cursor-pointer rounded-lg w-11 h-11 flex items-center justify-center bg-green-500/20 text-green-300 hover:bg-green-500/30 transition-colors"
+                                                title="Stream-Optionen"
+                                            >
+                                                <FontAwesomeIcon icon={faDisplay} />
+                                            </button>
+                                            {shareMenuOpen && (
+                                                <div className="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 bg-popover border border-border rounded-lg shadow-lg overflow-hidden min-w-[200px]">
+                                                    <p className="px-3 pt-1 pb-1.5 text-xs text-muted-foreground font-medium">Bildschirm teilen</p>
+                                                    <div className="border-t border-border" />
+                                                    <button
+                                                        onClick={switchScreenShare}
+                                                        className="w-full px-3 py-2 text-sm text-foreground hover:bg-muted text-left flex items-center gap-2 cursor-pointer"
+                                                    >
+                                                        <FontAwesomeIcon icon={faArrowsRotate} />
+                                                        Fenster wechseln
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { toggleScreenShare(); setShareMenuOpen(false); }}
+                                                        className="w-full px-3 py-2 text-sm text-red-400 hover:bg-muted text-left flex items-center gap-2 cursor-pointer"
+                                                    >
+                                                        <FontAwesomeIcon icon={faXmark} />
+                                                        Stream beenden
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={toggleScreenShare}
+                                            className="cursor-pointer rounded-lg w-11 h-11 h-full flex items-center justify-center text-foreground hover:bg-muted/70 transition-colors"
+                                            title="Bildschirm teilen"
+                                        >
+                                            <FontAwesomeIcon icon={faDisplay} />
+                                        </button>
+                                    )}
+                                </div>
                                 <button
                                     onClick={leaveVoice}
-                                    className="cursor-pointer rounded-full w-11 h-11 flex items-center justify-center bg-red-500/80 text-white hover:bg-red-500 transition-colors"
+                                    className="cursor-pointer rounded-xl px-4 h-12 flex items-center justify-center bg-red-500 text-white hover:bg-red-500/80 transition-colors"
                                     title="Verlassen"
                                 >
-                                    <FontAwesomeIcon icon={faPhoneSlash} />
+                                    <FontAwesomeIcon icon={faPhone} />
                                 </button>
                             </>
                         ) : (
                             <button
                                 onClick={handleJoin}
                                 disabled={connectionStatus === 'connecting'}
-                                className="cursor-pointer rounded-lg px-6 h-11 flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/80 transition-colors font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                                className="cursor-pointer rounded-xl px-6 h-11 flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/80 transition-colors font-medium disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                                 {connectionStatus === 'connecting' ? (
                                     <>

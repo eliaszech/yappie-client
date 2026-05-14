@@ -1,4 +1,4 @@
-import {BrowserRouter, Routes, Route, Navigate} from 'react-router-dom';
+import {HashRouter, Routes, Route, Navigate} from 'react-router-dom';
 import ServerSelector from "./features/servers/ServerSelector.jsx";
 import FriendsList from "./features/private/friends/FriendsList.jsx";
 import AddFriend from "./features/private/friends/AddFriend.jsx";
@@ -31,6 +31,7 @@ import PageNotFoundSidebar from "./errors/PageNotFoundSidebar.jsx";
 import {SettingsProvider} from "./context/SettingsContext.jsx";
 import SettingsModal from "./features/settings/SettingsModal.jsx";
 import {ContextMenuProvider} from "./context/ContextMenuProvider.jsx";
+import ScreenPickerModal from "./features/components/ScreenPickerModal.jsx";
 
 function App() {
     usePresence();
@@ -44,7 +45,7 @@ function App() {
     return (
         <ContextMenuProvider>
         <SettingsProvider>
-        <BrowserRouter>
+        <HashRouter>
             <Routes>
                 <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
                 <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
@@ -93,8 +94,9 @@ function App() {
                 } />
             </Routes>
             <SettingsModal />
-        </BrowserRouter>
+        </HashRouter>
         </SettingsProvider>
+        <ScreenPickerModal />
         </ContextMenuProvider>
     );
 }
