@@ -2,8 +2,10 @@ import {
     faCog,
     faHeadset,
     faMicrophone,
-    faSignOut,faWaveform,
-    faWireless
+    faSignOut,
+    faWaveform,
+    faWireless,
+    faArrowsRotate,
 } from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import UserAvatar from "./UserAvatar.jsx";
@@ -23,7 +25,7 @@ function UserPanel() {
     const { user } = useAuth();
     const { openSettings } = useSettings();
     const [ changeStatusVisible, setChangeStatusVisible ] = useState(false);
-    const { isConnected, channelName, serverName, krisp, setKrisp, leaveVoice, muted, toggleMute } = useVoice();
+    const { isConnected, channelName, serverName, krisp, setKrisp, leaveVoice, muted, toggleMute, connectionStatus, retryCount } = useVoice();
 
     const online = useIsOnline(user.id) ?? user.online;
     const status = useUserStatus(user.id) ?? user.status;
@@ -38,17 +40,31 @@ function UserPanel() {
 
     return(
         <div className="absolute bottom-2 left-2 w-[385px] z-10 bg-muted  backdrop-blur-md rounded-lg  justify-between flex flex-col">
-            {isConnected && (
+            {(isConnected || connectionStatus === 'connecting') && (
                 <div className="pl-3 pr-2 py-2 border-b border-border">
                     <div className="flex items-center justify-between">
                         <div className="flex flex-col">
-                            <span className="font-semibold text-green-300"><FontAwesomeIcon className="mr-1" icon={faWireless} /> Sprachchat verbunden</span>
+                            {connectionStatus === 'connecting' ? (
+                                <span className="font-semibold text-blue-400 flex items-center gap-1.5">
+                                    <FontAwesomeIcon icon={faArrowsRotate} className="animate-spin" />
+                                    {retryCount > 0 ? `Verbinde... (${retryCount}/5)` : 'Verbinde...'}
+                                </span>
+                            ) : connectionStatus === 'reconnecting' ? (
+                                <span className="font-semibold text-yellow-400 flex items-center gap-1.5">
+                                    <FontAwesomeIcon icon={faArrowsRotate} className="animate-spin" />
+                                    {retryCount > 0 ? `Neuverbindung... (${retryCount}/5)` : 'Neuverbindung...'}
+                                </span>
+                            ) : (
+                                <span className="font-semibold text-primary">
+                                    <FontAwesomeIcon className="mr-1" icon={faWireless} /> Sprachchat verbunden
+                                </span>
+                            )}
                             <span className="text-xs text-foreground">{channelName} / {serverName}</span>
                         </div>
                         <div className="flex items-center gap-1">
                             {krisp && (
                                 <button onClick={toggleKrisp} className="cursor-pointer rounded-lg text-xl text-red-400 hover:bg-card/80 hover:text-foreground px-1.5 py-1.5">
-                                    {krisp.isNoiseFilterEnabled ? <FontAwesomeIcon className="text-green-300" icon={faWaveform} /> : <FontAwesomeIcon icon={faWaveform} />}
+                                    {krisp.isNoiseFilterEnabled ? <FontAwesomeIcon className="text-primary" icon={faWaveform} /> : <FontAwesomeIcon icon={faWaveform} />}
                                 </button>
                             )}
                             <button onClick={leaveVoice} className="cursor-pointer rounded-lg text-xl text-red-400 hover:bg-card/80 hover:text-foreground px-1.5 py-1.5">

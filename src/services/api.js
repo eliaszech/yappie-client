@@ -84,6 +84,9 @@ export const fetchMessages = (type = 'conversation',channelId, cursor = '') => a
 export const createInvite = (serverId) => apiRequest('POST', `/servers/${serverId}/invites/create`);
 export const joinServer = (inviteCode) => apiRequest('POST', `/servers/join`, { inviteCode });
 
+export const updateChannel = (channelId, data) => apiRequest('PATCH', `/channels/${channelId}`, data);
+export const deleteChannel = (channelId) => apiRequest('DELETE', `/channels/${channelId}`);
+
 export const fetchVoiceToken = (data) => apiRequest('POST', `/voice/token`, data);
 export const fetchChannelParticipants = (channelId) => apiRequest('GET', `/voice/participants/${channelId}`);
 

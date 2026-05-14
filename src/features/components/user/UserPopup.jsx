@@ -7,23 +7,54 @@ import Dropdown from "../Dropdown.jsx";
 import StatusPicker from "./StatusPicker.jsx";
 import StatusText from "./StatusText.jsx";
 import {getSocket} from "../../../services/socket.js";
-import {fetchOrCreateConversationWith} from "../../../services/api.js";
+import {
+    fetchOrCreateConversationWith,
+    fetchFriends,
+    fetchServers,
+    sendFriendRequest,
+    denyFriendRequest,
+    acceptFriendRequest,
+    createInvite,
+} from "../../../services/api.js";
 import {useNavigate} from "react-router-dom";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faPen} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
+import {faPen, faMessage, faUserCheck, faUserMinus, faBan} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
+import {faEllipsis, faChevronRight, faChevronLeft, faLink} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
+import {faUserPlus, faUserClock} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {useSettings} from "../../../context/SettingsContext.jsx";
+import {useQuery, useQueryClient} from "@tanstack/react-query";
 
 function UserPopup() {
     const { popup, closePopup } = useUserPopup();
     const { user } = useAuth();
     const { openSettings } = useSettings();
     const [input, setInput] = useState('');
+    const [showMore, setShowMore] = useState(false);
+    const [moreView, setMoreView] = useState('main');
     const ref = useRef(null);
+    const moreRef = useRef(null);
     const isSelf = user.id === popup.user.id;
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
     const online = useIsOnline(popup.user.id) ?? popup.user.online;
     const status = useUserStatus(popup.user.id) ?? popup.user.status;
+
+    const { data: friends = [] } = useQuery({
+        queryKey: ['friends'],
+        queryFn: fetchFriends,
+        staleTime: 10 * 60 * 1000,
+        enabled: !isSelf,
+    });
+
+    const { data: servers = [] } = useQuery({
+        queryKey: ['servers'],
+        queryFn: fetchServers,
+        staleTime: 10 * 60 * 1000,
+        enabled: !isSelf && showMore && moreView === 'servers',
+    });
+
+    const friendship = friends.find(f => f.id === popup.user.id);
 
     useEffect(() => {
         function handleClick(e) {
@@ -35,25 +66,118 @@ function UserPopup() {
         return () => document.removeEventListener('mousedown', handleClick);
     }, [closePopup]);
 
+    useEffect(() => {
+        if (!showMore) return;
+        function handleClick(e) {
+            if (moreRef.current && !moreRef.current.contains(e.target)) {
+                setShowMore(false);
+                setMoreView('main');
+            }
+        }
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, [showMore]);
+
     async function sendMessage() {
         const socket = getSocket();
         if (!socket) return;
-
         if(input.trim() === '') return;
-
         const conversation = await fetchOrCreateConversationWith(popup.user.id);
-
         if(!conversation.error) {
             socket.emit('message:send', {
                 type: 'conversation',
                 roomId: conversation.id,
                 text: input,
             });
-
             navigate(`/@me/messages/${conversation.id}`);
             closePopup();
         } else {
             alert('Konnte Nachricht nicht senden');
+        }
+    }
+
+    async function handleFriendClick() {
+        const socket = getSocket();
+        if (!socket) return;
+
+        if (!friendship) {
+            const res = await sendFriendRequest(user.id, popup.user.id);
+            if (!res.error) {
+                queryClient.setQueryData(['friends'], old => old ? [...old, res] : [res]);
+                socket.emit('friend:request', user.id, popup.user.id);
+            }
+        } else if (friendship.friendStatus === 'PENDING' && !friendship.isSender) {
+            const res = await acceptFriendRequest(friendship.friendId, popup.user.id);
+            if (!res.error) {
+                queryClient.setQueryData(['friends'], old =>
+                    old ? old.map(f => f.friendId === friendship.friendId ? {...f, friendStatus: 'ACCEPTED'} : f) : old
+                );
+                socket.emit('friend:accept', friendship.friendId, popup.user.id);
+            }
+        }
+    }
+
+    async function handleRemoveFriend() {
+        const socket = getSocket();
+        if (!socket) return;
+        const res = await denyFriendRequest(friendship.friendId, popup.user.id);
+        if (!res.error) {
+            queryClient.setQueryData(['friends'], old =>
+                old ? old.filter(f => f.friendId !== friendship.friendId) : old
+            );
+            socket.emit('friend:decline', friendship.friendId, popup.user.id);
+        }
+        setShowMore(false);
+        setMoreView('main');
+    }
+
+    async function handleOpenDm() {
+        const conversation = await fetchOrCreateConversationWith(popup.user.id);
+        if (!conversation.error) {
+            navigate(`/@me/messages/${conversation.id}`);
+            closePopup();
+        }
+    }
+
+    async function handleServerInvite(server) {
+        const invite = await createInvite(server.id);
+        const conversation = await fetchOrCreateConversationWith(popup.user.id);
+        if (!invite.error && !conversation.error) {
+            const socket = getSocket();
+            if (!socket) return;
+            socket.emit('message:send', {
+                text: 'yappie.gg/invite/' + invite.code,
+                type: 'conversation',
+                roomId: conversation.id,
+                messageType: 'server_invite',
+                inviteId: invite.id,
+            });
+            navigate(`/@me/messages/${conversation.id}`);
+            closePopup();
+        }
+    }
+
+    let friendIcon = faUserPlus;
+    let friendIconClass = 'text-muted-foreground hover:text-foreground';
+    let friendTitle = 'Als Freund hinzufügen';
+    let friendClickable = true;
+
+    if (friendship) {
+        if (friendship.friendStatus === 'ACCEPTED') {
+            friendIcon = faUserCheck;
+            friendIconClass = 'text-green-400';
+            friendTitle = 'Befreundet';
+            friendClickable = false;
+        } else if (friendship.friendStatus === 'PENDING' && friendship.isSender) {
+            friendIcon = faUserClock;
+            friendIconClass = 'text-yellow-400';
+            friendTitle = 'Freundschaftsanfrage ausstehend';
+            friendClickable = false;
+        } else if (friendship.friendStatus === 'PENDING' && !friendship.isSender) {
+            friendIcon = faUserCheck;
+            friendIconClass = 'text-blue-400 hover:text-blue-300';
+            friendTitle = 'Freundschaftsanfrage annehmen';
+            friendClickable = true;
         }
     }
 
@@ -68,12 +192,10 @@ function UserPopup() {
         style.top = 'auto'
     }
 
-    // Wenn zu weit rechts, links vom Element anzeigen
     if (popup.orientation === 'left' || popup.position.left + 320 > window.innerWidth) {
         style.left = popup.position.left - popup.elementWidth - 320 - 16;
     }
 
-    // Wenn zu weit unten, nach oben verschieben
     if (popup.orientation !== 'top' && popup.position.top + 280 > window.innerHeight) {
         style.top = window.innerHeight - 280 - 16;
     }
@@ -85,7 +207,87 @@ function UserPopup() {
                  className="fixed z-50 w-80 bg-card border border-border rounded-lg shadow-xl"
                  style={style}>
                 {/* Banner */}
-                <div className="h-16 bg-primary rounded-lg" />
+                <div className="relative h-16 bg-primary rounded-t-lg">
+                    {!isSelf && (
+                        <div className="absolute top-2 right-2 flex gap-1">
+                            <button
+                                onClick={friendClickable ? handleFriendClick : undefined}
+                                title={friendTitle}
+                                className={`w-8 h-8 flex items-center justify-center rounded-full bg-card/90 transition-colors text-sm ${friendClickable ? 'cursor-pointer hover:bg-card' : 'cursor-default'}`}
+                            >
+                                <FontAwesomeIcon icon={friendIcon} className={friendIconClass} />
+                            </button>
+
+                            <div className="relative" ref={moreRef}>
+                                <button
+                                    onClick={() => { setShowMore(v => !v); setMoreView('main'); }}
+                                    title="Mehr Optionen"
+                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-card/90 hover:bg-card cursor-pointer transition-colors text-sm"
+                                >
+                                    <FontAwesomeIcon icon={faEllipsis} className="text-muted-foreground" />
+                                </button>
+
+                                {showMore && (
+                                    <div className="absolute right-0 top-full mt-1 w-52 bg-card border border-border rounded-lg shadow-xl z-[60] py-1">
+                                        {moreView === 'main' ? (
+                                            <>
+                                                <button
+                                                    onClick={handleOpenDm}
+                                                    className="w-full flex items-center cursor-pointer gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted/50 transition-colors"
+                                                >
+                                                    <FontAwesomeIcon icon={faMessage} className="w-4 text-center text-muted-foreground" />
+                                                    Nachricht senden
+                                                </button>
+                                                <button
+                                                    onClick={() => setMoreView('servers')}
+                                                    className="w-full flex items-center cursor-pointer gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted/50 transition-colors"
+                                                >
+                                                    <FontAwesomeIcon icon={faLink} className="w-4 text-center text-muted-foreground" />
+                                                    Zu Server einladen
+                                                    <FontAwesomeIcon icon={faChevronRight} className="ml-auto text-xs text-muted-foreground" />
+                                                </button>
+                                                <div className="border-t border-border my-1" />
+                                                <button
+                                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors cursor-not-allowed opacity-50"
+                                                    disabled
+                                                    title="Kommt bald"
+                                                >
+                                                    <FontAwesomeIcon icon={faBan} className="w-4 text-center" />
+                                                    Benutzer blockieren
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    onClick={() => setMoreView('main')}
+                                                    className="w-full flex items-center cursor-pointer gap-2 px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
+                                                >
+                                                    <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
+                                                    Server auswählen
+                                                </button>
+                                                <div className="border-t border-border my-1" />
+                                                {servers.length === 0 ? (
+                                                    <div className="px-3 py-2 text-xs text-muted-foreground">Keine Server</div>
+                                                ) : servers.map(s => (
+                                                    <button
+                                                        key={s.id}
+                                                        onClick={() => handleServerInvite(s)}
+                                                        className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
+                                                    >
+                                                        <div className="w-6 h-6 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-bold shrink-0">
+                                                            {s.name.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <span className="truncate">{s.name}</span>
+                                                    </button>
+                                                ))}
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 {/* Avatar */}
                 <div className="px-4 -mt-8">

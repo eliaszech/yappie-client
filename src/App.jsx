@@ -30,6 +30,7 @@ import PageNotFound from "./errors/PageNotFound.jsx";
 import PageNotFoundSidebar from "./errors/PageNotFoundSidebar.jsx";
 import {SettingsProvider} from "./context/SettingsContext.jsx";
 import SettingsModal from "./features/settings/SettingsModal.jsx";
+import {ContextMenuProvider} from "./context/ContextMenuProvider.jsx";
 
 function App() {
     usePresence();
@@ -41,6 +42,7 @@ function App() {
     useFriendRequests();
 
     return (
+        <ContextMenuProvider>
         <SettingsProvider>
         <BrowserRouter>
             <Routes>
@@ -93,6 +95,7 @@ function App() {
             <SettingsModal />
         </BrowserRouter>
         </SettingsProvider>
+        </ContextMenuProvider>
     );
 }
 

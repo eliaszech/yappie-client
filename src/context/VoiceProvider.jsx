@@ -10,6 +10,9 @@ export function VoiceProvider({ children }) {
     const [krispState, setKrispState] = useState(null);
     const [screenShares, setScreenSharesState] = useState([]);
     const [voiceActions, setVoiceActionsState] = useState({});
+    const [voiceError, setVoiceErrorState] = useState(null);
+    const [connectionStatus, setConnectionStatusState] = useState('idle');
+    const [retryCount, setRetryCountState] = useState(0);
 
     const [voiceState, setVoiceState] = useState({
         token: null,
@@ -22,7 +25,6 @@ export function VoiceProvider({ children }) {
         muted: false,
         deafened: false,
     });
-
 
     function setKrisp(krisp) {
         setKrispState(krisp);
@@ -40,12 +42,42 @@ export function VoiceProvider({ children }) {
         setVoiceActionsState(actions);
     }
 
+    function setVoiceError(error) {
+        setVoiceErrorState(error);
+        setConnectionStatusState('error');
+    }
+
+    function setConnectionStatus(status) {
+        setConnectionStatusState(status);
+    }
+
+    function setRetryCount(n) {
+        setRetryCountState(n);
+    }
+
+    function clearVoiceError() {
+        setVoiceErrorState(null);
+        setConnectionStatusState('idle');
+        setRetryCountState(0);
+    }
+
     async function joinVoice({ channel, server }) {
-        if (voiceState.channelId === channel.id) return;
+        if (voiceState.channelId === channel.id && connectionStatus === 'connected') return;
+
+        setVoiceErrorState(null);
+        setConnectionStatusState('connecting');
+
+        // Set channel info immediately so UI can show name during connecting phase
+        setVoiceState(prev => ({
+            ...prev,
+            channelId: channel.id,
+            channelName: channel.name,
+            serverId: server.id,
+            serverName: server.name,
+        }));
 
         const socket = getSocket();
 
-        // Erst alten Channel verlassen
         if (voiceState.token && socket) {
             socket.emit('voice:leave', { channelId: voiceState.channelId });
             setVoiceState(prev => ({ ...prev, token: null }));
@@ -58,19 +90,36 @@ export function VoiceProvider({ children }) {
             username: user.displayName ?? user.username,
         });
 
-        setVoiceState({
+        if (res.error) {
+            setVoiceErrorState(res.error);
+            setConnectionStatusState('error');
+            return;
+        }
+
+        setVoiceState(prev => ({
+            ...prev,
             token: res.token,
-            channelId: channel.id,
             serverUrl: res.url,
-            channelName: channel.name,
-            serverId: server.id,
-            serverName: server.name,
             participants: [],
-            muted: voiceState.muted,
-            deafened: voiceState.deafened,
-        });
+        }));
 
         playJoinSound();
+    }
+
+    async function refreshToken() {
+        const channelId = voiceState.channelId;
+        if (!channelId) return false;
+        const res = await fetchVoiceToken({
+            roomName: `channel-${channelId}`,
+            userId: user.id,
+            username: user.displayName ?? user.username,
+        });
+        if (res.error) return false;
+        setVoiceState(prev => {
+            if (!prev.channelId) return prev;
+            return { ...prev, token: res.token, serverUrl: res.url };
+        });
+        return true;
     }
 
     function leaveVoice() {
@@ -93,7 +142,10 @@ export function VoiceProvider({ children }) {
             deafened: false,
         });
         setScreenSharesState([]);
+        setConnectionStatusState('idle');
+        setRetryCountState(0);
     }
+
     function toggleMute() {
         setVoiceState(prev => ({ ...prev, muted: !prev.muted }));
     }
@@ -105,6 +157,8 @@ export function VoiceProvider({ children }) {
     const value = useMemo(() => ({
         ...voiceState,
         isConnected: !!voiceState.token,
+        connectionStatus,
+        voiceError,
         krisp: krispState,
         screenShares,
         joinVoice,
@@ -116,7 +170,13 @@ export function VoiceProvider({ children }) {
         setKrisp,
         registerVoiceActions,
         setScreenShareEnabled: voiceActions.setScreenShareEnabled,
-    }), [voiceState, krispState, screenShares, voiceActions]);
+        setVoiceError,
+        setConnectionStatus,
+        setRetryCount,
+        clearVoiceError,
+        refreshToken,
+        retryCount,
+    }), [voiceState, krispState, screenShares, voiceActions, voiceError, connectionStatus, retryCount]);
 
     return (
         <VoiceContext.Provider value={value}>

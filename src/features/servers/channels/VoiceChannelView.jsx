@@ -9,9 +9,12 @@ import {
     faVolumeHigh,
     faMicrophoneSlash,
     faXmark,
+    faTriangleExclamation,
+    faArrowsRotate,
 } from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import { fetchChannel } from "../../../services/api.js";
 import { useVoice } from "../../../hooks/useVoice.jsx";
+import { useAuth } from "../../../hooks/useAuth.js";
 import { useChannelParticipants } from "../../../hooks/useChannelParticipants.js";
 import ContentHeader from "../../components/ContentHeader.jsx";
 import UserAvatar from "../../components/UserAvatar.jsx";
@@ -21,7 +24,7 @@ import MemberSidebarList from "./MemberSidebarList.jsx";
 
 function ParticipantTile({ participant }) {
     return (
-        <div className={`relative flex flex-col items-center justify-center gap-2 aspect-video rounded-xl bg-card ring-2 transition-all ${participant.isSpeaking ? 'ring-green-300' : 'ring-transparent'}`}>
+        <div className={`relative flex flex-col items-center justify-center gap-2 aspect-video rounded-xl bg-card ring-2 transition-all ${participant.isSpeaking ? 'ring-primary' : 'ring-transparent'}`}>
             <UserAvatar
                 icon={(participant.name || '?').charAt(0).toUpperCase()}
                 displayOnline={false}
@@ -32,6 +35,33 @@ function ParticipantTile({ participant }) {
                 {participant.isMuted && (
                     <FontAwesomeIcon icon={faMicrophoneSlash} className="text-red-400" />
                 )}
+            </div>
+        </div>
+    );
+}
+
+function ConnectingTile({ user, connectionStatus, retryCount }) {
+    const isReconnecting = connectionStatus === 'reconnecting';
+    const retryLabel = retryCount > 0 ? ` (${retryCount}/5)` : '';
+    const statusText = isReconnecting ? `Neuverbindung...${retryLabel}` : `Verbinde...${retryLabel}`;
+    const statusColor = isReconnecting ? 'text-yellow-400' : 'text-blue-400';
+
+    return (
+        <div className="relative flex flex-col items-center justify-center gap-2 aspect-video rounded-xl bg-card ring-2 ring-transparent">
+            <div className="relative">
+                <UserAvatar
+                    icon={(user.displayName ?? user.username).charAt(0).toUpperCase()}
+                    avatar={user.avatar}
+                    displayOnline={false}
+                    size="w-20 h-20"
+                />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                    <FontAwesomeIcon icon={faArrowsRotate} className="animate-spin text-white text-2xl" />
+                </div>
+            </div>
+            <div className="flex items-center gap-2 text-foreground text-sm font-medium">
+                <span>{user.displayName ?? user.username}</span>
+                <span className={`text-xs ${statusColor}`}>{statusText}</span>
             </div>
         </div>
     );
@@ -66,6 +96,7 @@ function ScreenShareTile({ share, onClick, onClose, focused = false }) {
 
 function VoiceChannelView() {
     const { channelId, serverId } = useParams();
+    const { user } = useAuth();
 
     const {
         isConnected,
@@ -77,9 +108,14 @@ function VoiceChannelView() {
         leaveVoice,
         joinVoice,
         setScreenShareEnabled,
+        connectionStatus,
+        retryCount,
+        voiceError,
+        clearVoiceError,
     } = useVoice();
 
     const isActive = isConnected && activeChannelId === channelId;
+    const isConnectingHere = activeChannelId === channelId && (connectionStatus === 'connecting' || connectionStatus === 'reconnecting');
 
     const { data: channel, isLoading } = useQuery({
         queryKey: ['channel', channelId],
@@ -111,7 +147,8 @@ function VoiceChannelView() {
     }
 
     async function handleJoin() {
-        if (!channel) return;
+        if (!channel || connectionStatus === 'connecting') return;
+        clearVoiceError?.();
         await joinVoice({
             channel,
             server: { id: serverId, name: channel.serverName ?? '' },
@@ -126,11 +163,35 @@ function VoiceChannelView() {
                 <div className="flex items-center text-foreground gap-3">
                     <FontAwesomeIcon icon={faVolumeHigh} />
                     <span className="font-medium">{channel.name}</span>
-                    {isActive && (
-                        <span className="text-xs text-green-300 ml-2">Verbunden</span>
+                    {isActive && connectionStatus === 'connected' && (
+                        <span className="text-xs text-primary ml-2">Verbunden</span>
+                    )}
+                    {isActive && connectionStatus === 'reconnecting' && (
+                        <span className="text-xs text-yellow-400 ml-2 flex items-center gap-1">
+                            <FontAwesomeIcon icon={faArrowsRotate} className="animate-spin" />
+                            {retryCount > 0 ? `Neuverbindung... (${retryCount}/5)` : 'Neuverbindung...'}
+                        </span>
+                    )}
+                    {isActive && connectionStatus === 'connecting' && (
+                        <span className="text-xs text-blue-400 ml-2 flex items-center gap-1">
+                            {retryCount > 0 && <FontAwesomeIcon icon={faArrowsRotate} className="animate-spin" />}
+                            {retryCount > 0 ? `Verbinde... (${retryCount}/5)` : 'Verbinde...'}
+                        </span>
                     )}
                 </div>
             </ContentHeader>
+
+            {voiceError && (
+                <div className="absolute top-0 right-0 mx-6 mt-4 px-4 py-3 rounded-lg bg-red-500/50 border border-red-400 text-white flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                        <FontAwesomeIcon icon={faTriangleExclamation} />
+                        <span>{voiceError}</span>
+                    </div>
+                    <button onClick={clearVoiceError} className="cursor-pointer hover:text-red-300 ml-4 shrink-0">
+                        <FontAwesomeIcon icon={faXmark} />
+                    </button>
+                </div>
+            )}
 
             <div className="flex h-full w-full overflow-hidden">
                 <div className="flex flex-col w-full h-full">
@@ -160,7 +221,7 @@ function VoiceChannelView() {
                             </div>
                         </div>
                     ) : (
-                        participants.length > 0 ? (
+                        participants.length > 0 || isConnectingHere ? (
                             <div className="flex h-full items-center w-full overflow-y-auto p-6">
                                 <div className="grid w-full h-max grid-cols-2 gap-3">
                                     {screenShares.length > 0 && screenShares.map(share => (
@@ -171,7 +232,11 @@ function VoiceChannelView() {
                                         />
                                     ))}
 
-                                    {participants.length > 0 && participants.map(p => (
+                                    {isConnectingHere && (
+                                        <ConnectingTile user={user} connectionStatus={connectionStatus} retryCount={retryCount} />
+                                    )}
+
+                                    {participants.filter(p => !isConnectingHere || !p.isLocal).map(p => (
                                         <ParticipantTile key={p.identity} participant={p} />
                                     ))}
                                 </div>
@@ -212,10 +277,20 @@ function VoiceChannelView() {
                         ) : (
                             <button
                                 onClick={handleJoin}
-                                className="cursor-pointer rounded-lg px-6 h-11 flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/80 transition-colors font-medium"
+                                disabled={connectionStatus === 'connecting'}
+                                className="cursor-pointer rounded-lg px-6 h-11 flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/80 transition-colors font-medium disabled:opacity-60 disabled:cursor-not-allowed"
                             >
-                                <FontAwesomeIcon icon={faVolumeHigh} />
-                                Sprachkanal beitreten
+                                {connectionStatus === 'connecting' ? (
+                                    <>
+                                        <FontAwesomeIcon icon={faArrowsRotate} className="animate-spin" />
+                                        Verbinde...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FontAwesomeIcon icon={faVolumeHigh} />
+                                        Sprachkanal beitreten
+                                    </>
+                                )}
                             </button>
                         )}
                     </div>
