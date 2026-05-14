@@ -1,38 +1,34 @@
-import {useAuth} from "../../hooks/useAuth.js";
-import Spinner from "./static/Spinner.jsx";
-import {Navigate} from "react-router-dom";
-import ErrorMessage from "./static/ErrorMessage.jsx";
-import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faExclamationTriangle} from "@awesome.me/kit-95376d5d61/icons/classic/light";
-import {VoiceProvider} from "../../context/VoiceProvider.jsx";
-import {UserPopupProvider} from "../../context/user/UserPopupProvider.jsx";
+import { useAuth } from "../../hooks/useAuth.js";
+import { Navigate } from "react-router-dom";
+import { VoiceProvider } from "../../context/VoiceProvider.jsx";
+import { UserPopupProvider } from "../../context/user/UserPopupProvider.jsx";
+import SplashScreen from "./SplashScreen.jsx";
 
 function ProtectedRoute({ children }) {
-    const { user, loading, error, logout } = useAuth();
+    const { user, loading, authError, retryCount, isReconnecting, retry, logout } = useAuth();
 
-    if (loading) return (
-        <div className="h-screen flex justify-center items-center antialiased">
-            <Spinner size="w-12 h-12"/>
-        </div>
+    if (loading || authError) {
+        return (
+            <SplashScreen
+                loading={loading}
+                authError={authError}
+                retryCount={retryCount}
+                isReconnecting={isReconnecting}
+                onRetry={retry}
+                onLogout={logout}
+            />
+        );
+    }
+
+    if (!user) return <Navigate to="/login" replace />;
+
+    return (
+        <VoiceProvider>
+            <UserPopupProvider>
+                {children}
+            </UserPopupProvider>
+        </VoiceProvider>
     );
-    if(error) return (
-        <div className="h-screen flex justify-center items-center antialiased">
-            <ErrorMessage icon={<FontAwesomeIcon icon={faExclamationTriangle} />}
-                onRetry={() => {
-                    logout();
-                    window.location.reload();
-                }} retryTitle="Logout"
-                title="Error loading page" message="There was a problem loading the page. Please try again later." />
-        </div>
-    );
-
-    if(!user) return <Navigate to="/login" replace />;
-
-    return <VoiceProvider>
-        <UserPopupProvider>
-            {children}
-        </UserPopupProvider>
-    </VoiceProvider>;
 }
 
 export default ProtectedRoute;

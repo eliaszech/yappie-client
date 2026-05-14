@@ -98,6 +98,14 @@ body {
 }
 
 
+@keyframes splashSlide {
+    0%   { transform: translateX(-200%); }
+    100% { transform: translateX(600%);  }
+}
+.splash-loading-bar {
+    animation: splashSlide 1.5s ease-in-out infinite;
+}
+
 .reply-arrow::before {
     content: "";
     height: 8px;

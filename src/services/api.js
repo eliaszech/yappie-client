@@ -23,6 +23,11 @@ async function apiRequest(method, path, body = null) {
             }
         });
 
+        if (res.status === 401 && !path.startsWith('/auth/')) {
+            window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+            return { status: 401, error: 'Nicht autorisiert' };
+        }
+
         if (!res.ok && res.status !== 304) {
             const errorMessage = await res.json();
             return { status: res.status, error: `API Fehler: ${errorMessage.error || 'Unbekannter Fehler'}` };

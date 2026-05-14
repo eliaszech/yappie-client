@@ -1,12 +1,15 @@
-import {useAuth} from "../../hooks/useAuth.js";
-import Spinner from "./static/Spinner.jsx";
-import {Navigate} from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth.js";
+import { Navigate } from "react-router-dom";
+import SplashScreen from "./SplashScreen.jsx";
 
-function ProtectedRoute({ children }) {
-    const { user, loading } = useAuth();
+function GuestRoute({ children }) {
+    const { user, loading, retryCount } = useAuth();
 
-    if (loading) return <Spinner size="w-12 h-12"/>;
-    if(user) return <Navigate to="/@me" replace />;
+    if (loading) {
+        return <SplashScreen loading={true} authError={null} retryCount={retryCount} onRetry={() => {}} onLogout={() => {}} />;
+    }
+
+    if (user) return <Navigate to="/@me" replace />;
 
     return (
         <div className="h-screen flex justify-center items-center antialiased">
@@ -15,4 +18,4 @@ function ProtectedRoute({ children }) {
     );
 }
 
-export default ProtectedRoute;
+export default GuestRoute;
