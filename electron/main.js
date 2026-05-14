@@ -5,6 +5,14 @@ import path from 'path';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = process.env.NODE_ENV === 'development';
 
+// Windows Graphics Capture crasht auf manchen GPU/Treiber-Kombis beim
+// Start des Captures (E_INVALIDARG → Access Violation im GPU-Prozess).
+// Fallback auf den alten DXGI/GDI-Capturer erzwingen.
+app.commandLine.appendSwitch(
+    'disable-features',
+    'AllowWgcScreenCapturer,AllowWgcWindowCapturer,WebRtcAllowWgcDesktopCapturer',
+);
+
 let mainWindow = null;
 
 function setupIpc() {
@@ -28,17 +36,37 @@ function setupIpc() {
             // Open the picker modal immediately — don't wait for sources
             mainWindow.webContents.send('electron:show-source-picker');
 
-            const sources = await desktopCapturer.getSources({
-                types: ['screen', 'window'],
-                thumbnailSize: { width: 320, height: 180 },
-                fetchWindowIcons: true,
-            });
+            // Auf Multi-Monitor-Setups crasht WGC, wenn Thumbnails für alle
+            // Fenster gleichzeitig gefangen werden. Screens sind stabil
+            // (max 1-2 Surfaces), also Thumbnails nur für Screens; für
+            // Fenster reichen Name + Icon (Icon kommt über ExtractIcon, nicht WGC).
+            const [screenSources, windowSources] = await Promise.all([
+                desktopCapturer.getSources({
+                    types: ['screen'],
+                    thumbnailSize: { width: 320, height: 180 },
+                    fetchWindowIcons: false,
+                }),
+                desktopCapturer.getSources({
+                    types: ['window'],
+                    thumbnailSize: { width: 0, height: 0 },
+                    fetchWindowIcons: true,
+                }),
+            ]);
 
-            const serialized = sources.map(s => ({
-                id: s.id,
-                name: s.name,
-                thumbnail: s.thumbnail.toDataURL(),
-            }));
+            const serialized = [
+                ...screenSources.map(s => ({
+                    id: s.id,
+                    name: s.name,
+                    thumbnail: s.thumbnail.toDataURL(),
+                    icon: null,
+                })),
+                ...windowSources.map(s => ({
+                    id: s.id,
+                    name: s.name,
+                    thumbnail: null,
+                    icon: s.appIcon ? s.appIcon.toDataURL() : null,
+                })),
+            ];
 
             mainWindow.webContents.send('electron:source-picker-sources', serialized);
 
@@ -60,7 +88,7 @@ function setupIpc() {
                 ipcMain.once('electron:source-cancelled', onCancel);
             });
 
-            const source = sources.find(s => s.id === sourceId);
+            const source = [...screenSources, ...windowSources].find(s => s.id === sourceId);
             callback(source ? { video: source } : {});
         } catch {
             callback({});

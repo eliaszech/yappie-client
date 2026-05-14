@@ -102,13 +102,13 @@ function Section({ title, sources, onPick }) {
                         onClick={() => onPick(s.id)}
                         className="group flex flex-col rounded-lg border border-border overflow-hidden hover:border-primary/60 hover:bg-primary/5 transition-all cursor-pointer text-left"
                     >
-                        <div className="w-full aspect-video bg-black overflow-hidden">
+                        <div className="w-full aspect-video bg-black overflow-hidden flex items-center justify-center">
                             {s.thumbnail ? (
                                 <img src={s.thumbnail} alt={s.name} className="w-full h-full object-cover" />
+                            ) : s.icon ? (
+                                <img src={s.icon} alt={s.name} className="w-12 h-12 object-contain" />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                                    <FontAwesomeIcon icon={faDisplay} className="text-2xl" />
-                                </div>
+                                <FontAwesomeIcon icon={faDisplay} className="text-2xl text-muted-foreground" />
                             )}
                         </div>
                         <div className="px-2 py-1.5 text-xs text-foreground truncate group-hover:text-primary transition-colors">
