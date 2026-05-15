@@ -2,7 +2,7 @@
     email admin@yappie.ch
 }
 
-yappie.ch, www.yappie.ch {
+{$SITE_ADDRESS:yappie.ch, www.yappie.ch} {
     encode gzip zstd
 
     handle /api/* {
@@ -24,6 +24,6 @@ yappie.ch, www.yappie.ch {
     }
 }
 
-livekit.yappie.ch {
+{$LIVEKIT_ADDRESS:livekit.yappie.ch} {
     reverse_proxy livekit:7880
 }
