@@ -17,6 +17,39 @@ app.commandLine.appendSwitch(
 
 let mainWindow = null;
 
+function setupAutoUpdater() {
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;
+
+    function send(status, payload = {}) {
+        if (!mainWindow || mainWindow.isDestroyed()) return;
+        mainWindow.webContents.send('update:status', { status, ...payload });
+    }
+
+    autoUpdater.on('checking-for-update', () => send('checking'));
+    autoUpdater.on('update-available', info => send('available', { version: info?.version }));
+    autoUpdater.on('update-not-available', info => send('not-available', { version: info?.version }));
+    autoUpdater.on('download-progress', p => send('downloading', { percent: p?.percent ?? 0 }));
+    autoUpdater.on('update-downloaded', info => send('downloaded', { version: info?.version }));
+    autoUpdater.on('error', err => send('error', { message: err?.message || String(err) }));
+
+    ipcMain.handle('update:install-now', () => {
+        autoUpdater.quitAndInstall();
+    });
+
+    ipcMain.handle('update:check', async () => {
+        try {
+            await autoUpdater.checkForUpdates();
+        } catch (err) {
+            send('error', { message: err?.message || String(err) });
+        }
+    });
+
+    autoUpdater.checkForUpdates().catch(err => {
+        send('error', { message: err?.message || String(err) });
+    });
+}
+
 function setupIpc() {
     // Renderer asks for available screen/window sources (for thumbnail preview)
     ipcMain.handle('get-display-sources', async () => {
@@ -129,9 +162,10 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+    if (process.platform === 'win32') app.setAppUserModelId('com.yappie.client');
     setupIpc();
     createWindow();
-    if (!isDev) autoUpdater.checkForUpdatesAndNotify();
+    if (!isDev) setupAutoUpdater();
 });
 
 app.on('window-all-closed', () => {

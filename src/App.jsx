@@ -33,6 +33,7 @@ import {SettingsProvider} from "./context/SettingsContext.jsx";
 import SettingsModal from "./features/settings/SettingsModal.jsx";
 import {ContextMenuProvider} from "./context/ContextMenuProvider.jsx";
 import ScreenPickerModal from "./features/components/ScreenPickerModal.jsx";
+import UpdateBanner from "./features/components/UpdateBanner.jsx";
 
 function App() {
     usePresence();
@@ -99,6 +100,7 @@ function App() {
         </HashRouter>
         </SettingsProvider>
         <ScreenPickerModal />
+        <UpdateBanner />
         </ContextMenuProvider>
     );
 }

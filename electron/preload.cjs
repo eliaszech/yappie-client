@@ -21,4 +21,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // Signal that the user cancelled the picker
     cancelSourcePicker: () => ipcRenderer.send('electron:source-cancelled'),
+
+    // Updater
+    onUpdateStatus: (callback) => {
+        ipcRenderer.removeAllListeners('update:status');
+        ipcRenderer.on('update:status', (_event, payload) => callback(payload));
+    },
+    installUpdate: () => ipcRenderer.invoke('update:install-now'),
+    checkForUpdates: () => ipcRenderer.invoke('update:check'),
 });
