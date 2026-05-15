@@ -34,7 +34,7 @@ function setupAutoUpdater() {
     autoUpdater.on('error', err => send('error', { message: err?.message || String(err) }));
 
     ipcMain.handle('update:install-now', () => {
-        autoUpdater.quitAndInstall();
+        autoUpdater.quitAndInstall(true, true);
     });
 
     ipcMain.handle('update:check', async () => {
@@ -45,9 +45,14 @@ function setupAutoUpdater() {
         }
     });
 
-    autoUpdater.checkForUpdates().catch(err => {
-        send('error', { message: err?.message || String(err) });
-    });
+    function check() {
+        autoUpdater.checkForUpdates().catch(err => {
+            send('error', { message: err?.message || String(err) });
+        });
+    }
+
+    check();
+    setInterval(check, 15 * 60 * 1000);
 }
 
 function setupIpc() {
