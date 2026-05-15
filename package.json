@@ -1,7 +1,7 @@
 {
   "name": "yappie-client",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
@@ -20,6 +20,7 @@
     "@livekit/components-react": "^2.9.20",
     "@sapphi-red/web-noise-suppressor": "^0.3.5",
     "@tanstack/react-query": "^5.90.21",
+    "electron-updater": "^6.8.3",
     "framer-motion": "^12.35.0",
     "i18next": "^25.8.14",
     "livekit-client": "^2.17.2",

@@ -1,6 +1,8 @@
 import { app, BrowserWindow, shell, desktopCapturer, ipcMain, session } from 'electron';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import pkg from 'electron-updater';
+const { autoUpdater } = pkg;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = process.env.NODE_ENV === 'development';
@@ -129,6 +131,7 @@ function createWindow() {
 app.whenReady().then(() => {
     setupIpc();
     createWindow();
+    if (!isDev) autoUpdater.checkForUpdatesAndNotify();
 });
 
 app.on('window-all-closed', () => {

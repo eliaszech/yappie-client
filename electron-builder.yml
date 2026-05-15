@@ -20,3 +20,8 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   artifactName: Yappie-Setup.exe
+
+publish:
+  provider: github
+  owner: eliaszech
+  repo: yappie-client
