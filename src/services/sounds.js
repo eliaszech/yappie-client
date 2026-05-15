@@ -1,5 +1,8 @@
-const joinSound = new Audio('/sounds/voice-join.wav');
-const leaveSound = new Audio('/sounds/voice-leave.wav');
+import joinSoundUrl from '../assets/sounds/voice-join.wav';
+import leaveSoundUrl from '../assets/sounds/voice-leave.wav';
+
+const joinSound = new Audio(joinSoundUrl);
+const leaveSound = new Audio(leaveSoundUrl);
 
 export function playJoinSound() {
     joinSound.currentTime = 0;
