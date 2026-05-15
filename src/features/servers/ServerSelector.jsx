@@ -1,12 +1,14 @@
 import { NavLink } from "react-router-dom";
 
 import { FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import { faPlus, faCompass, faSparkles } from "@awesome.me/kit-95376d5d61/icons/classic/regular";
+import { faPlus, faCompass, faSparkles, faDownload } from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import {useQuery} from "@tanstack/react-query";
 import {useAuth} from "../../hooks/useAuth.js";
 import {fetchServers} from "../../services/api.js";
 import {useState} from "react";
 import CreateServerDialog from "./dialogs/CreateServerDialog.jsx";
+
+const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
 
 function ServerSelector() {
     const { user } = useAuth();
@@ -44,6 +46,13 @@ function ServerSelector() {
                      className={({isActive}) => `${isActive ? 'text-foreground bg-primary/80' : 'bg-card text-muted-foreground'} w-12 h-12 rounded-2xl text-xl  hover:text-primary hover:bg-primary/10 flex items-center justify-center transition-all`}>
                 <FontAwesomeIcon icon={faCompass}/>
             </NavLink>
+            {!isElectron && (
+                <a href="https://github.com/eliaszech/yappie-client/releases/latest/download/Yappie-Setup.exe"
+                   title="Desktop-App herunterladen"
+                   className="text-muted-foreground bg-card w-12 h-12 rounded-2xl text-xl hover:text-primary hover:bg-primary/10 flex items-center justify-center transition-all">
+                    <FontAwesomeIcon icon={faDownload}/>
+                </a>
+            )}
             {showCreateServerDialog && (
                 <CreateServerDialog onCancel={() => setShowCreateServerDialog(false)} />
             )}

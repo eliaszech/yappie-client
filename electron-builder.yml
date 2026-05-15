@@ -19,3 +19,4 @@ win:
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
+  artifactName: Yappie-Setup.exe
