@@ -26,6 +26,7 @@ import {useReactMessage} from "./hooks/messages/useReactMessage.js";
 import Register from "./features/auth/Register.jsx";
 import FriendsListPending from "./features/private/friends/FriendsListPending.jsx";
 import {useFriendRequests} from "./hooks/friends/useFriendRequests.js";
+import {useUserServerJoin} from "./hooks/server/useUserServerJoin.js";
 import PageNotFound from "./errors/PageNotFound.jsx";
 import PageNotFoundSidebar from "./errors/PageNotFoundSidebar.jsx";
 import {SettingsProvider} from "./context/SettingsContext.jsx";
@@ -41,6 +42,7 @@ function App() {
     useReactMessage();
     useMessages();
     useFriendRequests();
+    useUserServerJoin();
 
     return (
         <ContextMenuProvider>

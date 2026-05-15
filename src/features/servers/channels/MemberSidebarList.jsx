@@ -14,7 +14,6 @@ import { useContextMenu } from '../../../hooks/useContextMenu.js';
 import { useAuth } from '../../../hooks/useAuth.js';
 import { useNavigate } from 'react-router-dom';
 import RolePickerDialog from '../members/RolePickerDialog.jsx';
-
 function KickConfirmDialog({ member, onConfirm, onClose }) {
     const [kicking, setKicking] = useState(false);
 

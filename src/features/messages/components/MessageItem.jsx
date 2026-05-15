@@ -10,11 +10,11 @@ import {useAuth} from "../../../hooks/useAuth.js";
 import {editMessage} from "../../../hooks/messages/useEditMessage.js";
 import LinkEmbed, {extractFirstUrl} from "./LinkEmbed.jsx";
 import {faServer} from "@awesome.me/kit-95376d5d61/icons/classic/light";
-import {faHashtag} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import {useNavigate, useParams} from "react-router-dom";
 import {joinServer} from "../../../services/api.js";
 import {useQueryClient} from "@tanstack/react-query";
 import MessageInput from "./MessageInput.jsx";
+import {getSocket} from "../../../services/socket.js";
 
 const MENTION_REGEX = /@(\w+)/g;
 const CHANNEL_REGEX = /#([\w-]+)/g;
@@ -28,11 +28,15 @@ function InviteMessage({invite}) {
         const member = await joinServer(inviteCode);
 
         if(!member.error) {
+            const socket = getSocket();
+
             queryClient.setQueryData(['servers'], (old) => {
                 if (!old) return old;
 
                 return [...old, member.server];
-            })
+            });
+
+            socket.emit('server:user:join', member.userId, invite.server.id);
 
             navigate(`/servers/${invite.server.id}`);
         } else {
