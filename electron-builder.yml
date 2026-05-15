@@ -25,3 +25,4 @@ publish:
   provider: github
   owner: eliaszech
   repo: yappie-client
+  releaseType: release
