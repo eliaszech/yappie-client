@@ -3,12 +3,16 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDisplay, faGear, faCheck } from '@awesome.me/kit-95376d5d61/icons/classic/solid';
 import { faXmark } from '@awesome.me/kit-95376d5d61/icons/classic/light';
 import Spinner from './static/Spinner.jsx';
-import { QUALITY_PRESETS, getQualityId, setQualityId } from '../../services/screenShareQuality.js';
+import {
+    QUALITY_PRESETS, getQualityId, setQualityId,
+    getAudioEnabled, setAudioEnabled,
+} from '../../services/screenShareQuality.js';
 
 function ScreenPickerModal() {
     const [visible, setVisible] = useState(false);
     const [sources, setSources] = useState(null); // null = loading
     const [qualityId, setQualityIdState] = useState(getQualityId);
+    const [audioOn, setAudioOnState] = useState(getAudioEnabled);
     const [qualityOpen, setQualityOpen] = useState(false);
     const qualityRef = useRef(null);
 
@@ -18,6 +22,7 @@ function ScreenPickerModal() {
         window.electronAPI.onShowSourcePicker(() => {
             setSources(null);
             setQualityIdState(getQualityId());
+            setAudioOnState(getAudioEnabled());
             setVisible(true);
         });
 
@@ -64,6 +69,12 @@ function ScreenPickerModal() {
         setQualityOpen(false);
     }
 
+    function toggleAudio() {
+        const next = !audioOn;
+        setAudioEnabled(next);
+        setAudioOnState(next);
+    }
+
     if (!visible) return null;
 
     const screens = sources?.filter(s => s.id.startsWith('screen:')) ?? [];
@@ -89,7 +100,7 @@ function ScreenPickerModal() {
                                 <span>{currentQuality?.label ?? 'Qualität'}</span>
                             </button>
                             {qualityOpen && (
-                                <div className="absolute top-full right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden min-w-[200px] z-10">
+                                <div className="absolute top-full right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden min-w-[220px] z-10">
                                     <p className="px-3 pt-2 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                                         Stream-Qualität
                                     </p>
@@ -105,6 +116,16 @@ function ScreenPickerModal() {
                                             )}
                                         </button>
                                     ))}
+                                    <div className="border-t border-border" />
+                                    <button
+                                        onClick={toggleAudio}
+                                        className="w-full px-3 py-2 text-sm text-foreground hover:bg-muted text-left flex items-center justify-between cursor-pointer"
+                                    >
+                                        <span>Audio mit teilen</span>
+                                        <span className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${audioOn ? 'bg-primary' : 'bg-muted'}`}>
+                                            <span className={`inline-block h-3 w-3 rounded-full bg-background transition-transform ${audioOn ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                                        </span>
+                                    </button>
                                     <div className="border-t border-border" />
                                     <p className="px-3 py-1.5 text-[10px] text-muted-foreground">
                                         Gilt ab dem nächsten Stream-Start.

@@ -1,0 +1,220 @@
+import { LiveKitRoom, RoomAudioRenderer, useLocalParticipant, useParticipants, useTracks, useConnectionState, useRoomContext } from '@livekit/components-react';
+import { Track, ConnectionState, DisconnectReason } from 'livekit-client';
+import { useVoice } from "../../hooks/useVoice.jsx";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createMicPipelineProcessor } from "../../services/micPipelineProcessor";
+import { buildScreenShareOptions } from "../../services/screenShareQuality.js";
+import { getStoredVolume, setStoredVolume } from "../../services/participantVolume.js";
+import {
+    getMicDeviceId, setMicDeviceId,
+    getSpeakerDeviceId, setSpeakerDeviceId,
+    getMicGain, setMicGain,
+} from "../../services/voiceSettings.js";
+
+function VoiceRoomContent() {
+    const participants = useParticipants();
+    const { localParticipant, microphoneTrack } = useLocalParticipant();
+    const { setParticipants, setKrisp, setScreenShares, registerVoiceActions, muted, setConnectionStatus } = useVoice();
+    const connectionState = useConnectionState();
+    const room = useRoomContext();
+
+    const screenTracks = useTracks([Track.Source.ScreenShare], { onlySubscribed: true });
+
+    const [enabled, setEnabled] = useState(
+        () => localStorage.getItem('krisp-enabled') === 'true'
+    );
+    const processorRef = useRef(null);
+
+    useEffect(() => {
+        if (connectionState === ConnectionState.Connected) {
+            setConnectionStatus('connected');
+        }
+    }, [connectionState]);
+
+    useEffect(() => {
+        setParticipants(participants.map(p => ({
+            identity: p.identity,
+            name: p.name,
+            isSpeaking: p.isSpeaking,
+            isLocal: p.isLocal,
+            isMuted: p.isMicrophoneEnabled === false,
+            isScreenSharing: p.isScreenShareEnabled,
+        })));
+
+        for (const p of participants) {
+            if (p.isLocal) continue;
+            const stored = getStoredVolume(p.identity, null);
+            if (stored !== null && typeof p.setVolume === 'function') {
+                p.setVolume(stored);
+            }
+        }
+    }, [participants]);
+
+    useEffect(() => {
+        setScreenShares(screenTracks.map(t => ({
+            identity: t.participant.identity,
+            name: t.participant.name || t.participant.identity,
+            isLocal: t.participant.isLocal,
+            track: t.publication?.track,
+        })).filter(s => s.track));
+    }, [screenTracks]);
+
+    useEffect(() => {
+        const track = microphoneTrack?.track;
+        if (!track) {
+            processorRef.current = null;
+            return;
+        }
+        (async () => {
+            if (!processorRef.current) {
+                processorRef.current = createMicPipelineProcessor({
+                    initialGain: getMicGain(),
+                    initialRnnoise: enabled,
+                });
+            }
+            await track.setProcessor(processorRef.current);
+        })();
+    }, [microphoneTrack?.track]);
+
+    useEffect(() => {
+        processorRef.current?.setRnnoiseEnabled(enabled);
+    }, [enabled]);
+
+    useEffect(() => {
+        if (connectionState !== ConnectionState.Connected) return;
+        const speakerId = getSpeakerDeviceId();
+        room.switchActiveDevice('audiooutput', speakerId).catch(() => {});
+    }, [connectionState, room]);
+
+    useEffect(() => {
+        const track = microphoneTrack?.track;
+        if (!track) return;
+        if (muted) track.mute();
+        else track.unmute();
+    }, [muted, microphoneTrack?.track]);
+
+    const noiseFilter = useMemo(() => ({
+        isNoiseFilterEnabled: enabled,
+        isNoiseFilterPending: false,
+        setNoiseFilterEnabled: setEnabled,
+    }), [enabled]);
+
+    useEffect(() => { setKrisp(noiseFilter); }, [noiseFilter]);
+
+    useEffect(() => {
+        registerVoiceActions({
+            setScreenShareEnabled: async (v) => {
+                if (!localParticipant) return;
+                if (v) {
+                    const { capture, publish } = buildScreenShareOptions();
+                    await localParticipant.setScreenShareEnabled(true, capture, publish);
+                } else {
+                    await localParticipant.setScreenShareEnabled(false);
+                }
+            },
+            setParticipantVolume: (identity, volume) => {
+                const target = participants.find(p => p.identity === identity && !p.isLocal);
+                if (target && typeof target.setVolume === 'function') {
+                    target.setVolume(volume);
+                }
+                setStoredVolume(identity, volume);
+            },
+            setMicGain: (value) => {
+                setMicGain(value);
+                processorRef.current?.setGain(value);
+            },
+            setMicDevice: async (deviceId) => {
+                setMicDeviceId(deviceId);
+                try {
+                    await room.switchActiveDevice('audioinput', deviceId);
+                } catch {}
+            },
+            setSpeakerDevice: async (deviceId) => {
+                setSpeakerDeviceId(deviceId);
+                try {
+                    await room.switchActiveDevice('audiooutput', deviceId);
+                } catch {}
+            },
+        });
+    }, [localParticipant, participants, room]);
+
+    return <RoomAudioRenderer />;
+}
+
+const MAX_RETRIES = 5;
+const NO_RECONNECT_POLICY = { nextRetryDelayInMs: () => null };
+
+const DISCONNECT_MESSAGES = {
+    [DisconnectReason.SERVER_SHUTDOWN]: 'Voice-Server wurde heruntergefahren',
+    [DisconnectReason.ROOM_DELETED]: 'Voice-Raum wurde geschlossen',
+    [DisconnectReason.PARTICIPANT_REMOVED]: 'Du wurdest aus dem Voice-Kanal entfernt',
+    [DisconnectReason.ROOM_CLOSED]: 'Voice-Raum wurde geschlossen',
+    [DisconnectReason.JOIN_FAILURE]: 'Voice-Server nicht erreichbar',
+};
+
+function VoiceRoomConnection() {
+    const { token, serverUrl, setVoiceError, leaveVoice, setConnectionStatus, setRetryCount, refreshToken, connectionStatus } = useVoice();
+    const retryCountRef = useRef(0);
+    const hasConnectedRef = useRef(false);
+    const connectionStatusRef = useRef(connectionStatus);
+
+    useEffect(() => {
+        connectionStatusRef.current = connectionStatus;
+    }, [connectionStatus]);
+
+    function handleConnected() {
+        hasConnectedRef.current = true;
+        retryCountRef.current = 0;
+        setRetryCount(0);
+    }
+
+    async function handleDisconnected(reason) {
+        if (reason === DisconnectReason.CLIENT_INITIATED) return;
+
+        const wasConnected = hasConnectedRef.current;
+
+        if (retryCountRef.current < MAX_RETRIES) {
+            retryCountRef.current++;
+            setRetryCount(retryCountRef.current);
+            setConnectionStatus(wasConnected ? 'reconnecting' : 'connecting');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            if (connectionStatusRef.current === 'idle') return;
+            const ok = await refreshToken();
+            if (!ok) {
+                retryCountRef.current = MAX_RETRIES;
+                setVoiceError(DISCONNECT_MESSAGES[reason] ?? 'Verbindung zum Voice-Server unterbrochen');
+                leaveVoice();
+            }
+        } else {
+            retryCountRef.current = 0;
+            hasConnectedRef.current = false;
+            setVoiceError(DISCONNECT_MESSAGES[reason] ?? 'Verbindung zum Voice-Server unterbrochen');
+            leaveVoice();
+        }
+    }
+
+    const micId = getMicDeviceId();
+    const speakerId = getSpeakerDeviceId();
+
+    return (
+        <LiveKitRoom
+            key={token}
+            serverUrl={serverUrl}
+            token={token}
+            connect={true}
+            audio={{ deviceId: micId }}
+            video={false}
+            options={{
+                reconnectPolicy: NO_RECONNECT_POLICY,
+                webAudioMix: true,
+                audioOutput: { deviceId: speakerId },
+            }}
+            onConnected={handleConnected}
+            onDisconnected={handleDisconnected}
+        >
+            <VoiceRoomContent />
+        </LiveKitRoom>
+    );
+}
+
+export default VoiceRoomConnection;

@@ -129,7 +129,15 @@ function setupIpc() {
             });
 
             const source = [...screenSources, ...windowSources].find(s => s.id === sourceId);
-            callback(source ? { video: source } : {});
+            if (!source) {
+                callback({});
+                return;
+            }
+            // Pass system audio loopback through only when the renderer asked for it
+            // (Windows-only; on other platforms Electron ignores this and you just get video)
+            const response = { video: source };
+            if (request.audioRequested) response.audio = 'loopback';
+            callback(response);
         } catch {
             callback({});
         }
