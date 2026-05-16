@@ -170,6 +170,7 @@ export function VoiceProvider({ children }) {
         setKrisp,
         registerVoiceActions,
         setScreenShareEnabled: voiceActions.setScreenShareEnabled,
+        setParticipantVolume: voiceActions.setParticipantVolume,
         setVoiceError,
         setConnectionStatus,
         setRetryCount,

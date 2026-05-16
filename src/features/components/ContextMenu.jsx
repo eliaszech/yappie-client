@@ -54,6 +54,14 @@ function ContextMenu({ x, y, items, onClose }) {
                     );
                 }
 
+                if (item.render) {
+                    return (
+                        <div key={i} className="px-3 py-1.5">
+                            {item.render(onClose)}
+                        </div>
+                    );
+                }
+
                 return (
                     <button
                         key={i}

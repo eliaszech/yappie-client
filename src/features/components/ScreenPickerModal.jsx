@@ -1,18 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faDisplay } from '@awesome.me/kit-95376d5d61/icons/classic/solid';
+import { faDisplay, faGear, faCheck } from '@awesome.me/kit-95376d5d61/icons/classic/solid';
 import { faXmark } from '@awesome.me/kit-95376d5d61/icons/classic/light';
 import Spinner from './static/Spinner.jsx';
+import { QUALITY_PRESETS, getQualityId, setQualityId } from '../../services/screenShareQuality.js';
 
 function ScreenPickerModal() {
     const [visible, setVisible] = useState(false);
     const [sources, setSources] = useState(null); // null = loading
+    const [qualityId, setQualityIdState] = useState(getQualityId);
+    const [qualityOpen, setQualityOpen] = useState(false);
+    const qualityRef = useRef(null);
 
     useEffect(() => {
         if (!window.electronAPI?.isElectron) return;
 
         window.electronAPI.onShowSourcePicker(() => {
-            setSources(null);   // reset to loading state for each new request
+            setSources(null);
+            setQualityIdState(getQualityId());
             setVisible(true);
         });
 
@@ -30,22 +35,40 @@ function ScreenPickerModal() {
         return () => window.removeEventListener('keydown', onKey);
     }, [visible]);
 
+    useEffect(() => {
+        if (!qualityOpen) return;
+        function onMousedown(e) {
+            if (!qualityRef.current?.contains(e.target)) setQualityOpen(false);
+        }
+        document.addEventListener('mousedown', onMousedown);
+        return () => document.removeEventListener('mousedown', onMousedown);
+    }, [qualityOpen]);
+
     function pick(id) {
         window.electronAPI.pickSource(id);
         setVisible(false);
         setSources(null);
+        setQualityOpen(false);
     }
 
     function cancel() {
         window.electronAPI.cancelSourcePicker();
         setVisible(false);
         setSources(null);
+        setQualityOpen(false);
+    }
+
+    function pickQuality(id) {
+        setQualityId(id);
+        setQualityIdState(id);
+        setQualityOpen(false);
     }
 
     if (!visible) return null;
 
     const screens = sources?.filter(s => s.id.startsWith('screen:')) ?? [];
     const windows = sources?.filter(s => s.id.startsWith('window:')) ?? [];
+    const currentQuality = QUALITY_PRESETS.find(q => q.id === qualityId);
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm">
@@ -55,12 +78,47 @@ function ScreenPickerModal() {
                         <FontAwesomeIcon icon={faDisplay} className="text-primary" />
                         Bildschirm teilen
                     </div>
-                    <button
-                        onClick={cancel}
-                        className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-                    >
-                        <FontAwesomeIcon icon={faXmark} />
-                    </button>
+                    <div className="flex items-center gap-1">
+                        <div ref={qualityRef} className="relative">
+                            <button
+                                onClick={() => setQualityOpen(v => !v)}
+                                className="h-7 px-2 flex items-center gap-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer text-xs"
+                                title="Stream-Qualität"
+                            >
+                                <FontAwesomeIcon icon={faGear} />
+                                <span>{currentQuality?.label ?? 'Qualität'}</span>
+                            </button>
+                            {qualityOpen && (
+                                <div className="absolute top-full right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden min-w-[200px] z-10">
+                                    <p className="px-3 pt-2 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                        Stream-Qualität
+                                    </p>
+                                    {QUALITY_PRESETS.map(q => (
+                                        <button
+                                            key={q.id}
+                                            onClick={() => pickQuality(q.id)}
+                                            className="w-full px-3 py-2 text-sm text-foreground hover:bg-muted text-left flex items-center justify-between cursor-pointer"
+                                        >
+                                            <span>{q.label}</span>
+                                            {q.id === qualityId && (
+                                                <FontAwesomeIcon icon={faCheck} className="text-primary" />
+                                            )}
+                                        </button>
+                                    ))}
+                                    <div className="border-t border-border" />
+                                    <p className="px-3 py-1.5 text-[10px] text-muted-foreground">
+                                        Gilt ab dem nächsten Stream-Start.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                        <button
+                            onClick={cancel}
+                            className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                        >
+                            <FontAwesomeIcon icon={faXmark} />
+                        </button>
+                    </div>
                 </div>
 
                 {!sources ? (

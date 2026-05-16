@@ -23,10 +23,43 @@ import UserAvatar from "../../components/UserAvatar.jsx";
 import VoiceVideoTile from "../../components/VoiceVideoTile.jsx";
 import Spinner from "../../components/static/Spinner.jsx";
 import MemberSidebarList from "./MemberSidebarList.jsx";
+import { useContextMenu } from "../../../hooks/useContextMenu.js";
+import { getStoredVolume } from "../../../services/participantVolume.js";
 
-function ParticipantTile({ participant }) {
+function VolumeSlider({ identity, onChange }) {
+    const [volume, setVolume] = useState(() => getStoredVolume(identity, 1));
+
+    function handleChange(e) {
+        const v = Number(e.target.value);
+        setVolume(v);
+        onChange(v);
+    }
+
     return (
-        <div className={`relative flex flex-col items-center justify-center gap-2 aspect-video rounded-xl bg-card ring-2 transition-all ${participant.isSpeaking ? 'ring-primary' : 'ring-transparent'}`}>
+        <div className="flex flex-col gap-1.5 py-0.5 min-w-[180px]">
+            <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Lautstärke</span>
+                <span className="text-foreground tabular-nums">{Math.round(volume * 100)}%</span>
+            </div>
+            <input
+                type="range"
+                min="0"
+                max="2"
+                step="0.05"
+                value={volume}
+                onChange={handleChange}
+                className="w-full accent-primary cursor-pointer"
+            />
+        </div>
+    );
+}
+
+function ParticipantTile({ participant, onContextMenu }) {
+    return (
+        <div
+            onContextMenu={onContextMenu}
+            className={`relative flex flex-col items-center justify-center gap-2 aspect-video rounded-xl bg-card ring-2 transition-all ${participant.isSpeaking ? 'ring-primary' : 'ring-transparent'}`}
+        >
             {participant.isScreenSharing && (
                 <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-green-500/20 text-green-300 text-xs font-medium">
                     <FontAwesomeIcon icon={faDisplay} />
@@ -116,11 +149,32 @@ function VoiceChannelView() {
         leaveVoice,
         joinVoice,
         setScreenShareEnabled,
+        setParticipantVolume,
         connectionStatus,
         retryCount,
         voiceError,
         clearVoiceError,
     } = useVoice();
+    const { openContextMenu } = useContextMenu();
+
+    function buildParticipantMenu(participant) {
+        return [
+            { header: true, label: participant.name || participant.identity },
+            {
+                render: () => (
+                    <VolumeSlider
+                        identity={participant.identity}
+                        onChange={(v) => setParticipantVolume?.(participant.identity, v)}
+                    />
+                ),
+            },
+        ];
+    }
+
+    function handleParticipantContextMenu(e, participant) {
+        if (participant.isLocal) return;
+        openContextMenu(e, buildParticipantMenu(participant));
+    }
 
     const isActive = isConnected && activeChannelId === channelId;
     const isConnectingHere = activeChannelId === channelId && (connectionStatus === 'connecting' || connectionStatus === 'reconnecting');
@@ -242,7 +296,10 @@ function VoiceChannelView() {
                                 ))}
                                 {participants.map(p => (
                                     <div key={p.identity + '-strip'} className="w-48 shrink-0">
-                                        <ParticipantTile participant={p} />
+                                        <ParticipantTile
+                                            participant={p}
+                                            onContextMenu={(e) => handleParticipantContextMenu(e, p)}
+                                        />
                                     </div>
                                 ))}
                             </div>
@@ -264,7 +321,11 @@ function VoiceChannelView() {
                                     )}
 
                                     {participants.filter(p => !isConnectingHere || !p.isLocal).map(p => (
-                                        <ParticipantTile key={p.identity} participant={p} />
+                                        <ParticipantTile
+                                            key={p.identity}
+                                            participant={p}
+                                            onContextMenu={(e) => handleParticipantContextMenu(e, p)}
+                                        />
                                     ))}
                                 </div>
                             </div>

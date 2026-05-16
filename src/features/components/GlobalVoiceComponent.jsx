@@ -3,6 +3,8 @@ import { Track, ConnectionState, DisconnectReason } from 'livekit-client';
 import { useVoice } from "../../hooks/useVoice.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createRnnoiseProcessor } from "../../services/rnnoiseProcessor";
+import { buildScreenShareOptions } from "../../services/screenShareQuality.js";
+import { getStoredVolume, setStoredVolume } from "../../services/participantVolume.js";
 
 function VoiceRoomContent() {
     const participants = useParticipants();
@@ -33,6 +35,15 @@ function VoiceRoomContent() {
             isMuted: p.isMicrophoneEnabled === false,
             isScreenSharing: p.isScreenShareEnabled,
         })));
+
+        // Restore persisted per-participant volumes on (re)join
+        for (const p of participants) {
+            if (p.isLocal) continue;
+            const stored = getStoredVolume(p.identity, null);
+            if (stored !== null && typeof p.setVolume === 'function') {
+                p.setVolume(stored);
+            }
+        }
     }, [participants]);
 
     useEffect(() => {
@@ -78,10 +89,22 @@ function VoiceRoomContent() {
         registerVoiceActions({
             setScreenShareEnabled: async (v) => {
                 if (!localParticipant) return;
-                await localParticipant.setScreenShareEnabled(v);
+                if (v) {
+                    const { capture, publish } = buildScreenShareOptions();
+                    await localParticipant.setScreenShareEnabled(true, capture, publish);
+                } else {
+                    await localParticipant.setScreenShareEnabled(false);
+                }
+            },
+            setParticipantVolume: (identity, volume) => {
+                const target = participants.find(p => p.identity === identity && !p.isLocal);
+                if (target && typeof target.setVolume === 'function') {
+                    target.setVolume(volume);
+                }
+                setStoredVolume(identity, volume);
             },
         });
-    }, [localParticipant]);
+    }, [localParticipant, participants]);
 
     return <RoomAudioRenderer />;
 }
