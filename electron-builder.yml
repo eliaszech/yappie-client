@@ -10,6 +10,9 @@ files:
   - electron/**/*
   - package.json
 
+asarUnpack:
+  - node_modules/application-loopback/bin/**/*
+
 win:
   target:
     - target: nsis

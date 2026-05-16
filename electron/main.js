@@ -6,6 +6,27 @@ const { autoUpdater } = pkg;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = process.env.NODE_ENV === 'development';
+const isWin = process.platform === 'win32';
+
+// application-loopback ships prebuilt .exe binaries we shell out to.
+// In packaged builds asarUnpack moves them next to app.asar; in dev they
+// live inside node_modules. We resolve lazily so non-Windows dev still runs.
+let appLoopback = null;
+async function getAppLoopback() {
+    if (!isWin) return null;
+    if (appLoopback) return appLoopback;
+    const mod = await import('application-loopback');
+    if (!isDev) {
+        mod.setExecutablesRoot(
+            path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'application-loopback', 'bin')
+        );
+    }
+    appLoopback = mod;
+    return mod;
+}
+
+// Tracks the currently active per-window audio capture so we can stop it.
+let activeWindowCapture = null; // { pid: string }
 
 // Windows Graphics Capture crasht auf manchen GPU/Treiber-Kombis beim
 // Start des Captures (E_INVALIDARG → Access Violation im GPU-Prozess).
@@ -56,6 +77,8 @@ function setupAutoUpdater() {
 }
 
 function setupIpc() {
+    ipcMain.on('electron:stop-window-audio', () => stopWindowAudioCapture());
+
     // Renderer asks for available screen/window sources (for thumbnail preview)
     ipcMain.handle('get-display-sources', async () => {
         const sources = await desktopCapturer.getSources({
@@ -133,15 +156,78 @@ function setupIpc() {
                 callback({});
                 return;
             }
-            // Pass system audio loopback through only when the renderer asked for it
-            // (Windows-only; on other platforms Electron ignores this and you just get video)
+
             const response = { video: source };
-            if (request.audioRequested) response.audio = 'loopback';
+            const isWindow = source.id.startsWith('window:');
+
+            if (request.audioRequested) {
+                if (isWindow && isWin) {
+                    // Per-process loopback via application-loopback (Windows-only).
+                    // We return video only; the renderer publishes a separate
+                    // LiveKit audio track from the PCM stream we pipe via IPC.
+                    const started = await startWindowAudioCapture(source.id);
+                    if (!started) {
+                        // Fallback: capture failed (no matching PID, app not making sound yet, etc.)
+                        // Better no audio than user echoing themselves via system loopback.
+                        mainWindow.webContents.send('electron:window-audio-unavailable');
+                    }
+                } else {
+                    response.audio = 'loopback';
+                }
+            }
             callback(response);
         } catch {
             callback({});
         }
     });
+}
+
+async function startWindowAudioCapture(sourceId) {
+    // sourceId format: "window:<HWND>:0"
+    const hwnd = sourceId.split(':')[1];
+    if (!hwnd) return false;
+
+    const lb = await getAppLoopback();
+    if (!lb) return false;
+
+    let pid;
+    try {
+        const windows = await lb.getActiveWindowProcessIds();
+        const match = windows.find(w => w.hwnd === hwnd);
+        if (!match) return false;
+        pid = match.processId;
+    } catch {
+        return false;
+    }
+
+    stopWindowAudioCapture();
+
+    try {
+        lb.startAudioCapture(pid, {
+            onData: (chunk) => {
+                if (!mainWindow || mainWindow.isDestroyed()) return;
+                // Send raw PCM bytes; preload will forward to renderer.
+                // Format: 16-bit signed PCM, 2 channels, 48000 Hz.
+                mainWindow.webContents.send('electron:window-audio-chunk', chunk);
+            },
+        });
+        activeWindowCapture = { pid };
+        mainWindow.webContents.send('electron:window-audio-started');
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function stopWindowAudioCapture() {
+    if (!activeWindowCapture || !appLoopback) return;
+    try {
+        appLoopback.stopAudioCapture(activeWindowCapture.pid);
+    } catch {}
+    activeWindowCapture = null;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('electron:window-audio-stopped');
+    }
 }
 
 function createWindow() {
@@ -182,7 +268,12 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+    stopWindowAudioCapture();
     if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('before-quit', () => {
+    stopWindowAudioCapture();
 });
 
 app.on('activate', () => {

@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh api *)",
+      "WebSearch",
+      "Bash(certutil -decode \"C:\\\\Users\\\\elias\\\\AppData\\\\Local\\\\Temp\\\\al-readme.b64\" \"C:\\\\Users\\\\elias\\\\AppData\\\\Local\\\\Temp\\\\al-readme.md\")",
+      "Bash(certutil -decode \"C:\\\\Users\\\\elias\\\\AppData\\\\Local\\\\Temp\\\\al-src.b64\" \"C:\\\\Users\\\\elias\\\\AppData\\\\Local\\\\Temp\\\\al-src.ts\")",
+      "Bash(python -c \"import sys,json; [print\\(x['name'], x['type']\\) for x in json.load\\(sys.stdin\\)]\")",
+      "Bash(python -c \"import sys,json; [print\\(x['name']\\) for x in json.load\\(sys.stdin\\)]\")",
+      "Bash(certutil -decode \"C:\\\\Users\\\\elias\\\\AppData\\\\Local\\\\Temp\\\\lb-cap.b64\" \"C:\\\\Users\\\\elias\\\\AppData\\\\Local\\\\Temp\\\\lb-cap.cpp\")",
+      "Bash(npm install *)",
+      "Bash(npx eslint *)",
+      "Bash(git stash *)",
+      "Bash(npm run *)"
+    ]
+  }
+}

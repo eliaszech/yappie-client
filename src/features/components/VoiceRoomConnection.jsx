@@ -1,9 +1,10 @@
 import { LiveKitRoom, RoomAudioRenderer, useLocalParticipant, useParticipants, useTracks, useConnectionState, useRoomContext } from '@livekit/components-react';
-import { Track, ConnectionState, DisconnectReason } from 'livekit-client';
+import { Track, ConnectionState, DisconnectReason, LocalAudioTrack } from 'livekit-client';
 import { useVoice } from "../../hooks/useVoice.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createMicPipelineProcessor } from "../../services/micPipelineProcessor";
 import { buildScreenShareOptions } from "../../services/screenShareQuality.js";
+import { createWindowAudioStream } from "../../services/windowAudioStream.js";
 import { getStoredVolume, setStoredVolume } from "../../services/participantVolume.js";
 import {
     getMicDeviceId, setMicDeviceId,
@@ -24,6 +25,50 @@ function VoiceRoomContent() {
         () => localStorage.getItem('krisp-enabled') === 'true'
     );
     const processorRef = useRef(null);
+    const windowAudioRef = useRef(null);
+
+    // Per-window audio capture (Windows-only). Main process pipes PCM via IPC
+    // when the user shared a window with audio enabled; we wrap it in a
+    // LocalAudioTrack and publish it as ScreenShareAudio.
+    useEffect(() => {
+        if (!window.electronAPI?.onWindowAudioStarted) return;
+
+        async function stopWindowAudioTrack() {
+            const ref = windowAudioRef.current;
+            if (!ref) return;
+            windowAudioRef.current = null;
+            try {
+                await localParticipant?.unpublishTrack(ref.localTrack, true);
+            } catch {}
+            try {
+                ref.stream.close();
+            } catch {}
+        }
+
+        window.electronAPI.onWindowAudioStarted(async () => {
+            await stopWindowAudioTrack();
+            const stream = createWindowAudioStream();
+            if (!stream || !localParticipant) return;
+
+            const localTrack = new LocalAudioTrack(stream.track, undefined, false);
+            windowAudioRef.current = { stream, localTrack };
+            try {
+                await localParticipant.publishTrack(localTrack, {
+                    source: Track.Source.ScreenShareAudio,
+                });
+            } catch {
+                await stopWindowAudioTrack();
+            }
+        });
+
+        window.electronAPI.onWindowAudioStopped(() => {
+            stopWindowAudioTrack();
+        });
+
+        window.electronAPI.onWindowAudioUnavailable(() => {
+            // Capture couldn't start (no matching PID, app silent, etc.) — nothing to clean.
+        });
+    }, [localParticipant]);
 
     useEffect(() => {
         if (connectionState === ConnectionState.Connected) {
@@ -109,6 +154,7 @@ function VoiceRoomContent() {
                     const { capture, publish } = buildScreenShareOptions();
                     await localParticipant.setScreenShareEnabled(true, capture, publish);
                 } else {
+                    window.electronAPI?.stopWindowAudio?.();
                     await localParticipant.setScreenShareEnabled(false);
                 }
             },

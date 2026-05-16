@@ -22,6 +22,25 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Signal that the user cancelled the picker
     cancelSourcePicker: () => ipcRenderer.send('electron:source-cancelled'),
 
+    // Per-window audio capture (Windows-only). PCM chunks: 16-bit signed, stereo, 48000 Hz.
+    onWindowAudioStarted: (callback) => {
+        ipcRenderer.removeAllListeners('electron:window-audio-started');
+        ipcRenderer.on('electron:window-audio-started', () => callback());
+    },
+    onWindowAudioStopped: (callback) => {
+        ipcRenderer.removeAllListeners('electron:window-audio-stopped');
+        ipcRenderer.on('electron:window-audio-stopped', () => callback());
+    },
+    onWindowAudioUnavailable: (callback) => {
+        ipcRenderer.removeAllListeners('electron:window-audio-unavailable');
+        ipcRenderer.on('electron:window-audio-unavailable', () => callback());
+    },
+    onWindowAudioChunk: (callback) => {
+        ipcRenderer.removeAllListeners('electron:window-audio-chunk');
+        ipcRenderer.on('electron:window-audio-chunk', (_event, chunk) => callback(chunk));
+    },
+    stopWindowAudio: () => ipcRenderer.send('electron:stop-window-audio'),
+
     // Updater
     onUpdateStatus: (callback) => {
         ipcRenderer.removeAllListeners('update:status');
