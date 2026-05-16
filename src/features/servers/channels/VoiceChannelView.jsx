@@ -12,7 +12,8 @@ import {
 } from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {
     faDisplay,
-    faPhone
+    faPhone,
+    faPlay
 } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import { fetchChannel } from "../../../services/api.js";
 import { useVoice } from "../../../hooks/useVoice.jsx";
@@ -109,9 +110,19 @@ function ConnectingTile({ user, connectionStatus, retryCount }) {
 }
 
 function ScreenShareTile({ share, onClick, onClose, focused = false }) {
+    const showPlaceholder = !share.isLocal && !share.isSubscribed;
+
+    function handleTileClick() {
+        if (showPlaceholder) {
+            share.subscribe?.();
+            return;
+        }
+        onClick?.();
+    }
+
     return (
         <div
-            onClick={onClick}
+            onClick={handleTileClick}
             className={`relative flex flex-col rounded-xl bg-black overflow-hidden ring-2 transition-all ${focused ? 'ring-primary' : 'ring-primary/40 hover:ring-primary/80 cursor-pointer'} ${focused ? 'h-full' : 'aspect-video'}`}
         >
             <div className="absolute z-10 top-2 left-2 px-2 py-1 rounded-md bg-black/60 text-white text-xs font-medium flex items-center gap-1.5">
@@ -128,9 +139,28 @@ function ScreenShareTile({ share, onClick, onClose, focused = false }) {
                     <FontAwesomeIcon icon={faXmark} />
                 </button>
             )}
-            <div className="w-full h-full">
-                <VoiceVideoTile track={share.track} muted={share.isLocal} />
-            </div>
+            {share.track && (
+                <div className="w-full h-full">
+                    <VoiceVideoTile track={share.track} muted={share.isLocal} />
+                </div>
+            )}
+            {showPlaceholder && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
+                    <FontAwesomeIcon icon={faDisplay} className="absolute text-zinc-700 text-9xl opacity-30 blur-sm" />
+                    <div className="relative z-10 flex flex-col items-center gap-3 bg-black/50 backdrop-blur-sm px-6 py-4 rounded-xl border border-white/10">
+                        <p className="text-white/80 text-sm text-center">
+                            {share.name} teilt seinen Bildschirm
+                        </p>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); share.subscribe?.(); }}
+                            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/80 transition-colors font-medium flex items-center gap-2 cursor-pointer text-sm"
+                        >
+                            <FontAwesomeIcon icon={faPlay} />
+                            Stream anzeigen
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

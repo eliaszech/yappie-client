@@ -1,5 +1,5 @@
 import { LiveKitRoom, RoomAudioRenderer, useLocalParticipant, useParticipants, useTracks, useConnectionState, useRoomContext } from '@livekit/components-react';
-import { Track, ConnectionState, DisconnectReason, LocalAudioTrack } from 'livekit-client';
+import { Track, ConnectionState, DisconnectReason, LocalAudioTrack, RoomEvent } from 'livekit-client';
 import { useVoice } from "../../hooks/useVoice.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createMicPipelineProcessor } from "../../services/micPipelineProcessor";
@@ -19,7 +19,7 @@ function VoiceRoomContent() {
     const connectionState = useConnectionState();
     const room = useRoomContext();
 
-    const screenTracks = useTracks([Track.Source.ScreenShare], { onlySubscribed: true });
+    const screenTracks = useTracks([Track.Source.ScreenShare], { onlySubscribed: false });
 
     const [enabled, setEnabled] = useState(
         () => localStorage.getItem('krisp-enabled') === 'true'
@@ -95,13 +95,54 @@ function VoiceRoomContent() {
         }
     }, [participants]);
 
+    // Auto-unsubscribe new remote screen share tracks (video + audio).
+    // Users opt-in per-stream via the "Stream anzeigen" button.
     useEffect(() => {
-        setScreenShares(screenTracks.map(t => ({
-            identity: t.participant.identity,
-            name: t.participant.name || t.participant.identity,
-            isLocal: t.participant.isLocal,
-            track: t.publication?.track,
-        })).filter(s => s.track));
+        if (!room) return;
+        function onTrackPublished(publication, participant) {
+            if (participant.isLocal) return;
+            const src = publication.source;
+            if (src === Track.Source.ScreenShare || src === Track.Source.ScreenShareAudio) {
+                publication.setSubscribed(false);
+            }
+        }
+        room.on(RoomEvent.TrackPublished, onTrackPublished);
+        // Also handle already-published tracks at the moment we mount/connect.
+        for (const p of room.remoteParticipants.values()) {
+            for (const pub of p.trackPublications.values()) {
+                onTrackPublished(pub, p);
+            }
+        }
+        return () => {
+            room.off(RoomEvent.TrackPublished, onTrackPublished);
+        };
+    }, [room]);
+
+    useEffect(() => {
+        setScreenShares(screenTracks.map(t => {
+            const publication = t.publication;
+            const isLocal = t.participant.isLocal;
+            const isSubscribed = isLocal || publication?.isSubscribed === true;
+            return {
+                identity: t.participant.identity,
+                name: t.participant.name || t.participant.identity,
+                isLocal,
+                track: publication?.track ?? null,
+                isSubscribed,
+                publication,
+                participant: t.participant,
+                subscribe: () => {
+                    if (isLocal || !publication) return;
+                    publication.setSubscribed(true);
+                    // Subscribe matching screen share audio (if any).
+                    for (const pub of t.participant.trackPublications.values()) {
+                        if (pub.source === Track.Source.ScreenShareAudio) {
+                            pub.setSubscribed(true);
+                        }
+                    }
+                },
+            };
+        }));
     }, [screenTracks]);
 
     useEffect(() => {
