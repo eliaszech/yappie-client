@@ -14,20 +14,16 @@ export default defineConfig({
     build: {
         rollupOptions: {
             output: {
+                // Keep react/react-dom/scheduler in the catch-all vendor chunk —
+                // splitting them out breaks React 19's CJS init order in production.
                 manualChunks(id) {
                     if (!id.includes('node_modules')) return;
                     if (id.includes('livekit-client') || id.includes('@livekit')) return 'vendor-livekit';
-                    if (id.includes('/slate') || id.includes('slate-react') || id.includes('slate-history')) return 'vendor-slate';
+                    if (/node_modules[\\/](slate|slate-react|slate-history)[\\/]/.test(id)) return 'vendor-slate';
                     if (id.includes('framer-motion')) return 'vendor-framer';
-                    if (id.includes('emoji-picker') || id.includes('emoji-mart')) return 'vendor-emoji';
+                    if (id.includes('@ferrucc-io/emoji-picker') || id.includes('emoji-mart')) return 'vendor-emoji';
                     if (id.includes('@fortawesome') || id.includes('@awesome.me')) return 'vendor-icons';
-                    if (id.includes('@tanstack')) return 'vendor-query';
-                    if (id.includes('socket.io') || id.includes('engine.io')) return 'vendor-socket';
-                    if (id.includes('i18next') || id.includes('react-i18next')) return 'vendor-i18n';
-                    if (id.includes('react-router')) return 'vendor-router';
                     if (id.includes('web-noise-suppressor')) return 'vendor-rnnoise';
-                    if (id.includes('react-dom') || id.includes('react/') || id.includes('scheduler')) return 'vendor-react';
-                    return 'vendor';
                 },
             },
         },
