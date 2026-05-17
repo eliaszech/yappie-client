@@ -15,6 +15,7 @@ import { useAuth } from '../../../hooks/useAuth.js';
 import { useNavigate } from 'react-router-dom';
 import { useContextMenu } from '../../../hooks/useContextMenu.js';
 import RolePickerDialog from './RolePickerDialog.jsx';
+import {getSocket} from "../../../services/socket.js";
 
 function RoleBadge({ role }) {
     return (
@@ -94,11 +95,10 @@ function MemberList() {
     );
 
     async function handleKick(member) {
-        const res = await kickMember(serverId, member.user.id);
+        const res = await kickMember(serverId, member.id);
         if (!res?.error) {
-            queryClient.setQueryData(['members', serverId], old =>
-                old ? old.filter(m => m.user.id !== member.user.id) : old
-            );
+            const socket = getSocket();
+            socket.emit('server:user:update', 'kick', member.userId, serverId);
         }
     }
 

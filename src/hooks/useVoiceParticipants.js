@@ -10,7 +10,7 @@ export function useVoiceEvents() {
             queryClient.setQueryData(['voice-participants', data.channelId], (old = []) => {
                 if (type === 'join') {
                     if (old.some(p => p.identity === data.userId)) return old;
-                    return [...old, { identity: data.userId, name: data.username }];
+                    return [...old, { identity: data.userId, name: data.username, isMuted: data.attributes.muted, isDeafened: data.attributes.deafened }];
                 }
                 if (type === 'leave') {
                     return old.filter(p => p.identity !== data.userId);

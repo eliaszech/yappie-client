@@ -1,6 +1,6 @@
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {useVoice} from "../../../hooks/useVoice.jsx";
-import {faDisplay, faMicrophoneSlash, faVolumeHigh} from "@awesome.me/kit-95376d5d61/icons/classic/light";
+import {faDisplay, faMicrophoneSlash, faVolumeHigh, faHeadphonesSlash} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {faArrowsRotate, faGear} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import {useChannelParticipants} from "../../../hooks/useChannelParticipants.js";
 import UserAvatar from "../../components/UserAvatar.jsx";
@@ -9,7 +9,7 @@ import {useAuth} from "../../../hooks/useAuth.js";
 import HasUserPopup from "../../components/user/HasUserPopup.jsx";
 
 function VoiceChannel({ channel, server, onSettings }) {
-    const { joinVoice, channelId: activeChannelId, participants: liveParticipants = [], connectionStatus, retryCount } = useVoice();
+    const { joinVoice, channelId: activeChannelId, muted, deafened, participants: liveParticipants = [], connectionStatus, retryCount } = useVoice();
     const { user } = useAuth();
     const navigate = useNavigate();
     const isActive = activeChannelId === channel.id;
@@ -20,7 +20,11 @@ function VoiceChannel({ channel, server, onSettings }) {
     const hasAnyPresence = isConnecting || (participants || []).length > 0;
 
     async function handleClick() {
-        if (!isActive) await joinVoice({ channel, server });
+        if (!isActive) await joinVoice({ channel, server, attributes: {
+                muted,
+                deafened,
+            }
+        });
         navigate(`/servers/${server.id}/voice/${channel.id}`);
     }
 
@@ -69,6 +73,9 @@ function VoiceChannel({ channel, server, onSettings }) {
                                 )}
                                 {p.isMuted && (
                                     <FontAwesomeIcon icon={faMicrophoneSlash} className="text-red-400" />
+                                )}
+                                {p.isDeafened && (
+                                    <FontAwesomeIcon icon={faHeadphonesSlash} className="text-red-400" title="Ton aus" />
                                 )}
                             </div>
                         </button>

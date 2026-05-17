@@ -36,7 +36,7 @@ function InviteMessage({invite}) {
                 return [...old, member.server];
             });
 
-            socket.emit('server:user:join', member.userId, invite.server.id);
+            socket.emit('server:user:update', 'join', member.userId, invite.server.id);
 
             navigate(`/servers/${invite.server.id}`);
         } else {

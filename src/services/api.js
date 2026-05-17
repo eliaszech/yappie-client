@@ -74,7 +74,7 @@ export const fetchChannels = (serverId) => apiRequest('GET', `/servers/${serverI
 export const createChannel = (serverId, name, type) => apiRequest('POST', `/servers/${serverId}/channels`, { name, type });
 export const fetchMembers = (type, id) => apiRequest('GET', type === 'members' ? `/servers/${id}/members` : `/conversations/${id}/participants`);
 export const updateServer = (serverId, data) => apiRequest('PATCH', `/servers/${serverId}`, data);
-export const kickMember = (serverId, userId) => apiRequest('DELETE', `/servers/${serverId}/members/${userId}`);
+export const kickMember = (serverId, userId) => apiRequest('POST', `/servers/${serverId}/members/${userId}/kick`);
 
 export const fetchRoles = (serverId) => apiRequest('GET', `/servers/${serverId}/roles`);
 export const createRole = (serverId, data) => apiRequest('POST', `/servers/${serverId}/roles`, data);

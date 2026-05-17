@@ -13,7 +13,7 @@ import {useAuth} from "../../hooks/useAuth.js";
 import {useNavigate} from "react-router-dom";
 import {useQueryClient} from "@tanstack/react-query";
 import {useVoice} from "../../hooks/useVoice.jsx";
-import {faMicrophoneSlash, faPhoneSlash} from "@awesome.me/kit-95376d5d61/icons/classic/light";
+import {faMicrophoneSlash, faPhoneSlash, faHeadphonesSlash} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import StatusPicker from "./user/StatusPicker.jsx";
 import {useState} from "react";
 import HasUserPopup from "./user/HasUserPopup.jsx";
@@ -25,7 +25,7 @@ function UserPanel() {
     const { user } = useAuth();
     const { openSettings } = useSettings();
     const [ changeStatusVisible, setChangeStatusVisible ] = useState(false);
-    const { isConnected, channelName, serverName, krisp, setKrisp, leaveVoice, muted, toggleMute, connectionStatus, retryCount } = useVoice();
+    const { isConnected, channelName, serverName, krisp, setKrisp, leaveVoice, muted, toggleMute, deafened, toggleDeafen, connectionStatus, retryCount } = useVoice();
 
     const online = useIsOnline(user.id) ?? user.online;
     const status = useUserStatus(user.id) ?? user.status;
@@ -92,8 +92,8 @@ function UserPanel() {
                     <button onClick={toggleMute} className={`cursor-pointer rounded-lg ${muted ? 'text-red-400' : 'text-foreground'}  text-xl hover:bg-card/80 hover:text-foreground px-1.5 py-1.5`}>
                         <FontAwesomeIcon icon={muted ? faMicrophoneSlash : faMicrophone} />
                     </button>
-                    <button className="cursor-pointer rounded-lg  text-foreground/80 text-xl hover:bg-card/80 hover:text-foreground px-1.5 py-1.5">
-                        <FontAwesomeIcon icon={faHeadset} />
+                    <button onClick={toggleDeafen} className={`cursor-pointer rounded-lg ${deafened ? 'text-red-400' : 'text-foreground/80'} text-xl hover:bg-card/80 hover:text-foreground px-1.5 py-1.5`}>
+                        <FontAwesomeIcon icon={deafened ? faHeadphonesSlash : faHeadset} />
                     </button>
                     <button onClick={() => openSettings('profile')} className="cursor-pointer rounded-lg  text-foreground/80 text-xl hover:bg-card/80 hover:text-foreground px-1.5 py-1.5">
                         <FontAwesomeIcon icon={faCog} />

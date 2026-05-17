@@ -8,7 +8,9 @@ import {
     faMicrophoneSlash,
     faXmark,
     faTriangleExclamation,
-    faArrowsRotate,
+    faArrowsRotate, faDisplaySlash,
+    faHeadphones,
+    faHeadphonesSlash,
 } from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {
     faDisplay,
@@ -76,6 +78,9 @@ function ParticipantTile({ participant, onContextMenu }) {
                 <span>{participant.name || participant.identity}</span>
                 {participant.isMuted && (
                     <FontAwesomeIcon icon={faMicrophoneSlash} className="text-red-400" />
+                )}
+                {participant.isDeafened && (
+                    <FontAwesomeIcon icon={faHeadphonesSlash} className="text-red-400" title="Ton aus" />
                 )}
             </div>
         </div>
@@ -145,21 +150,24 @@ function ScreenShareTile({ share, onClick, onClose, focused = false }) {
                 </div>
             )}
             {showPlaceholder && (
-                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
-                    <FontAwesomeIcon icon={faDisplay} className="absolute text-zinc-700 text-9xl opacity-30 blur-sm" />
-                    <div className="relative z-10 flex flex-col items-center gap-3 bg-black/50 backdrop-blur-sm px-6 py-4 rounded-xl border border-white/10">
-                        <p className="text-white/80 text-sm text-center">
-                            {share.name} teilt seinen Bildschirm
-                        </p>
+                <div className="absolute inset-0 flex items-center justify-center bg-primary/10">
+                    <FontAwesomeIcon icon={faDisplay} className="absolute text-zinc-700 text-9xl blur-sm" />
+                    <div className="relative z-10 flex flex-col items-center">
                         <button
                             onClick={(e) => { e.stopPropagation(); share.subscribe?.(); }}
                             className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/80 transition-colors font-medium flex items-center gap-2 cursor-pointer text-sm"
                         >
                             <FontAwesomeIcon icon={faPlay} />
-                            Stream anzeigen
+                            Stream anschauen
                         </button>
                     </div>
                 </div>
+            )}
+            {!showPlaceholder && (
+                <button onClick={(e) => { e.stopPropagation(); share.unsubscribe?.(); }}
+                        className="absolute z-10 bottom-2 mx-auto left-0 right-0 w-9 h-9 rounded-md bg-red-500/60 hover:bg-red-500/80 text-white flex items-center justify-center cursor-pointer">
+                    <FontAwesomeIcon icon={faDisplaySlash} />
+                </button>
             )}
         </div>
     );
@@ -176,6 +184,8 @@ function VoiceChannelView() {
         screenShares = [],
         muted,
         toggleMute,
+        deafened,
+        toggleDeafen,
         leaveVoice,
         joinVoice,
         setScreenShareEnabled,
@@ -263,6 +273,10 @@ function VoiceChannelView() {
         await joinVoice({
             channel,
             server: { id: serverId, name: channel.serverName ?? '' },
+            attributes: {
+                muted,
+                deafened,
+            }
         });
     }
 
@@ -377,6 +391,13 @@ function VoiceChannelView() {
                                         title={muted ? 'Stummschaltung aufheben' : 'Stummschalten'}
                                     >
                                         <FontAwesomeIcon icon={muted ? faMicrophoneSlash : faMicrophone} />
+                                    </button>
+                                    <button
+                                        onClick={toggleDeafen}
+                                        className={`cursor-pointer text-xl rounded-lg w-11 h-11 flex items-center justify-center transition-colors ${deafened ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'text-foreground hover:bg-muted/70'}`}
+                                        title={deafened ? 'Ton wieder einschalten' : 'Ton stummschalten'}
+                                    >
+                                        <FontAwesomeIcon icon={deafened ? faHeadphonesSlash : faHeadphones} />
                                     </button>
                                     {localShare ? (
                                         <div ref={shareMenuRef} className="relative">

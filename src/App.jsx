@@ -23,7 +23,8 @@ import {useReactMessage} from "./hooks/messages/useReactMessage.js";
 import Register from "./features/auth/Register.jsx";
 import FriendsListPending from "./features/private/friends/FriendsListPending.jsx";
 import {useFriendRequests} from "./hooks/friends/useFriendRequests.js";
-import {useUserServerJoin} from "./hooks/server/useUserServerJoin.js";
+import {useUserServerUpdate} from "./hooks/server/useUserServerUpdate.js";
+import KickedFromServerDialog from "./features/servers/dialogs/KickedFromServerDialog.jsx";
 import PageNotFound from "./errors/PageNotFound.jsx";
 import PageNotFoundSidebar from "./errors/PageNotFoundSidebar.jsx";
 import {SettingsProvider, useSettings} from "./context/SettingsContext.jsx";
@@ -56,6 +57,12 @@ function LazySettingsModal() {
     );
 }
 
+function RouterEvents() {
+    const { kicked, dismissKicked } = useUserServerUpdate();
+    if (!kicked) return null;
+    return <KickedFromServerDialog serverName={kicked.serverName} onClose={dismissKicked} />;
+}
+
 function App() {
     usePresence();
     useVoiceEvents();
@@ -64,12 +71,12 @@ function App() {
     useReactMessage();
     useMessages();
     useFriendRequests();
-    useUserServerJoin();
 
     return (
         <ContextMenuProvider>
         <SettingsProvider>
         <HashRouter>
+            <RouterEvents />
             <Routes>
                 <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
                 <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />

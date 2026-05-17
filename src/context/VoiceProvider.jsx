@@ -24,6 +24,7 @@ export function VoiceProvider({ children }) {
         participants: [],
         muted: false,
         deafened: false,
+        mutedByDeafen: false,
     });
 
     function setKrisp(krisp) {
@@ -61,7 +62,7 @@ export function VoiceProvider({ children }) {
         setRetryCountState(0);
     }
 
-    async function joinVoice({ channel, server }) {
+    async function joinVoice({ channel, server, attributes = {} }) {
         if (voiceState.channelId === channel.id && connectionStatus === 'connected') return;
 
         setVoiceErrorState(null);
@@ -88,6 +89,7 @@ export function VoiceProvider({ children }) {
             roomName: `channel-${channel.id}`,
             userId: user.id,
             username: user.displayName ?? user.username,
+            attributes
         });
 
         if (res.error) {
@@ -130,7 +132,8 @@ export function VoiceProvider({ children }) {
             socket.emit('voice:leave', { channelId: voiceState.channelId });
         }
 
-        setVoiceState({
+        setVoiceState(prev => ({
+            ...prev,
             token: null,
             channelId: null,
             serverUrl: null,
@@ -138,20 +141,33 @@ export function VoiceProvider({ children }) {
             serverId: null,
             serverName: null,
             participants: [],
-            muted: false,
-            deafened: false,
-        });
+        }));
         setScreenSharesState([]);
         setConnectionStatusState('idle');
         setRetryCountState(0);
     }
 
     function toggleMute() {
-        setVoiceState(prev => ({ ...prev, muted: !prev.muted }));
+        setVoiceState(prev => ({ ...prev, muted: !prev.muted, mutedByDeafen: false }));
     }
 
     function toggleDeafen() {
-        setVoiceState(prev => ({ ...prev, deafened: !prev.deafened }));
+        setVoiceState(prev => {
+            if (!prev.deafened) {
+                return {
+                    ...prev,
+                    deafened: true,
+                    muted: true,
+                    mutedByDeafen: !prev.muted,
+                };
+            }
+            return {
+                ...prev,
+                deafened: false,
+                muted: prev.mutedByDeafen ? false : prev.muted,
+                mutedByDeafen: false,
+            };
+        });
     }
 
     const value = useMemo(() => ({

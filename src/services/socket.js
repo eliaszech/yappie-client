@@ -11,7 +11,7 @@ let messageDeleteCallback = null;
 let messageEditCallback = null;
 let reactionCallback = null;
 let friendRequestCallback = null;
-let userJoinedServerCallback = null;
+let userServerUpdateCallback = null;
 
 let voiceCallback = null;
 
@@ -48,8 +48,8 @@ function registerEvents() {
         if(friendRequestCallback) friendRequestCallback('accepted', friendId);
     })
 
-    socket.on('server:user:joined', (member) => {
-        if(userJoinedServerCallback) userJoinedServerCallback(member);
+    socket.on('server:user:updated', (type, member) => {
+        if(userServerUpdateCallback) userServerUpdateCallback(type, member);
     })
 
     socket.on('reaction:update', (type, roomId, reaction, action) => {
@@ -115,8 +115,8 @@ export function onMessageEdit(callback) {
     messageEditCallback = callback;
 }
 
-export function onUserJoinedServer(callback) {
-    userJoinedServerCallback = callback;
+export function onUserServerUpdate(callback) {
+    userServerUpdateCallback = callback;
 }
 
 export function onVoiceChange(callback) {

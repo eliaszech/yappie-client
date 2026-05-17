@@ -15,7 +15,7 @@ import {
 function VoiceRoomContent() {
     const participants = useParticipants();
     const { localParticipant, microphoneTrack } = useLocalParticipant();
-    const { setParticipants, setKrisp, setScreenShares, registerVoiceActions, muted, setConnectionStatus } = useVoice();
+    const { setParticipants, setKrisp, setScreenShares, registerVoiceActions, muted, deafened, setConnectionStatus } = useVoice();
     const connectionState = useConnectionState();
     const room = useRoomContext();
 
@@ -84,6 +84,7 @@ function VoiceRoomContent() {
             isLocal: p.isLocal,
             isMuted: p.isMicrophoneEnabled === false,
             isScreenSharing: p.isScreenShareEnabled,
+            isDeafened: p.isLocal ? deafened : p.attributes?.deafened === '1',
         })));
 
         for (const p of participants) {
@@ -93,7 +94,19 @@ function VoiceRoomContent() {
                 p.setVolume(stored);
             }
         }
-    }, [participants]);
+    }, [participants, deafened]);
+
+    useEffect(() => {
+        if (!localParticipant) return;
+        if (connectionState !== ConnectionState.Connected) return;
+        const streaming = screenTracks.some(t => t.participant.isLocal);
+        localParticipant.setAttributes({
+            deafened: deafened ? '1' : '0',
+            streaming: streaming ? '1' : '0',
+        }).catch((e) => {
+            console.log(e)
+        });
+    }, [localParticipant, deafened, screenTracks, connectionState]);
 
     // Auto-unsubscribe new remote screen share tracks (video + audio).
     // Users opt-in per-stream via the "Stream anzeigen" button.
@@ -138,6 +151,15 @@ function VoiceRoomContent() {
                     for (const pub of t.participant.trackPublications.values()) {
                         if (pub.source === Track.Source.ScreenShareAudio) {
                             pub.setSubscribed(true);
+                        }
+                    }
+                },
+                unsubscribe: () => {
+                    if (isLocal || !publication) return;
+                    publication.setSubscribed(false);
+                    for (const pub of t.participant.trackPublications.values()) {
+                        if (pub.source === Track.Source.ScreenShareAudio) {
+                            pub.setSubscribed(false);
                         }
                     }
                 },
@@ -225,7 +247,7 @@ function VoiceRoomContent() {
         });
     }, [localParticipant, participants, room]);
 
-    return <RoomAudioRenderer />;
+    return <RoomAudioRenderer muted={deafened} />;
 }
 
 const MAX_RETRIES = 5;

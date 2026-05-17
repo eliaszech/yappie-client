@@ -6,6 +6,7 @@ import { useAuth } from "../../../../hooks/useAuth.js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUserXmark, faPlus, faCheck } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import Spinner from "../../../components/static/Spinner.jsx";
+import {getSocket} from "../../../../services/socket.js";
 
 function RoleAssignPopup({ serverId, member, onClose }) {
     const ref = useRef(null);
@@ -120,12 +121,11 @@ function MembersSection({ server }) {
     );
 
     async function handleKick(member) {
-        setKickingId(member.user.id);
-        const res = await kickMember(server.id, member.user.id);
+        setKickingId(member.id);
+        const res = await kickMember(server.id, member.id);
         if (!res?.error) {
-            queryClient.setQueryData(['members', server.id], (old) =>
-                old ? old.filter(m => m.user.id !== member.user.id) : old
-            );
+            const socket = getSocket();
+            socket.emit('server:user:update', 'kick', member.userId, server.id);
         }
         setKickingId(null);
         setConfirmId(null);
@@ -181,7 +181,7 @@ function MembersSection({ server }) {
                                         />
                                         <div className="flex flex-col min-w-0">
                                             <span
-                                                className="text-sm font-medium truncate"
+                                                className="text-sm font-medium truncate text-foreground"
                                                 style={topRoleColor ? { color: topRoleColor } : undefined}
                                             >
                                                 {member.user.displayName ?? member.user.username}

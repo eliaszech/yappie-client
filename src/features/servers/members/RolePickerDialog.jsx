@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchRoles, assignRole, removeRole } from '../../../services/api.js';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faXmark } from '@awesome.me/kit-95376d5d61/icons/classic/solid';
+import {getSocket} from "../../../services/socket.js";
 
 function RolePickerDialog({ serverId, member, onClose }) {
     const queryClient = useQueryClient();
@@ -40,6 +41,9 @@ function RolePickerDialog({ serverId, member, onClose }) {
         } else {
             await assignRole(serverId, member.id, role.id);
         }
+
+        const socket = getSocket();
+        socket.emit('server:user:update', 'updateRole', member.userId, serverId);
     }
 
     const displayName = member.user.displayName ?? member.user.username;
