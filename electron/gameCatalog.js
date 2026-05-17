@@ -3,6 +3,7 @@
 export const GAME_CATALOG = {
     'enshrouded.exe': 'Enshrouded',
     'bf6.exe': 'Battlefield 6',
+    'forzahorizon6.exe': 'Forza Horizon 6',
     'leagueclient.exe': 'League of Legends',
     'valorant-win64-shipping.exe': 'Valorant',
     'cs2.exe': 'Counter-Strike 2',
