@@ -24,6 +24,7 @@ import Register from "./features/auth/Register.jsx";
 import FriendsListPending from "./features/private/friends/FriendsListPending.jsx";
 import {useFriendRequests} from "./hooks/friends/useFriendRequests.js";
 import {useUserServerUpdate} from "./hooks/server/useUserServerUpdate.js";
+import {useActivitySubscription, useGameActivityReporter} from "./hooks/useActivity.js";
 import KickedFromServerDialog from "./features/servers/dialogs/KickedFromServerDialog.jsx";
 import PageNotFound from "./errors/PageNotFound.jsx";
 import PageNotFoundSidebar from "./errors/PageNotFoundSidebar.jsx";
@@ -65,6 +66,8 @@ function RouterEvents() {
 
 function App() {
     usePresence();
+    useActivitySubscription();
+    useGameActivityReporter();
     useVoiceEvents();
     useDeleteMessage();
     useEditMessage();

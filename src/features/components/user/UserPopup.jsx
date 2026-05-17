@@ -1,6 +1,7 @@
 import {useUserPopup} from "../../../hooks/user/useUserPopup.js";
 import {useEffect, useRef, useState} from "react";
 import {useIsOnline, useUserStatus} from "../../../hooks/usePresence.js";
+import {useUserActivity} from "../../../hooks/useActivity.js";
 import UserAvatar from "../UserAvatar.jsx";
 import {useAuth} from "../../../hooks/useAuth.js";
 import Dropdown from "../Dropdown.jsx";
@@ -18,7 +19,7 @@ import {
 } from "../../../services/api.js";
 import {useNavigate} from "react-router-dom";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faPen, faMessage, faUserCheck, faUserMinus, faBan} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
+import {faPen, faMessage, faUserCheck, faUserMinus, faBan, faGamepad} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import {faEllipsis, faChevronRight, faChevronLeft, faLink} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import {faUserPlus, faUserClock} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {useSettings} from "../../../context/SettingsContext.jsx";
@@ -39,6 +40,8 @@ function UserPopup() {
 
     const online = useIsOnline(popup.user.id) ?? popup.user.online;
     const status = useUserStatus(popup.user.id) ?? popup.user.status;
+    const activity = useUserActivity(popup.user.id);
+    const showActivity = online && activity?.name;
 
     const { data: friends = [] } = useQuery({
         queryKey: ['friends'],
@@ -301,6 +304,16 @@ function UserPopup() {
                 <div className="p-4">
                     <div className="text-xl font-bold text-foreground">{popup.user.displayName ?? popup.user.username}</div>
                     <div className="text-sm text-muted-foreground">{popup.user.username}</div>
+
+                    {showActivity && (
+                        <div className="mt-3 p-2.5 rounded-md bg-primary/10 border border-primary/20 flex items-center gap-2">
+                            <FontAwesomeIcon icon={faGamepad} className="text-primary text-sm shrink-0" />
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-primary/80">Spielt gerade</span>
+                                <span className="text-sm font-medium text-foreground truncate">{activity.name}</span>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="mt-2">
                         <span className="text-xs font-semibold text-foreground">Mitglied seit</span>

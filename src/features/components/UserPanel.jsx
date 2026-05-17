@@ -19,7 +19,9 @@ import {useState} from "react";
 import HasUserPopup from "./user/HasUserPopup.jsx";
 import StatusText from "./user/StatusText.jsx";
 import {useIsOnline, useUserStatus} from "../../hooks/usePresence.js";
+import {useUserActivity} from "../../hooks/useActivity.js";
 import {useSettings} from "../../context/SettingsContext.jsx";
+import {faGamepad} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 
 function UserPanel() {
     const { user } = useAuth();
@@ -29,6 +31,8 @@ function UserPanel() {
 
     const online = useIsOnline(user.id) ?? user.online;
     const status = useUserStatus(user.id) ?? user.status;
+    const activity = useUserActivity(user.id);
+    const showActivity = online && activity?.name;
 
     function toggleKrisp() {
         if (!krisp) return;
@@ -78,13 +82,20 @@ function UserPanel() {
                 <HasUserPopup classes="w-full" isProfilePopup={true} user={user} orientation="top">
                     <div className="flex items-center gap-3 hover:bg-card px-2 grow py-1 rounded-lg cursor-pointer" onClick={() => setChangeStatusVisible(true)}>
                         <UserAvatar icon={user.username.charAt(0).toUpperCase()} avatar={user.avatar} online={online} status={status} />
-                        <div className="flex flex-col ">
-                            <span className="text-foreground text-base font-medium">
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-foreground text-base font-medium truncate">
                                 {user.displayName ?? user.username}
                             </span>
-                            <span className="text-muted-foreground text-xs">
-                                <StatusText hideBubble={true} hideDescription={true} online={online} userStatus={status} showRealStatus={true} />
-                            </span>
+                            {showActivity ? (
+                                <span className="flex items-center gap-1 text-xs text-foreground/70 truncate" title={`Spielt ${activity.name}`}>
+                                    <FontAwesomeIcon icon={faGamepad} className="text-[10px] shrink-0" />
+                                    <span className="truncate">{activity.name}</span>
+                                </span>
+                            ) : (
+                                <span className="text-muted-foreground text-xs">
+                                    <StatusText hideBubble={true} hideDescription={true} online={online} userStatus={status} showRealStatus={true} />
+                                </span>
+                            )}
                         </div>
                     </div>
                 </HasUserPopup>

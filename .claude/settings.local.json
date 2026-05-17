@@ -11,7 +11,8 @@
       "Bash(npm install *)",
       "Bash(npx eslint *)",
       "Bash(git stash *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "PowerShell(tasklist *)"
     ]
   }
 }

@@ -41,6 +41,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     stopWindowAudio: () => ipcRenderer.send('electron:stop-window-audio'),
 
+    // Game / Rich Presence
+    onGameDetected: (callback) => {
+        ipcRenderer.removeAllListeners('electron:game-detected');
+        ipcRenderer.on('electron:game-detected', (_event, game) => callback(game));
+    },
+    getCurrentGame: () => ipcRenderer.invoke('electron:get-current-game'),
+
     // Updater
     onUpdateStatus: (callback) => {
         ipcRenderer.removeAllListeners('update:status');

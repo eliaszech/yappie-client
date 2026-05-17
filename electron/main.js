@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import pkg from 'electron-updater';
 const { autoUpdater } = pkg;
+import { startGameDetection, stopGameDetection } from './gameDetection.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = process.env.NODE_ENV === 'development';
@@ -260,20 +261,34 @@ function createWindow() {
     }
 }
 
+let lastGame = null;
+function emitGame(game) {
+    lastGame = game;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('electron:game-detected', game);
+    }
+}
+
 app.whenReady().then(() => {
     if (process.platform === 'win32') app.setAppUserModelId('com.yappie.client');
     setupIpc();
     createWindow();
+    startGameDetection(emitGame);
+    // Send the current value to any newly-loaded renderer so it picks up the
+    // last detection without waiting for the next change.
+    ipcMain.handle('electron:get-current-game', () => lastGame);
     if (!isDev) setupAutoUpdater();
 });
 
 app.on('window-all-closed', () => {
     stopWindowAudioCapture();
+    stopGameDetection();
     if (process.platform !== 'darwin') app.quit();
 });
 
 app.on('before-quit', () => {
     stopWindowAudioCapture();
+    stopGameDetection();
 });
 
 app.on('activate', () => {

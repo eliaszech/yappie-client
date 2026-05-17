@@ -14,6 +14,8 @@ let friendRequestCallback = null;
 let userServerUpdateCallback = null;
 
 let voiceCallback = null;
+let activityCallback = null;
+let activitySyncCallback = null;
 
 let eventsRegistered = false;
 
@@ -72,6 +74,14 @@ function registerEvents() {
         if (voiceCallback) voiceCallback('leave', data);
     });
 
+    socket.on('user:activityChange', (data) => {
+        if (activityCallback) activityCallback(data);
+    });
+
+    socket.on('user:activitySync', (snapshot) => {
+        if (activitySyncCallback) activitySyncCallback(snapshot);
+    });
+
     eventsRegistered = true;
 }
 
@@ -121,6 +131,14 @@ export function onUserServerUpdate(callback) {
 
 export function onVoiceChange(callback) {
     voiceCallback = callback;
+}
+
+export function onActivityChange(callback) {
+    activityCallback = callback;
+}
+
+export function onActivitySync(callback) {
+    activitySyncCallback = callback;
 }
 
 export function getSocket() {

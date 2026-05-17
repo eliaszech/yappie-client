@@ -4,8 +4,9 @@ import { useParams } from 'react-router-dom';
 import ContentHeader from '../../components/ContentHeader.jsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUsers } from '@awesome.me/kit-95376d5d61/icons/classic/light';
-import { faMessage, faUserXmark, faBan } from '@awesome.me/kit-95376d5d61/icons/classic/solid';
+import { faMessage, faUserXmark, faBan, faGamepad } from '@awesome.me/kit-95376d5d61/icons/classic/solid';
 import { faTag, faSearch } from '@awesome.me/kit-95376d5d61/icons/classic/regular';
+import { useUserActivity } from '../../../hooks/useActivity.js';
 import { fetchMembers, fetchRoles, fetchServer, kickMember, fetchOrCreateConversationWith } from '../../../services/api.js';
 import UserAvatar from '../../components/UserAvatar.jsx';
 import HasUserPopup from '../../components/user/HasUserPopup.jsx';
@@ -28,6 +29,20 @@ function RoleBadge({ role }) {
         >
             <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: role.color || '#99aab5' }} />
             {role.name}
+        </span>
+    );
+}
+
+function ActivityBadge({ userId }) {
+    const activity = useUserActivity(userId);
+    if (!activity?.name) return null;
+    return (
+        <span
+            className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/15 text-primary"
+            title={`Spielt ${activity.name}`}
+        >
+            <FontAwesomeIcon icon={faGamepad} className="text-[9px]" />
+            {activity.name}
         </span>
     );
 }
@@ -224,6 +239,7 @@ function MemberList() {
                                     </HasUserPopup>
 
                                     <div className="flex-1 flex items-center gap-1.5 flex-wrap">
+                                        <ActivityBadge userId={member.user.id} />
                                         {memberRoles.map(r => (
                                             <RoleBadge key={r.roleId ?? r.role?.id} role={r.role ?? r} />
                                         ))}
