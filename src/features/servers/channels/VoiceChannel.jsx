@@ -7,11 +7,13 @@ import UserAvatar from "../../components/UserAvatar.jsx";
 import {useNavigate} from "react-router-dom";
 import {useAuth} from "../../../hooks/useAuth.js";
 import HasUserPopup from "../../components/user/HasUserPopup.jsx";
+import { useParticipantContextMenu } from "../../../hooks/useParticipantContextMenu.jsx";
 
 function VoiceChannel({ channel, server, onSettings }) {
     const { joinVoice, channelId: activeChannelId, muted, deafened, participants: liveParticipants = [], connectionStatus, retryCount } = useVoice();
     const { user } = useAuth();
     const navigate = useNavigate();
+    const handleParticipantContextMenu = useParticipantContextMenu();
     const isActive = activeChannelId === channel.id;
     const isConnecting = isActive && (connectionStatus === 'connecting' || connectionStatus === 'reconnecting');
 
@@ -62,9 +64,13 @@ function VoiceChannel({ channel, server, onSettings }) {
                         </div>
                     )}
                     {(participants || []).filter(p => !isConnecting || !p.isLocal).map(p => (
-                        <button key={p.identity} className="w-full flex text-foreground cursor-pointer items-center gap-2 px-2 py-1 rounded-md font-medium transition-all hover:text-foreground hover:bg-muted/50">
+                        <button
+                            key={p.identity}
+                            onContextMenu={(e) => handleParticipantContextMenu(e, p)}
+                            className="w-full flex text-foreground cursor-pointer items-center gap-2 px-2 py-1 rounded-md font-medium transition-all hover:text-foreground hover:bg-muted/50"
+                        >
                             <div className={`ring-3 ${p.isSpeaking ? 'ring-primary' : 'ring-transparent'} rounded-full`}>
-                                <UserAvatar icon={(p.name || '').charAt(0).toUpperCase()} displayOnline={false} size="w-6 h-6" />
+                                <UserAvatar icon={(p.name || '').charAt(0).toUpperCase()} avatar={p.avatar} displayOnline={false} size="w-6 h-6" />
                             </div>
                             <div className={p.isSpeaking ? 'text-foreground' : 'text-muted-foreground'}>{p.displayName ?? p.name}</div>
                             <div className="ml-auto flex items-center gap-1.5">

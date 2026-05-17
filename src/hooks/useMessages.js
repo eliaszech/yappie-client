@@ -4,6 +4,11 @@ import { onNewMessage } from '../services/socket';
 import { useAuth } from './useAuth';
 import {playMessageSound} from "../services/sounds.js";
 
+function getCurrentPath() {
+    const hash = window.location.hash.replace(/^#/, '');
+    return hash.split('?')[0] || '/';
+}
+
 export function useMessages() {
     const queryClient = useQueryClient();
     const { user } = useAuth()
@@ -11,6 +16,8 @@ export function useMessages() {
     useEffect(() => {
         onNewMessage((message) => {
             const roomId = message.conversationId || message.channelId;
+            const isInThisConversation = message.conversationId
+                && getCurrentPath() === `/@me/messages/${message.conversationId}`;
 
             if(message.userId !== user.id && user.status !== 'dnd') {
                 playMessageSound();
@@ -41,7 +48,7 @@ export function useMessages() {
                 queryClient.setQueryData(['conversations', user?.id], (old) => {
                     if (!old) return old;
                     return old.map(conv => {
-                        if (conv.id === message.conversationId && message.userId !== user.id) {
+                        if (conv.id === message.conversationId && message.userId !== user.id && !isInThisConversation) {
                             return {...conv, unreadCount: (conv.unreadCount || 0) + 1, messages: [message]};
                         }
                         if (conv.id === message.conversationId) {

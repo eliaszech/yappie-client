@@ -43,12 +43,12 @@ function ChannelOverviewSection({ channel, server }) {
         if (!trimmed) return;
         setSaving(true);
         setError('');
-        const res = await updateChannel(channel.id, { name: trimmed });
+        const res = await updateChannel(server.id, channel.id, { name: trimmed });
         if (!res.error) {
             queryClient.setQueryData(['channels', server.id], (old) =>
-                old ? old.map(c => c.id === channel.id ? { ...c, name: trimmed } : c) : old
+                old ? old.map(c => c.id === res.id ? { ...c, name: trimmed } : c) : old
             );
-            queryClient.setQueryData(['channel', channel.id], (old) =>
+            queryClient.setQueryData(['channel', res.id], (old) =>
                 old ? { ...old, name: trimmed } : old
             );
         } else {

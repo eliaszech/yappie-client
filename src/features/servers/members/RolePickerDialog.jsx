@@ -1,18 +1,25 @@
 import { useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchRoles, assignRole, removeRole } from '../../../services/api.js';
+import { useQuery } from '@tanstack/react-query';
+import { fetchRoles, fetchMembers, assignRole, removeRole } from '../../../services/api.js';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faXmark } from '@awesome.me/kit-95376d5d61/icons/classic/solid';
 import {getSocket} from "../../../services/socket.js";
 
 function RolePickerDialog({ serverId, member, onClose }) {
-    const queryClient = useQueryClient();
-
     const { data: allRoles = [] } = useQuery({
         queryKey: ['roles', serverId],
         queryFn: () => fetchRoles(serverId),
         staleTime: 5 * 60 * 1000,
     });
+
+    const { data: liveMember } = useQuery({
+        queryKey: ['members', serverId],
+        queryFn: () => fetchMembers('members', serverId),
+        staleTime: 5 * 60 * 1000,
+        select: (members) => members?.find(m => m.id === member.id),
+    });
+
+    const currentMember = liveMember ?? member;
 
     useEffect(() => {
         const handle = (e) => { if (e.key === 'Escape') onClose(); };
@@ -20,33 +27,22 @@ function RolePickerDialog({ serverId, member, onClose }) {
         return () => document.removeEventListener('keydown', handle);
     }, [onClose]);
 
-    const memberRoleIds = new Set((member.roles || []).map(r => r.role?.id ?? r.id));
+    const memberRoleIds = new Set((currentMember.roles || []).map(r => r.role?.id ?? r.id));
 
     async function toggleRole(role) {
         const isAssigned = memberRoleIds.has(role.id);
 
-        queryClient.setQueryData(['members', serverId], (old) => {
-            if (!old) return old;
-            return old.map(m => {
-                if (m.user.id !== member.user.id) return m;
-                const newRoles = isAssigned
-                    ? (m.roles || []).filter(r => (r.role?.id ?? r.id) !== role.id)
-                    : [...(m.roles || []), { roleId: role.id, memberId: member.id, role }];
-                return { ...m, roles: newRoles };
-            });
-        });
-
         if (isAssigned) {
-            await removeRole(serverId, member.id, role.id);
+            await removeRole(serverId, currentMember.id, role.id);
         } else {
-            await assignRole(serverId, member.id, role.id);
+            await assignRole(serverId, currentMember.id, role.id);
         }
 
         const socket = getSocket();
-        socket.emit('server:user:update', 'updateRole', member.userId, serverId);
+        socket.emit('server:user:update', 'updateRole', currentMember.userId, serverId);
     }
 
-    const displayName = member.user.displayName ?? member.user.username;
+    const displayName = currentMember.user.displayName ?? currentMember.user.username;
 
     return (
         <div className="fixed inset-0 z-[300] flex items-center justify-center">

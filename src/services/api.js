@@ -74,11 +74,12 @@ export const fetchChannels = (serverId) => apiRequest('GET', `/servers/${serverI
 export const createChannel = (serverId, name, type) => apiRequest('POST', `/servers/${serverId}/channels`, { name, type });
 export const fetchMembers = (type, id) => apiRequest('GET', type === 'members' ? `/servers/${id}/members` : `/conversations/${id}/participants`);
 export const updateServer = (serverId, data) => apiRequest('PATCH', `/servers/${serverId}`, data);
-export const kickMember = (serverId, userId) => apiRequest('POST', `/servers/${serverId}/members/${userId}/kick`);
+export const kickMember = (serverId, memberId) => apiRequest('POST', `/servers/${serverId}/members/${memberId}/kick`);
 
 export const fetchRoles = (serverId) => apiRequest('GET', `/servers/${serverId}/roles`);
 export const createRole = (serverId, data) => apiRequest('POST', `/servers/${serverId}/roles`, data);
 export const updateRole = (serverId, roleId, data) => apiRequest('PATCH', `/servers/${serverId}/roles/${roleId}`, data);
+export const updateRolePositions = (serverId, roleIds) => apiRequest('PUT', `/servers/${serverId}/roles/positions`, { roleIds });
 export const deleteRole = (serverId, roleId) => apiRequest('DELETE', `/servers/${serverId}/roles/${roleId}`);
 export const assignRole = (serverId, memberId, roleId) => apiRequest('POST', `/servers/${serverId}/members/${memberId}/roles`, { roleId });
 export const removeRole = (serverId, userId, roleId) => apiRequest('DELETE', `/servers/${serverId}/members/${userId}/roles/${roleId}`);
@@ -89,8 +90,8 @@ export const fetchMessages = (type = 'conversation',channelId, cursor = '') => a
 export const createInvite = (serverId) => apiRequest('POST', `/servers/${serverId}/invites/create`);
 export const joinServer = (inviteCode) => apiRequest('POST', `/servers/join`, { inviteCode });
 
-export const updateChannel = (channelId, data) => apiRequest('PATCH', `/channels/${channelId}`, data);
-export const deleteChannel = (channelId) => apiRequest('DELETE', `/channels/${channelId}`);
+export const updateChannel = (serverId, channelId, data) => apiRequest('PATCH', `/servers/${serverId}/channels/${channelId}`, data);
+export const deleteChannel = (serverId, channelId) => apiRequest('DELETE', `/servers/${serverId}/channels/${channelId}`);
 
 export const fetchVoiceToken = (data) => apiRequest('POST', `/voice/token`, data);
 export const fetchChannelParticipants = (channelId) => apiRequest('GET', `/voice/participants/${channelId}`);

@@ -60,6 +60,10 @@ export function useUserServerUpdate() {
             }
 
             if(type === 'updateRole') {
+                queryClient.setQueryData(['members', member.serverId], (old) => {
+                    if (!old) return old;
+                    return old.map(m => m.id === member.id ? {...member, roles: member.roles} : m);
+                });
             }
         });
 

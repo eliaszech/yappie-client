@@ -14,7 +14,7 @@ function InviteFriendItem({friend, onInvite}) {
     return (
         <div className='cursor-pointer flex items-center justify-between gap-3 px-2 py-1 rounded-md hover:bg-border transition duration-200'>
             <div className="flex items-center gap-3">
-                <UserAvatar icon={friend.username.charAt(0).toUpperCase()} displayOnline={false} />
+                <UserAvatar icon={friend.username.charAt(0).toUpperCase()} avatar={friend.avatar} displayOnline={false} />
                 <div className="flex flex-col">
                     <span className="text-foreground font-medium">{friend.displayName ?? friend.username}</span>
                     <span className="text-xs text-muted-foreground">
@@ -57,7 +57,7 @@ function InviteDialog({server, onCancel}) {
 
         if(conversation && invite) {
             socket.emit('message:send', {
-                text: 'yappie.gg/invite/' + invite.code,
+                text: 'yappie.ch/invite/' + invite.code,
                 type: 'conversation',
                 roomId: conversation.id,
                 messageType: 'server_invite',
@@ -98,7 +98,7 @@ function InviteDialog({server, onCancel}) {
                     <div className="text-foreground text-sm mb-4">
                         Oder schick einen Server-Einladungslink an einen Freund
                     </div>
-                    <input type="text" value={`yappie.gg/invite/${invite?.code}`} readOnly={true} placeholder="Server-Einladungslink" className="w-full text-sm outline-none focus:ring-2 focus:ring-primary px-4 py-2.5 rounded-lg bg-card border border-border text-foreground" />
+                    <input type="text" value={`yappie.ch/invite/${invite?.code}`} readOnly={true} placeholder="Server-Einladungslink" className="w-full text-sm outline-none focus:ring-2 focus:ring-primary px-4 py-2.5 rounded-lg bg-card border border-border text-foreground" />
                 </div>
             </div>
         </div>

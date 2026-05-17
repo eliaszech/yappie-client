@@ -4,11 +4,40 @@ import { FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import { faPlus, faCompass, faSparkles, faDownload } from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import {useQuery} from "@tanstack/react-query";
 import {useAuth} from "../../hooks/useAuth.js";
-import {fetchServers} from "../../services/api.js";
+import {fetchConversations, fetchServers} from "../../services/api.js";
 import {useState} from "react";
 import CreateServerDialog from "./dialogs/CreateServerDialog.jsx";
 
 const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
+
+function UnreadConversationLink({ conversation, user }) {
+    const others = conversation.participants.filter(p => p.user.id !== user.id);
+    const first = others[0]?.user;
+    const title = others.map(p => p.user.displayName ?? p.user.username).join(', ');
+    const icon = (first?.username ?? '?').charAt(0).toUpperCase();
+    const badge = conversation.unreadCount > 99 ? '99+' : conversation.unreadCount;
+
+    return (
+        <NavLink
+            to={`/@me/messages/${conversation.id}`}
+            title={title}
+            className={({isActive}) => `relative group/dm w-12 h-12 rounded-2xl overflow-visible flex items-center justify-center transition-all duration-200 ${
+                isActive ? 'ring-2 ring-primary' : ''
+            }`}
+        >
+            <div className="w-12 h-12 rounded-2xl overflow-hidden bg-card flex items-center justify-center">
+                {first?.avatar ? (
+                    <img src={first.avatar} alt={title} className="w-full h-full object-cover" />
+                ) : (
+                    <span className="text-xl text-primary-foreground bg-primary w-full h-full flex items-center justify-center">{icon}</span>
+                )}
+            </div>
+            <span className="absolute -bottom-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-dnd text-white text-[10px] font-bold flex items-center justify-center border-2 border-guild-bar">
+                {badge}
+            </span>
+        </NavLink>
+    );
+}
 
 function ServerSelector() {
     const { user } = useAuth();
@@ -21,12 +50,29 @@ function ServerSelector() {
         retry: 1,
     })
 
+    const { data: conversations = [] } = useQuery({
+        queryKey: ['conversations', user?.id],
+        queryFn: () => fetchConversations(user.id),
+        staleTime: 10 * 60 * 1000,
+        enabled: !!user?.id,
+    });
+
+    const unreadConversations = conversations.filter(c => c.unreadCount > 0);
+
     return (
         <div className="flex flex-col h-full shrink-0 grow w-20 pt-4 gap-2 items-center bg-guild-bar text-foreground pb-[65px]">
             <NavLink to="/@me"
                      className={({isActive}) => `${isActive ? 'text-primary-foreground bg-primary' : 'text-muted-foreground bg-card'} w-12 h-12 rounded-2xl text-xl flex items-center hover:rounded-2xl hover:bg-primary hover:text-primary-foreground justify-center transition-all duration-200`}>
                 <FontAwesomeIcon icon={faSparkles}/>
             </NavLink>
+            {unreadConversations.length > 0 && (
+                <>
+                    <div className="w-8 h-px bg-border mb-1"></div>
+                    {unreadConversations.map(c => (
+                        <UnreadConversationLink key={c.id} conversation={c} user={user} />
+                    ))}
+                </>
+            )}
             {servers.length > 0 && (
                 <div className="w-8 h-px bg-border mb-1"></div>
             )}

@@ -192,7 +192,7 @@ function MessageItem({message, color = '', isGrouped = false, disabled = false})
                         <span className="mr-1 shrink-0">Antwort an</span>
                         <HasUserPopup user={message.replyTo.user}>
                             <div className="flex items-center hover:underline">
-                                <UserAvatar size="w-3.5 h-3.5 text-xs" displayOnline={false} icon={message.replyTo.user.username.charAt(0).toUpperCase()} />
+                                <UserAvatar size="w-3.5 h-3.5 text-xs" displayOnline={false} avatar={message.replyTo.user.avatar} icon={message.replyTo.user.username.charAt(0).toUpperCase()} />
                                 <span className="ml-1 mr-1">{message.replyTo.user.displayName ?? message.replyTo.user.username}: </span>
                             </div>
                         </HasUserPopup>
@@ -230,21 +230,23 @@ function MessageItem({message, color = '', isGrouped = false, disabled = false})
                     ) : (
                         <div className={`${message.pending ? 'text-muted-foreground' : 'text-foreground'} flex flex-col gap-1 whitespace-pre-wrap text-base`}>
                             {message.edited && <span className="text-[10px] leading-1 pt-1 text-muted-foreground">(bearbeitet)</span>}
-                            {parseMessageText(message.text, message.mentions).map((part, index) =>
-                                part.type === 'mention' ? (
-                                    <HasUserPopup key={index} user={part.mentionUser}>
-                                        <span className="text-primary hover:underline cursor-pointer">{part.content}</span>
-                                    </HasUserPopup>
-                                ) : part.type === 'channel' ? (
-                                    <span key={index} onClick={() => navigateToChannel(part.channelName)} className="w-max text-primary font-medium cursor-pointer hover:underline">
-                                        {part.content}
-                                    </span>
-                                ) : part.type === 'link' ? (
-                                    <a key={index} href={part.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part.content}</a>
-                                ) : (
-                                    <span key={index}>{part.content}</span>
-                                )
-                            )}
+                            <div className="flex">
+                                {parseMessageText(message.text, message.mentions).map((part, index) =>
+                                    part.type === 'mention' ? (
+                                        <HasUserPopup classes={"w-max"} key={index} user={part.mentionUser}>
+                                            <span className="text-primary hover:underline cursor-pointer">{part.content}</span>
+                                        </HasUserPopup>
+                                    ) : part.type === 'channel' ? (
+                                        <span key={index} onClick={() => navigateToChannel(part.channelName)} className="w-max text-primary font-medium cursor-pointer hover:underline">
+                                            {part.content}
+                                        </span>
+                                    ) : part.type === 'link' ? (
+                                        <a key={index} href={part.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part.content}</a>
+                                    ) : (
+                                        <span key={index}>{part.content}</span>
+                                    )
+                                )}
+                            </div>
                             {message.type === 'server_invite' && <InviteMessage invite={message.invite} />}
                         </div>
                     )}
@@ -281,21 +283,23 @@ function MessageItem({message, color = '', isGrouped = false, disabled = false})
                 ) : (
                     <div className={`${message.pending ? 'text-muted-foreground' : 'text-foreground'} flex flex-col gap-1 whitespace-pre-wrap text-base`}>
                         {message.edited && <span className="text-[10px] leading-1 pt-1 text-muted-foreground">(bearbeitet)</span>}
-                        {parseMessageText(message.text, message.mentions).map((part, index) =>
-                            part.type === 'mention' ? (
-                                <HasUserPopup key={index} user={part.mentionUser}>
-                                    <span className="text-primary hover:underline cursor-pointer">{part.content}</span>
-                                </HasUserPopup>
-                            ) : part.type === 'channel' ? (
-                                <span key={index} onClick={() => navigateToChannel(part.channelName)} className="w-max text-primary font-medium cursor-pointer hover:underline">
+                        <div className="flex">
+                            {parseMessageText(message.text, message.mentions).map((part, index) =>
+                                part.type === 'mention' ? (
+                                    <HasUserPopup classes={"w-max"} key={index} user={part.mentionUser}>
+                                        <span className="text-primary hover:underline cursor-pointer">{part.content}</span>
+                                    </HasUserPopup>
+                                ) : part.type === 'channel' ? (
+                                    <span key={index} onClick={() => navigateToChannel(part.channelName)} className="w-max text-primary font-medium cursor-pointer hover:underline">
                                     {part.content}
                                 </span>
-                            ) : part.type === 'link' ? (
-                                <a key={index} href={part.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part.content}</a>
-                            ) : (
-                                <span key={index}>{part.content}</span>
-                            )
-                        )}
+                                ) : part.type === 'link' ? (
+                                    <a key={index} href={part.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part.content}</a>
+                                ) : (
+                                    <span key={index}>{part.content}</span>
+                                )
+                            )}
+                        </div>
                         {message.type === 'server_invite' && <InviteMessage invite={message.invite} />}
                     </div>
                 )}

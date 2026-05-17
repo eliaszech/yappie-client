@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faMicrophone,
@@ -26,89 +26,64 @@ import UserAvatar from "../../components/UserAvatar.jsx";
 import VoiceVideoTile from "../../components/VoiceVideoTile.jsx";
 import Spinner from "../../components/static/Spinner.jsx";
 import MemberSidebarList from "./MemberSidebarList.jsx";
-import { useContextMenu } from "../../../hooks/useContextMenu.js";
-import { getStoredVolume } from "../../../services/participantVolume.js";
+import { useParticipantContextMenu } from "../../../hooks/useParticipantContextMenu.jsx";
 
-function VolumeSlider({ identity, onChange }) {
-    const [volume, setVolume] = useState(() => getStoredVolume(identity, 1));
-
-    function handleChange(e) {
-        const v = Number(e.target.value);
-        setVolume(v);
-        onChange(v);
-    }
-
-    return (
-        <div className="flex flex-col gap-1.5 py-0.5 min-w-[180px]">
-            <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Lautstärke</span>
-                <span className="text-foreground tabular-nums">{Math.round(volume * 100)}%</span>
-            </div>
-            <input
-                type="range"
-                min="0"
-                max="2"
-                step="0.05"
-                value={volume}
-                onChange={handleChange}
-                className="w-full accent-primary cursor-pointer"
-            />
-        </div>
-    );
-}
-
-function ParticipantTile({ participant, onContextMenu }) {
+function ParticipantTile({ participant, onContextMenu, avatarSize = 'w-20 h-20' }) {
+    const name = participant.name || participant.identity;
     return (
         <div
             onContextMenu={onContextMenu}
-            className={`relative flex flex-col items-center justify-center gap-2 aspect-video rounded-xl bg-card ring-2 transition-all ${participant.isSpeaking ? 'ring-primary' : 'ring-transparent'}`}
+            className={`group relative flex flex-col items-center justify-center w-full h-full rounded-xl overflow-hidden bg-gradient-to-br from-card to-card/60 ring-2 transition-all ${
+                participant.isSpeaking ? 'ring-primary shadow-[0_0_24px_-4px_rgba(88,101,242,0.5)]' : 'ring-transparent'
+            }`}
         >
             {participant.isScreenSharing && (
-                <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-green-500/20 text-green-300 text-xs font-medium">
+                <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-green-500/20 text-green-300 text-[11px] font-medium backdrop-blur-sm">
                     <FontAwesomeIcon icon={faDisplay} />
                     <span>Live</span>
                 </div>
             )}
             <UserAvatar
-                icon={(participant.name || '?').charAt(0).toUpperCase()}
+                icon={(name || '?').charAt(0).toUpperCase()}
                 displayOnline={false}
-                size="w-20 h-20"
+                size={avatarSize}
             />
-            <div className="flex items-center gap-2 text-foreground text-sm font-medium">
-                <span>{participant.name || participant.identity}</span>
+            <div className="absolute bottom-0 left-0 right-0 flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-t from-black/70 to-transparent">
+                <span className="text-foreground text-sm font-medium truncate flex-1">{name}</span>
                 {participant.isMuted && (
-                    <FontAwesomeIcon icon={faMicrophoneSlash} className="text-red-400" />
+                    <FontAwesomeIcon icon={faMicrophoneSlash} className="text-red-400 text-xs shrink-0" />
                 )}
                 {participant.isDeafened && (
-                    <FontAwesomeIcon icon={faHeadphonesSlash} className="text-red-400" title="Ton aus" />
+                    <FontAwesomeIcon icon={faHeadphonesSlash} className="text-red-400 text-xs shrink-0" />
                 )}
             </div>
         </div>
     );
 }
 
-function ConnectingTile({ user, connectionStatus, retryCount }) {
+function ConnectingTile({ user, connectionStatus, retryCount, avatarSize = 'w-20 h-20' }) {
     const isReconnecting = connectionStatus === 'reconnecting';
     const retryLabel = retryCount > 0 ? ` (${retryCount}/5)` : '';
     const statusText = isReconnecting ? `Neuverbindung...${retryLabel}` : `Verbinde...${retryLabel}`;
     const statusColor = isReconnecting ? 'text-yellow-400' : 'text-blue-400';
+    const name = user.displayName ?? user.username;
 
     return (
-        <div className="relative flex flex-col items-center justify-center gap-2 aspect-video rounded-xl bg-card ring-2 ring-transparent">
+        <div className="relative flex flex-col items-center justify-center w-full h-full rounded-xl overflow-hidden bg-gradient-to-br from-card to-card/60 ring-2 ring-transparent">
             <div className="relative">
                 <UserAvatar
-                    icon={(user.displayName ?? user.username).charAt(0).toUpperCase()}
+                    icon={name.charAt(0).toUpperCase()}
                     avatar={user.avatar}
                     displayOnline={false}
-                    size="w-20 h-20"
+                    size={avatarSize}
                 />
                 <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
-                    <FontAwesomeIcon icon={faArrowsRotate} className="animate-spin text-white text-2xl" />
+                    <FontAwesomeIcon icon={faArrowsRotate} className="animate-spin text-white text-xl" />
                 </div>
             </div>
-            <div className="flex items-center gap-2 text-foreground text-sm font-medium">
-                <span>{user.displayName ?? user.username}</span>
-                <span className={`text-xs ${statusColor}`}>{statusText}</span>
+            <div className="absolute bottom-0 left-0 right-0 flex items-center gap-2 px-2.5 py-1.5 bg-gradient-to-t from-black/70 to-transparent">
+                <span className="text-foreground text-sm font-medium truncate">{name}</span>
+                <span className={`text-xs ${statusColor} truncate`}>{statusText}</span>
             </div>
         </div>
     );
@@ -128,17 +103,19 @@ function ScreenShareTile({ share, onClick, onClose, focused = false }) {
     return (
         <div
             onClick={handleTileClick}
-            className={`relative flex flex-col rounded-xl bg-black overflow-hidden ring-2 transition-all ${focused ? 'ring-primary' : 'ring-primary/40 hover:ring-primary/80 cursor-pointer'} ${focused ? 'h-full' : 'aspect-video'}`}
+            className={`group relative flex flex-col rounded-xl bg-black overflow-hidden ring-2 transition-all w-full h-full ${
+                focused ? 'ring-primary' : 'ring-primary/30 hover:ring-primary/80 cursor-pointer'
+            }`}
         >
-            <div className="absolute z-10 top-2 left-2 px-2 py-1 rounded-md bg-black/60 text-white text-xs font-medium flex items-center gap-1.5">
-                <FontAwesomeIcon icon={faDisplay} />
-                <span>{share.name}</span>
-                {share.isLocal && <span className="text-green-300">(Du)</span>}
+            <div className="absolute z-10 top-2 left-2 max-w-[80%] px-2 py-1 rounded-md bg-black/60 backdrop-blur-sm text-white text-xs font-medium flex items-center gap-1.5">
+                <FontAwesomeIcon icon={faDisplay} className="shrink-0" />
+                <span className="truncate">{share.name}</span>
+                {share.isLocal && <span className="text-green-300 shrink-0">(Du)</span>}
             </div>
             {focused && onClose && (
                 <button
                     onClick={(e) => { e.stopPropagation(); onClose(); }}
-                    className="absolute z-10 top-2 right-2 w-8 h-8 rounded-md bg-black/60 hover:bg-black/80 text-white flex items-center justify-center cursor-pointer"
+                    className="absolute z-10 top-2 right-2 w-8 h-8 rounded-md bg-black/60 hover:bg-black/80 text-white flex items-center justify-center cursor-pointer transition-colors"
                     title="Vergrößerung schließen"
                 >
                     <FontAwesomeIcon icon={faXmark} />
@@ -150,22 +127,25 @@ function ScreenShareTile({ share, onClick, onClose, focused = false }) {
                 </div>
             )}
             {showPlaceholder && (
-                <div className="absolute inset-0 flex items-center justify-center bg-primary/10">
-                    <FontAwesomeIcon icon={faDisplay} className="absolute text-zinc-700 text-9xl blur-sm" />
-                    <div className="relative z-10 flex flex-col items-center">
-                        <button
-                            onClick={(e) => { e.stopPropagation(); share.subscribe?.(); }}
-                            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/80 transition-colors font-medium flex items-center gap-2 cursor-pointer text-sm"
-                        >
-                            <FontAwesomeIcon icon={faPlay} />
-                            Stream anschauen
-                        </button>
-                    </div>
+                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+                    <FontAwesomeIcon icon={faDisplay} className="absolute text-zinc-700/60 text-[clamp(4rem,15vw,9rem)] blur-sm" />
+                    <button
+                        onClick={(e) => { e.stopPropagation(); share.subscribe?.(); }}
+                        className="relative z-10 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/80 transition-colors font-medium flex items-center gap-2 cursor-pointer text-sm shadow-lg"
+                    >
+                        <FontAwesomeIcon icon={faPlay} />
+                        Stream anschauen
+                    </button>
                 </div>
             )}
-            {!showPlaceholder && (
-                <button onClick={(e) => { e.stopPropagation(); share.unsubscribe?.(); }}
-                        className="absolute z-10 bottom-2 mx-auto left-0 right-0 w-9 h-9 rounded-md bg-red-500/60 hover:bg-red-500/80 text-white flex items-center justify-center cursor-pointer">
+            {!showPlaceholder && !share.isLocal && (
+                <button
+                    onClick={(e) => { e.stopPropagation(); share.unsubscribe?.(); }}
+                    className={`absolute z-10 bottom-2 left-1/2 -translate-x-1/2 w-9 h-9 rounded-md bg-red-500/70 hover:bg-red-500 text-white flex items-center justify-center cursor-pointer transition-all ${
+                        focused ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                    }`}
+                    title="Stream nicht mehr anschauen"
+                >
                     <FontAwesomeIcon icon={faDisplaySlash} />
                 </button>
             )}
@@ -189,32 +169,12 @@ function VoiceChannelView() {
         leaveVoice,
         joinVoice,
         setScreenShareEnabled,
-        setParticipantVolume,
         connectionStatus,
         retryCount,
         voiceError,
         clearVoiceError,
     } = useVoice();
-    const { openContextMenu } = useContextMenu();
-
-    function buildParticipantMenu(participant) {
-        return [
-            { header: true, label: participant.name || participant.identity },
-            {
-                render: () => (
-                    <VolumeSlider
-                        identity={participant.identity}
-                        onChange={(v) => setParticipantVolume?.(participant.identity, v)}
-                    />
-                ),
-            },
-        ];
-    }
-
-    function handleParticipantContextMenu(e, participant) {
-        if (participant.isLocal) return;
-        openContextMenu(e, buildParticipantMenu(participant));
-    }
+    const handleParticipantContextMenu = useParticipantContextMenu();
 
     const isActive = isConnected && activeChannelId === channelId;
     const isConnectingHere = activeChannelId === channelId && (connectionStatus === 'connecting' || connectionStatus === 'reconnecting');
@@ -236,6 +196,21 @@ function VoiceChannelView() {
     const [focusedShareId, setFocusedShareId] = useState(null);
     const [shareMenuOpen, setShareMenuOpen] = useState(false);
     const shareMenuRef = useRef(null);
+
+    const stageObserverRef = useRef(null);
+    const [stageSize, setStageSize] = useState({ w: 0, h: 0 });
+    const stageRef = useCallback((node) => {
+        if (stageObserverRef.current) {
+            stageObserverRef.current.disconnect();
+            stageObserverRef.current = null;
+        }
+        if (!node) return;
+        const ro = new ResizeObserver(entries => {
+            for (const e of entries) setStageSize({ w: e.contentRect.width, h: e.contentRect.height });
+        });
+        ro.observe(node);
+        stageObserverRef.current = ro;
+    }, []);
 
     useEffect(() => {
         if (!shareMenuOpen) return;
@@ -280,6 +255,46 @@ function VoiceChannelView() {
         });
     }
 
+    const visibleParticipants = participants.filter(p => !isConnectingHere || !p.isLocal);
+    const tileCount = screenShares.length + visibleParticipants.length + (isConnectingHere ? 1 : 0);
+
+    const tileLayout = useMemo(() => {
+        const gap = 12;
+        const padding = 24;
+        const reservedBottom = 96;
+        const availW = Math.max(0, stageSize.w - padding * 2);
+        const availH = Math.max(0, stageSize.h - padding * 2 - reservedBottom);
+        if (!availW || !availH || tileCount === 0) return { cols: 1, tileW: 0, tileH: 0 };
+
+        const targetAspect = 16 / 9;
+        let best = { cols: 1, area: 0, tileW: 0, tileH: 0 };
+        for (let cols = 1; cols <= tileCount; cols++) {
+            const rows = Math.ceil(tileCount / cols);
+            const maxTileW = (availW - (cols - 1) * gap) / cols;
+            const maxTileH = (availH - (rows - 1) * gap) / rows;
+            if (maxTileW <= 0 || maxTileH <= 0) continue;
+            let tileW, tileH;
+            if (maxTileW / maxTileH > targetAspect) {
+                tileH = maxTileH;
+                tileW = tileH * targetAspect;
+            } else {
+                tileW = maxTileW;
+                tileH = tileW / targetAspect;
+            }
+            const area = tileW * tileH;
+            if (area > best.area) best = { cols, area, tileW, tileH };
+        }
+        return best;
+    }, [stageSize, tileCount]);
+
+    const avatarSize = tileLayout.tileH < 140
+        ? 'w-12 h-12'
+        : tileLayout.tileH < 220
+            ? 'w-16 h-16'
+            : tileLayout.tileH < 320
+                ? 'w-20 h-20'
+                : 'w-28 h-28';
+
     if (isLoading || !channel) return <Spinner size="w-10 h-10" />;
 
     return (
@@ -319,19 +334,19 @@ function VoiceChannelView() {
             )}
 
             <div className="flex h-full w-full overflow-hidden">
-                <div className="flex flex-col w-full h-full">
+                <div ref={stageRef} className="group/stage relative flex flex-col w-full h-full">
                     {focusedShare ? (
-                        <div className="flex-1 flex flex-col gap-3 p-6 min-h-0">
-                            <div className="flex-1 min-h-0">
+                        <div className="flex-1 flex flex-col gap-3 p-4 sm:p-6 pb-32 min-h-0 min-w-0">
+                            <div className="flex-1 min-h-0 min-w-0">
                                 <ScreenShareTile
                                     share={focusedShare}
                                     focused
                                     onClose={() => setFocusedShareId(null)}
                                 />
                             </div>
-                            <div className="flex gap-2 overflow-x-auto shrink-0">
+                            <div className="flex gap-2 overflow-x-auto shrink-0 h-28">
                                 {screenShares.filter(s => s.identity !== focusedShareId).map(share => (
-                                    <div key={share.identity + '-screen-strip'} className="w-48 shrink-0">
+                                    <div key={share.identity + '-screen-strip'} className="aspect-video h-full shrink-0">
                                         <ScreenShareTile
                                             share={share}
                                             onClick={() => setFocusedShareId(share.identity)}
@@ -339,9 +354,10 @@ function VoiceChannelView() {
                                     </div>
                                 ))}
                                 {participants.map(p => (
-                                    <div key={p.identity + '-strip'} className="w-48 shrink-0">
+                                    <div key={p.identity + '-strip'} className="aspect-video h-full shrink-0">
                                         <ParticipantTile
                                             participant={p}
+                                            avatarSize="w-12 h-12"
                                             onContextMenu={(e) => handleParticipantContextMenu(e, p)}
                                         />
                                     </div>
@@ -349,10 +365,17 @@ function VoiceChannelView() {
                             </div>
                         </div>
                     ) : (
-                        participants.length > 0 || isConnectingHere ? (
-                            <div className="flex h-full items-center w-full overflow-y-auto p-6">
-                                <div className="grid w-full h-max grid-cols-2 gap-3">
-                                    {screenShares.length > 0 && screenShares.map(share => (
+                        tileCount > 0 ? (
+                            <div className="flex-1 flex items-center justify-center w-full min-h-0 overflow-hidden">
+                                <div
+                                    className="grid"
+                                    style={{
+                                        gridTemplateColumns: `repeat(${tileLayout.cols}, ${tileLayout.tileW}px)`,
+                                        gridAutoRows: `${tileLayout.tileH}px`,
+                                        gap: '12px',
+                                    }}
+                                >
+                                    {screenShares.map(share => (
                                         <ScreenShareTile
                                             key={share.identity + '-screen'}
                                             share={share}
@@ -361,40 +384,54 @@ function VoiceChannelView() {
                                     ))}
 
                                     {isConnectingHere && (
-                                        <ConnectingTile user={user} connectionStatus={connectionStatus} retryCount={retryCount} />
+                                        <ConnectingTile
+                                            user={user}
+                                            connectionStatus={connectionStatus}
+                                            retryCount={retryCount}
+                                            avatarSize={avatarSize}
+                                        />
                                     )}
 
-                                    {participants.filter(p => !isConnectingHere || !p.isLocal).map(p => (
+                                    {visibleParticipants.map(p => (
                                         <ParticipantTile
                                             key={p.identity}
                                             participant={p}
+                                            avatarSize={avatarSize}
                                             onContextMenu={(e) => handleParticipantContextMenu(e, p)}
                                         />
                                     ))}
                                 </div>
                             </div>
                         ) : (
-                            <div className="flex w-full flex-col items-center justify-center text-muted-foreground h-full">
+                            <div className="flex-1 flex w-full flex-col items-center justify-center text-muted-foreground pb-24">
                                 <FontAwesomeIcon icon={faVolumeHigh} className="text-5xl mb-3" />
                                 <div className="text-lg">Noch niemand im Channel</div>
                             </div>
                         )
                     )}
 
-                    <div className="relative mx-auto w-max bottom-4 flex items-center justify-center gap-3">
+                    {isActive && (
+                        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/stage:opacity-100 transition-opacity duration-200 pointer-events-none z-10" />
+                    )}
+
+                    <div className={`absolute bottom-4 left-0 right-0 mx-auto w-max flex items-center justify-center gap-2 z-20 transition-opacity duration-200 ${
+                        isActive
+                            ? 'opacity-0 pointer-events-none group-hover/stage:opacity-100 group-hover/stage:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto'
+                            : 'opacity-100 pointer-events-auto'
+                    }`}>
                         {isActive ? (
-                            <>
-                                <div className="flex items-center gap-2 bg-guild-bar p-1.5 h-14 rounded-xl border border-border">
+                            <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1 bg-guild-bar/95 backdrop-blur-md p-1.5 rounded-2xl border border-border shadow-xl">
                                     <button
                                         onClick={toggleMute}
-                                        className={`cursor-pointer text-xl rounded-lg w-11 h-11 flex items-center justify-center transition-colors ${muted ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'text-foreground hover:bg-muted/70'}`}
+                                        className={`cursor-pointer text-lg rounded-xl w-11 h-11 flex items-center justify-center transition-colors ${muted ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'text-foreground hover:bg-muted/70'}`}
                                         title={muted ? 'Stummschaltung aufheben' : 'Stummschalten'}
                                     >
                                         <FontAwesomeIcon icon={muted ? faMicrophoneSlash : faMicrophone} />
                                     </button>
                                     <button
                                         onClick={toggleDeafen}
-                                        className={`cursor-pointer text-xl rounded-lg w-11 h-11 flex items-center justify-center transition-colors ${deafened ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'text-foreground hover:bg-muted/70'}`}
+                                        className={`cursor-pointer text-lg rounded-xl w-11 h-11 flex items-center justify-center transition-colors ${deafened ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'text-foreground hover:bg-muted/70'}`}
                                         title={deafened ? 'Ton wieder einschalten' : 'Ton stummschalten'}
                                     >
                                         <FontAwesomeIcon icon={deafened ? faHeadphonesSlash : faHeadphones} />
@@ -403,27 +440,27 @@ function VoiceChannelView() {
                                         <div ref={shareMenuRef} className="relative">
                                             <button
                                                 onClick={() => setShareMenuOpen(v => !v)}
-                                                className="cursor-pointer rounded-lg w-11 h-11 flex items-center justify-center bg-green-500/20 text-green-300 hover:bg-green-500/30 transition-colors"
+                                                className="cursor-pointer text-lg rounded-xl w-11 h-11 flex items-center justify-center bg-green-500/20 text-green-300 hover:bg-green-500/30 transition-colors"
                                                 title="Stream-Optionen"
                                             >
                                                 <FontAwesomeIcon icon={faDisplay} />
                                             </button>
                                             {shareMenuOpen && (
-                                                <div className="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 bg-popover border border-border rounded-lg shadow-lg overflow-hidden min-w-[200px]">
-                                                    <p className="px-3 pt-1 pb-1.5 text-xs text-muted-foreground font-medium">Bildschirm teilen</p>
+                                                <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-popover border border-border rounded-lg shadow-xl overflow-hidden min-w-[200px]">
+                                                    <p className="px-3 pt-2 pb-1.5 text-xs text-muted-foreground font-semibold uppercase tracking-wider">Bildschirm teilen</p>
                                                     <div className="border-t border-border" />
                                                     <button
                                                         onClick={switchScreenShare}
-                                                        className="w-full px-3 py-2 text-sm text-foreground hover:bg-muted text-left flex items-center gap-2 cursor-pointer"
+                                                        className="w-full px-3 py-2 text-sm text-foreground hover:bg-muted text-left flex items-center gap-2 cursor-pointer transition-colors"
                                                     >
-                                                        <FontAwesomeIcon icon={faArrowsRotate} />
+                                                        <FontAwesomeIcon icon={faArrowsRotate} className="w-4" />
                                                         Fenster wechseln
                                                     </button>
                                                     <button
                                                         onClick={() => { toggleScreenShare(); setShareMenuOpen(false); }}
-                                                        className="w-full px-3 py-2 text-sm text-red-400 hover:bg-muted text-left flex items-center gap-2 cursor-pointer"
+                                                        className="w-full px-3 py-2 text-sm text-red-400 hover:bg-muted text-left flex items-center gap-2 cursor-pointer transition-colors"
                                                     >
-                                                        <FontAwesomeIcon icon={faXmark} />
+                                                        <FontAwesomeIcon icon={faXmark} className="w-4" />
                                                         Stream beenden
                                                     </button>
                                                 </div>
@@ -432,26 +469,28 @@ function VoiceChannelView() {
                                     ) : (
                                         <button
                                             onClick={toggleScreenShare}
-                                            className="cursor-pointer rounded-lg w-11 h-11 h-full flex items-center justify-center text-foreground hover:bg-muted/70 transition-colors"
+                                            className="cursor-pointer text-lg rounded-xl w-11 h-11 flex items-center justify-center text-foreground hover:bg-muted/70 transition-colors"
                                             title="Bildschirm teilen"
                                         >
                                             <FontAwesomeIcon icon={faDisplay} />
                                         </button>
                                     )}
                                 </div>
-                                <button
-                                    onClick={leaveVoice}
-                                    className="cursor-pointer rounded-xl px-4 h-12 flex items-center justify-center bg-red-500 text-white hover:bg-red-500/80 transition-colors"
-                                    title="Verlassen"
-                                >
-                                    <FontAwesomeIcon icon={faPhone} />
-                                </button>
-                            </>
+                                <div className="flex items-center bg-red-500/95 backdrop-blur-md rounded-2xl p-0.5 border border-red-400/60 shadow-xl">
+                                    <button
+                                        onClick={leaveVoice}
+                                        className="cursor-pointer text-lg rounded-xl w-11 h-11 flex items-center justify-center text-white hover:bg-red-600 transition-colors"
+                                        title="Verlassen"
+                                    >
+                                        <FontAwesomeIcon icon={faPhone} className="rotate-[135deg]" />
+                                    </button>
+                                </div>
+                            </div>
                         ) : (
                             <button
                                 onClick={handleJoin}
                                 disabled={connectionStatus === 'connecting'}
-                                className="cursor-pointer rounded-xl px-6 h-11 flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/80 transition-colors font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                                className="cursor-pointer rounded-2xl px-6 h-12 flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/80 transition-colors font-medium disabled:opacity-60 disabled:cursor-not-allowed shadow-xl"
                             >
                                 {connectionStatus === 'connecting' ? (
                                     <>

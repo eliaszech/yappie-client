@@ -146,7 +146,7 @@ function UserPopup() {
             const socket = getSocket();
             if (!socket) return;
             socket.emit('message:send', {
-                text: 'yappie.gg/invite/' + invite.code,
+                text: 'yappie.ch/invite/' + invite.code,
                 type: 'conversation',
                 roomId: conversation.id,
                 messageType: 'server_invite',
@@ -293,7 +293,7 @@ function UserPopup() {
                 <div className="px-4 -mt-8">
                     <UserAvatar size="w-16 h-16 text-2xl border-4 border-card"
                         onlineSize="w-5 h-5 bottom-0 right-0" icon={popup.user.username.charAt(0).toUpperCase()}
-                        online={online} status={status}
+                        avatar={popup.user.avatar} online={online} status={status}
                     />
                 </div>
 

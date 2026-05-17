@@ -68,7 +68,7 @@ function AddFriend() {
                     {users && users.length > 0 ? users.map((user) => (
                         <div key={user.id} className={`flex items-center group justify-between gap-3 px-2 py-1 rounded-md hover:bg-border transition duration-200`}>
                             <div className="flex items-center gap-3">
-                                <UserAvatar icon={user.username.charAt(0).toUpperCase()} displayOnline={false} />
+                                <UserAvatar icon={user.username.charAt(0).toUpperCase()} avatar={user.avatar} displayOnline={false} />
                                 <div className="flex flex-col">
                                     <span className="text-foreground font-medium">{user.displayName ?? user.username}</span>
                                     <span className="text-muted-foreground text-xs">{user.username}</span>

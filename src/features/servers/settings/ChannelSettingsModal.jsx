@@ -39,14 +39,17 @@ function ChannelSettingsModal({ channel, server, onClose }) {
     }, [onClose]);
 
     async function handleDelete() {
-        await deleteChannel(channel.id);
-        queryClient.setQueryData(['channels', server.id], (old) =>
-            old ? old.filter(c => c.id !== channel.id) : old
-        );
-        queryClient.removeQueries({ queryKey: ['channel', channel.id] });
-        onClose();
-        if (activeChannelId === channel.id) {
-            navigate(`/servers/${server.id}`);
+        const res = await deleteChannel(server.id, channel.id);
+
+        if(!res?.error) {
+            queryClient.setQueryData(['channels', server.id], (old) =>
+                old ? old.filter(c => c.id !== channel.id) : old
+            );
+            queryClient.removeQueries({ queryKey: ['channel', channel.id] });
+            onClose();
+            if (activeChannelId === channel.id) {
+                navigate(`/servers/${server.id}`);
+            }
         }
     }
 

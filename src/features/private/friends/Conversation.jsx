@@ -39,7 +39,7 @@ function UserSidebar({user}) {
             <div className="px-4 -mt-8">
                 <UserAvatar size="w-16 h-16 text-2xl border-4 border-card"
                     onlineSize="w-5 h-5 bottom-0 right-0" icon={user.username.charAt(0).toUpperCase()}
-                    online={online} status={status}
+                    avatar={user.avatar} online={online} status={status}
                 />
             </div>
             {/* User Info */}
@@ -164,7 +164,7 @@ function Conversation() {
                     <Chat type="conversation" roomId={conversationId} >
                         <div className="flex flex-col px-8 text-foreground gap-2.5 pb-8">
                             <div className="mb-2">
-                                {isSingle ? <UserAvatar displayOnline={false} size="w-[100px] h-[100px] text-5xl" icon={icons[0]}/> : <UserAvatar size="w-[100px] h-[100px]" displayOnline={false} icon={<FontAwesomeIcon className="text-5xl" icon={faUsers} />} />}
+                                {isSingle ? <UserAvatar displayOnline={false} size="w-[100px] h-[100px] text-5xl" avatar={otherUsers[0].user.avatar} icon={icons[0]}/> : <UserAvatar size="w-[100px] h-[100px]" displayOnline={false} icon={<FontAwesomeIcon className="text-5xl" icon={faUsers} />} />}
                             </div>
                             <div className="text-4xl font-bold">{conversationTitle}</div>
                             <div className="text-xl">

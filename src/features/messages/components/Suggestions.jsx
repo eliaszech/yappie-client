@@ -72,6 +72,7 @@ const Suggestions = forwardRef(function Suggestions(
                             <div className="flex items-center gap-2">
                                 <UserAvatar
                                     icon={member.user.username.charAt(0).toUpperCase()}
+                                    avatar={member.user.avatar}
                                     onlineSize="w-3 h-3 -bottom-1 -right-1"
                                     size="w-5 h-5"
                                 />

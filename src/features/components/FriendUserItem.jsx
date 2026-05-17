@@ -44,7 +44,7 @@ function UserItem({friend, paddings = 'px-2 py-1'}) {
     return(
         <div className={`cursor-pointer flex items-center justify-between gap-3 ${paddings} rounded-md hover:bg-border transition duration-200`}>
             <div className="flex items-center gap-3" onClick={() => openConversation()}>
-                <UserAvatar icon={friend.username.charAt(0).toUpperCase()} online={online} status={status} />
+                <UserAvatar icon={friend.username.charAt(0).toUpperCase()} avatar={friend.avatar} online={online} status={status} />
                 <div className="flex flex-col">
                     <span className="text-foreground font-medium">{friend.displayName ?? friend.username}</span>
                     <span className="text-xs text-foreground/60">

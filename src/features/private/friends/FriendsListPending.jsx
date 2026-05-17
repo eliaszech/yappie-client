@@ -107,7 +107,7 @@ function FriendsListPending({filter}) {
                                                 ) : (
                                                     <FontAwesomeIcon icon={faArrowRight} className="text-green-300 text-lg" />
                                                 )}
-                                                <UserAvatar icon={friend.username.charAt(0).toUpperCase()} displayOnline={false} />
+                                                <UserAvatar icon={friend.username.charAt(0).toUpperCase()} avatar={friend.avatar} displayOnline={false} />
                                                 <div className="flex flex-col">
                                                     <span className="text-foreground font-medium">{friend.displayName ?? friend.username}</span>
                                                     <span className="text-muted-foreground text-xs">{friend.username}</span>

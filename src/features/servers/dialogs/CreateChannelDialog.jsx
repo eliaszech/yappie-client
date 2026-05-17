@@ -64,7 +64,11 @@ function CreateChannelDialog({ serverId, serverName, initialType = 'text', onClo
     }, [onClose]);
 
     function sanitizeName(value) {
-        return value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-_]/g, '');
+        if(channelType === 'voice') {
+            return value;
+        } else {
+            return value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-_]/g, '');
+        }
     }
 
     async function handleSubmit(e) {
