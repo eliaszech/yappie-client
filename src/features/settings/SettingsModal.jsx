@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faUser, faLock, faPalette, faBell, faXmark, faMicrophone,
+    faUser, faLock, faPalette, faBell, faXmark, faMicrophone, faGamepad,
 } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import { faSignOut } from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import { useSettings } from "../../context/SettingsContext.jsx";
@@ -12,6 +12,7 @@ import ProfileSection from "./sections/ProfileSection.jsx";
 import AccountSection from "./sections/AccountSection.jsx";
 import AppearanceSection from "./sections/AppearanceSection.jsx";
 import VoiceSection from "./sections/VoiceSection.jsx";
+import ActivitySection from "./sections/ActivitySection.jsx";
 
 const NAV = [
     {
@@ -25,6 +26,7 @@ const NAV = [
         category: 'APP-EINSTELLUNGEN',
         items: [
             { id: 'voice', label: 'Sprache & Video', icon: faMicrophone },
+            { id: 'activity', label: 'Aktivität', icon: faGamepad },
             { id: 'appearance', label: 'Erscheinungsbild', icon: faPalette },
             { id: 'notifications', label: 'Benachrichtigungen', icon: faBell },
         ],
@@ -52,6 +54,7 @@ function SectionContent({ section }) {
         case 'profile': return <ProfileSection />;
         case 'account': return <AccountSection />;
         case 'voice': return <VoiceSection />;
+        case 'activity': return <ActivitySection />;
         case 'appearance': return <AppearanceSection />;
         case 'notifications': return <PlaceholderSection title="Benachrichtigungen" />;
         default: return <ProfileSection />;

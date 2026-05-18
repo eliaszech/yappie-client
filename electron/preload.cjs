@@ -47,6 +47,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('electron:game-detected', (_event, game) => callback(game));
     },
     getCurrentGame: () => ipcRenderer.invoke('electron:get-current-game'),
+    listRunningProcesses: () => ipcRenderer.invoke('electron:list-processes'),
+    setCustomGames: (games) => ipcRenderer.send('electron:set-custom-games', games),
+    setActivityEnabled: (enabled) => ipcRenderer.send('electron:set-activity-enabled', enabled),
 
     // Updater
     onUpdateStatus: (callback) => {

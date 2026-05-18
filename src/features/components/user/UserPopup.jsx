@@ -307,7 +307,11 @@ function UserPopup() {
 
                     {showActivity && (
                         <div className="mt-3 p-2.5 rounded-md bg-primary/10 border border-primary/20 flex items-center gap-2">
-                            <FontAwesomeIcon icon={faGamepad} className="text-primary text-sm shrink-0" />
+                            {activity.icon ? (
+                                <img src={activity.icon} alt="" className="w-9 h-9 shrink-0 rounded-lg" />
+                            ) : (
+                                <FontAwesomeIcon icon={faGamepad} className="text-primary text-sm shrink-0" />
+                            )}
                             <div className="flex flex-col min-w-0">
                                 <span className="text-[10px] font-semibold uppercase tracking-wider text-primary/80">Spielt gerade</span>
                                 <span className="text-sm font-medium text-foreground truncate">{activity.name}</span>

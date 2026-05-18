@@ -11,6 +11,7 @@ import {
     getSpeakerDeviceId, setSpeakerDeviceId,
     getMicGain, setMicGain,
 } from "../../services/voiceSettings.js";
+import { playJoinSound, playLeaveSound } from "../../services/sounds.js";
 
 function VoiceRoomContent() {
     const participants = useParticipants();
@@ -107,6 +108,21 @@ function VoiceRoomContent() {
             console.log(e)
         });
     }, [localParticipant, deafened, screenTracks, connectionState]);
+
+    // Play join/leave cues when remote participants come and go. LiveKit only
+    // fires these events for participants joining/leaving AFTER the local
+    // participant connects, so existing participants don't trigger sounds.
+    useEffect(() => {
+        if (!room) return;
+        function onParticipantJoined() { playJoinSound(); }
+        function onParticipantLeft() { playLeaveSound(); }
+        room.on(RoomEvent.ParticipantConnected, onParticipantJoined);
+        room.on(RoomEvent.ParticipantDisconnected, onParticipantLeft);
+        return () => {
+            room.off(RoomEvent.ParticipantConnected, onParticipantJoined);
+            room.off(RoomEvent.ParticipantDisconnected, onParticipantLeft);
+        };
+    }, [room]);
 
     // Auto-unsubscribe new remote screen share tracks (video + audio).
     // Users opt-in per-stream via the "Stream anzeigen" button.

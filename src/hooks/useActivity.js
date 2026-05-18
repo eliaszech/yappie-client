@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { onActivityChange, onActivitySync, getSocket } from '../services/socket.js';
+import { getActivityEnabled, getCustomGames, subscribe as subscribeActivitySettings } from '../services/activitySettings.js';
 
 // Subscribes to activity updates from the socket and mirrors them into the
 // react-query cache so the UI re-renders on change. Mount once at app level.
@@ -52,10 +53,16 @@ export function useGameActivityReporter() {
         let pending = null;
         let attachedSocket = null;
 
+        function normalize(game) {
+            if (!game) return null;
+            if (typeof game === 'string') return { name: game, icon: null };
+            return { name: game.name ?? null, icon: game.icon ?? null };
+        }
+
         function flush() {
             const s = getSocket();
             if (!s || !s.connected) return false;
-            s.emit('activity:set', { name: pending });
+            s.emit('activity:set', pending ? { name: pending.name, icon: pending.icon } : { name: null });
             return true;
         }
 
@@ -67,8 +74,24 @@ export function useGameActivityReporter() {
             if (s.connected) flush();
         }
 
+        // Push the current settings down to main so detection respects them
+        // from the start (and re-push on every change). Enabled flag goes
+        // first so the custom-games update can't trigger a stray emit while
+        // the user is in the process of disabling sharing.
+        function syncSettingsToMain() {
+            api.setActivityEnabled?.(getActivityEnabled());
+            api.setCustomGames?.(getCustomGames());
+        }
+        syncSettingsToMain();
+        const unsubSettings = subscribeActivitySettings(() => {
+            syncSettingsToMain();
+            // If the user disables sharing while a game is detected, the main
+            // process emits null via onGameDetected — that already flushes.
+            // If they re-enable, main will emit the current game next tick.
+        });
+
         api.onGameDetected((game) => {
-            pending = game ?? null;
+            pending = normalize(game);
             attachConnectHandler();
             flush();
         });
@@ -76,7 +99,7 @@ export function useGameActivityReporter() {
         api.getCurrentGame?.().then((game) => {
             // Always emit on (re)load — even null — so a stale entry left in
             // the backend's in-memory map (e.g. crash, force-quit) gets cleared.
-            pending = game ?? null;
+            pending = normalize(game);
             attachConnectHandler();
             flush();
         }).catch(() => {});
@@ -89,6 +112,7 @@ export function useGameActivityReporter() {
 
         return () => {
             clearInterval(poll);
+            unsubSettings();
             if (attachedSocket) attachedSocket.off('connect', flush);
         };
     }, []);

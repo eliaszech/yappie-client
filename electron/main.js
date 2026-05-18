@@ -3,7 +3,8 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import pkg from 'electron-updater';
 const { autoUpdater } = pkg;
-import { startGameDetection, stopGameDetection } from './gameDetection.js';
+import { exec } from 'child_process';
+import { startGameDetection, stopGameDetection, setCustomGames, setDetectionEnabled } from './gameDetection.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = process.env.NODE_ENV === 'development';
@@ -277,8 +278,55 @@ app.whenReady().then(() => {
     // Send the current value to any newly-loaded renderer so it picks up the
     // last detection without waiting for the next change.
     ipcMain.handle('electron:get-current-game', () => lastGame);
+
+    ipcMain.handle('electron:list-processes', () => listRunningProcesses());
+
+    ipcMain.on('electron:set-custom-games', (_event, games) => {
+        setCustomGames(Array.isArray(games) ? games : []);
+    });
+
+    ipcMain.on('electron:set-activity-enabled', (_event, enabled) => {
+        setDetectionEnabled(Boolean(enabled));
+    });
+
     if (!isDev) setupAutoUpdater();
 });
+
+function listRunningProcesses() {
+    if (process.platform !== 'win32') return Promise.resolve([]);
+    return new Promise((resolve) => {
+        // tasklist /v walks every process via Win32 to grab window titles which
+        // takes 10-30s on Win11. Get-Process pulls the same data in one WMI
+        // batch and finishes in well under a second.
+        const script = `
+            $ErrorActionPreference='SilentlyContinue'
+            Get-Process | Where-Object { $_.MainWindowTitle -and $_.MainWindowTitle.Trim() -ne '' } | ForEach-Object {
+                ($_.ProcessName + '.exe') + '|' + $_.MainWindowTitle
+            }
+        `.trim();
+        const encoded = Buffer.from(script, 'utf16le').toString('base64');
+        const cmd = `powershell.exe -NoProfile -NonInteractive -EncodedCommand ${encoded}`;
+        exec(cmd, { windowsHide: true, maxBuffer: 4 * 1024 * 1024, timeout: 15_000 }, (err, stdout) => {
+            if (err) {
+                console.warn('[listRunningProcesses] failed:', err.message);
+                resolve([]);
+                return;
+            }
+            const seen = new Map();
+            for (const line of stdout.split(/\r?\n/)) {
+                const idx = line.indexOf('|');
+                if (idx < 0) continue;
+                const name = line.slice(0, idx).trim().toLowerCase();
+                const title = line.slice(idx + 1).trim();
+                if (!name || !title) continue;
+                if (!seen.has(name)) {
+                    seen.set(name, { processName: name, displayName: title });
+                }
+            }
+            resolve([...seen.values()].sort((a, b) => a.displayName.localeCompare(b.displayName)));
+        });
+    });
+}
 
 app.on('window-all-closed', () => {
     stopWindowAudioCapture();
