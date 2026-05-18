@@ -19,6 +19,13 @@ export function useActivitySubscription() {
                 }
                 return { ...old, [userId]: activity };
             });
+            // Stats (top games + recent sessions) are derived from persisted
+            // sessions and don't auto-refresh — invalidate so an open ProfileModal
+            // picks up the new session right away.
+            queryClient.invalidateQueries({ queryKey: ['activity-stats', userId] });
+            // The friends-side activity feed is a global aggregate; refresh on
+            // any change so the right-side panel reflects fresh sessions live.
+            queryClient.invalidateQueries({ queryKey: ['friends-activity-feed'] });
         });
 
         onActivitySync((snapshot) => {

@@ -10,13 +10,17 @@ export function ServerDropdown({ server, closeDropdown, onOpenSettings }) {
 
     useEffect(() => {
         function handleClick(e) {
+            // InviteDialog is portaled to document.body, so its clicks land
+            // outside dropdownRef. Skip the outside-click while it's open or
+            // the dialog would unmount on every click inside it.
+            if (inviteDialogOpen) return;
             if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
                 closeDropdown();
             }
         }
         document.addEventListener('mousedown', handleClick);
         return () => document.removeEventListener('mousedown', handleClick);
-    }, [closeDropdown]);
+    }, [closeDropdown, inviteDialogOpen]);
 
     return (
         <div ref={dropdownRef} className="absolute top-11.5 left-0 w-full">

@@ -1,4 +1,5 @@
 import {useUserPopup} from "../../../hooks/user/useUserPopup.js";
+import {useProfileModal} from "../../../hooks/user/useProfileModal.js";
 import {useEffect, useRef, useState} from "react";
 import {useIsOnline, useUserStatus} from "../../../hooks/usePresence.js";
 import {useUserActivity, useActivityPlaytime} from "../../../hooks/useActivity.js";
@@ -12,6 +13,7 @@ import {
     fetchOrCreateConversationWith,
     fetchFriends,
     fetchServers,
+    fetchUserProfile,
     sendFriendRequest,
     denyFriendRequest,
     acceptFriendRequest,
@@ -25,7 +27,7 @@ import {
     faChevronRight,
     faChevronLeft,
     faLink,
-    faGamepadModern
+    faGamepadModern, faUser
 } from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import {faUserPlus, faUserClock} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {useSettings} from "../../../context/SettingsContext.jsx";
@@ -33,6 +35,7 @@ import {useQuery, useQueryClient} from "@tanstack/react-query";
 
 function UserPopup() {
     const { popup, closePopup } = useUserPopup();
+    const { openProfile } = useProfileModal();
     const { user } = useAuth();
     const { openSettings } = useSettings();
     const [input, setInput] = useState('');
@@ -56,6 +59,17 @@ function UserPopup() {
         staleTime: 10 * 60 * 1000,
         enabled: !isSelf,
     });
+
+    const { data: fetchedProfile } = useQuery({
+        queryKey: ['user-profile', popup.user.id],
+        queryFn: () => fetchUserProfile(popup.user.id),
+        staleTime: 5 * 60 * 1000,
+        enabled: !isSelf,
+    });
+
+    const profile = isSelf ? user : { ...popup.user, ...(fetchedProfile && !fetchedProfile.error ? fetchedProfile : {}) };
+    const banner = profile.banner;
+    const bio = profile.bio;
 
     const { data: servers = [] } = useQuery({
         queryKey: ['servers'],
@@ -214,21 +228,25 @@ function UserPopup() {
         <>
             <div className="fixed inset-0 z-49 pointer-events-auto" onClick={closePopup} />
             <div ref={ref}
-                 className="fixed z-50 w-80 bg-card border border-border/60 rounded-xl shadow-2xl"
+                 className="fixed z-50 w-80 bg-guild-bar border border-border/60 rounded-xl shadow-2xl"
                  style={style}>
-                {/* Banner with primary→accent gradient + radial highlight */}
+                {/* Banner: custom image if uploaded, else primary→accent gradient */}
                 <div
-                    className="relative h-20 rounded-t-xl overflow-hidden"
-                    style={{
+                    className="relative h-20 rounded-t-xl"
+                    style={banner ? undefined : {
                         background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)',
                     }}
                 >
-                    <div
-                        className="absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none"
-                        style={{
-                            background: 'radial-gradient(circle at 25% 20%, rgba(255,255,255,0.55) 0%, transparent 55%)',
-                        }}
-                    />
+                    {banner ? (
+                        <img src={banner} alt="" className="absolute inset-0 rounded-t-xl w-full h-full object-cover" />
+                    ) : (
+                        <div
+                            className="absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none"
+                            style={{
+                                background: 'radial-gradient(circle at 25% 20%, rgba(255,255,255,0.55) 0%, transparent 55%)',
+                            }}
+                        />
+                    )}
                     {!isSelf && (
                         <div className="absolute top-2 right-2 flex gap-1 z-10">
                             <button
@@ -252,6 +270,14 @@ function UserPopup() {
                                     <div className="absolute right-0 top-full mt-1 w-52 bg-card/95 backdrop-blur-xl border border-border rounded-lg shadow-xl z-[60] py-1">
                                         {moreView === 'main' ? (
                                             <>
+                                                <button
+                                                    onClick={() => {openProfile(popup.user.id); closePopup();}}
+                                                    className="w-full flex items-center cursor-pointer gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted/50 transition-colors"
+                                                >
+                                                    <FontAwesomeIcon icon={faUser} className="w-4 text-center text-muted-foreground" />
+                                                    Profil anzeigen
+                                                </button>
+                                                <div className="border-t border-border my-1" />
                                                 <button
                                                     onClick={handleOpenDm}
                                                     className="w-full flex items-center cursor-pointer gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted/50 transition-colors"
@@ -310,12 +336,19 @@ function UserPopup() {
                     )}
                 </div>
 
-                {/* Avatar */}
-                <div className="px-4 -mt-10 relative z-10">
-                    <UserAvatar size="w-20 h-20 text-3xl border-4 border-card shadow-xl"
-                        onlineSize="w-5 h-5 bottom-0.5 right-0.5" icon={popup.user.username.charAt(0).toUpperCase()}
-                        avatar={popup.user.avatar} online={online} status={status}
-                    />
+                {/* Avatar — click opens full profile modal */}
+                <div className="px-4 -mt-10 relative z-9">
+                    <button
+                        type="button"
+                        onClick={() => { openProfile(popup.user.id); closePopup(); }}
+                        className="cursor-pointer rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        title="Profil öffnen"
+                    >
+                        <UserAvatar size="w-20 h-20 text-3xl border-4 border-card shadow-xl"
+                            onlineSize="w-5 h-5 bottom-0.5 right-0.5" icon={popup.user.username.charAt(0).toUpperCase()}
+                            avatar={popup.user.avatar} online={online} status={status}
+                        />
+                    </button>
                 </div>
 
                 {/* User Info */}
@@ -325,15 +358,15 @@ function UserPopup() {
 
                     {showActivity && (
                         <div
-                            className="mt-4 p-3 rounded-xl border border-primary/25 relative overflow-hidden"
-                            style={{ background: 'linear-gradient(135deg, hsl(var(--primary) / 0.18) 0%, hsl(var(--accent) / 0.10) 100%)' }}
+                            className="mt-4 px-3 py-2 rounded-xl border border-primary/10 relative overflow-hidden"
+                            style={{ background: 'linear-gradient(135deg, hsl(var(--primary) / 0.1) 0%, hsl(var(--accent) / 0.12) 100%)' }}
                         >
                             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                 Aktivität
                             </span>
-                            <div className="mt-2 flex items-center gap-3">
+                            <div className="mt-1 flex items-center gap-3">
                                 {activity.icon ? (
-                                    <img src={activity.icon} alt="" className="w-11 h-11 shrink-0 rounded-lg object-cover ring-1 ring-primary/30" />
+                                    <img src={activity.icon} alt="" className="w-11 h-11 shrink-0 rounded-lg object-cover" />
                                 ) : (
                                     <div className="w-11 h-11 shrink-0 rounded-lg bg-primary/25 text-primary flex items-center justify-center">
                                         <FontAwesomeIcon icon={faGamepad} className="text-base" />
@@ -352,23 +385,32 @@ function UserPopup() {
                         </div>
                     )}
 
-                    <div className="mt-3 p-3 rounded-xl bg-card/55 backdrop-blur-sm border border-border/60">
-                        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Mitglied seit</span>
-                        <p className="text-sm text-foreground mt-1">
-                            {new Date(popup.user.createdAt).toLocaleDateString('de-DE', {
-                                day: 'numeric',
-                                month: 'long',
-                                year: 'numeric'
-                            })}
-                        </p>
-                    </div>
+                    {bio && (
+                        <div className="mt-2 px-3 py-2 rounded-xl bg-card/55 backdrop-blur-sm border border-border/60">
+                            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Über mich</span>
+                            <p className="text-xs text-foreground/80 mt-1 whitespace-pre-wrap break-words">{bio}</p>
+                        </div>
+                    )}
+
+                    {profile.createdAt && (
+                        <div className="mt-2 px-3 py-2 rounded-xl bg-card/55 backdrop-blur-sm border border-border/60">
+                            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Mitglied seit</span>
+                            <p className="text-xs text-foreground/80 mt-1">
+                                {new Date(profile.createdAt).toLocaleDateString('de-DE', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric'
+                                })}
+                            </p>
+                        </div>
+                    )}
 
                     {popup.roles?.length > 0 && (
-                        <div className="mt-3 p-3 rounded-xl bg-card/55 backdrop-blur-sm border border-border/60">
+                        <div className="mt-2 px-3 py-2 rounded-xl bg-card/55 backdrop-blur-sm border border-border/60">
                             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                 Rollen
                             </span>
-                            <div className="flex flex-wrap gap-1.5 mt-2">
+                            <div className="flex flex-wrap gap-1.5 mt-1">
                                 {popup.roles.map(r => {
                                     const role = r.role ?? r;
                                     return (
@@ -391,7 +433,7 @@ function UserPopup() {
                     )}
 
                     {isSelf && popup.isProfilePopup && (
-                        <div className="flex flex-col mt-4 rounded-xl bg-card/55 backdrop-blur-sm border border-border/60 text-foreground divide-y divide-border/60">
+                        <div className="flex flex-col mt-2 rounded-xl bg-card/55 backdrop-blur-sm border border-border/60 text-foreground divide-y divide-border/60">
                             <button
                                 onClick={() => { closePopup(); openSettings('profile'); }}
                                 className="cursor-pointer text-left px-3 py-3 w-full hover:bg-muted/40 text-sm font-medium transition-colors"
@@ -410,7 +452,7 @@ function UserPopup() {
                     )}
 
                     {!isSelf && (
-                        <div className="mt-4">
+                        <div className="mt-2">
                             <input placeholder="Nachricht senden..."
                                    onKeyDown={async (e) => {
                                        if (e.key === 'Enter') {
@@ -418,7 +460,7 @@ function UserPopup() {
                                        }
                                    }}
                                    onChange={(e) => setInput(e.target.value)}
-                                   className="w-full px-3 py-2 text-sm rounded-lg bg-card/55 backdrop-blur-sm border border-border/60 outline-none focus:ring-2 focus:ring-primary/80 focus:border-transparent text-foreground placeholder:text-muted-foreground! transition-all"/>
+                                   className="w-full px-3 py-2 text-sm rounded-lg bg-primary/10 backdrop-blur-sm border border-border/60 outline-none focus:ring-2 focus:ring-primary/80 focus:border-transparent text-foreground placeholder:text-muted-foreground! transition-all"/>
                         </div>
                     )}
                 </div>

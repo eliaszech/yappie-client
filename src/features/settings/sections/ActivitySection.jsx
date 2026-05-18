@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faTrash, faSpinner, faMagnifyingGlass, faXmark } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
+import { faPlus, faTrash, faSpinner, faMagnifyingGlass, faXmark, faGamepad } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     getActivityEnabled, setActivityEnabled,
     getCustomGames, addCustomGame, removeCustomGame,
     subscribe,
 } from "../../../services/activitySettings.js";
+import { useAuth } from "../../../hooks/useAuth.js";
+import {
+    fetchMyActivitySessions,
+    deleteActivitySession,
+    deleteAllActivitySessions,
+} from "../../../services/api.js";
 
 function Toggle({ value, onChange }) {
     return (
@@ -136,10 +143,216 @@ function AddGameModal({ onClose, onAdd, existing }) {
     );
 }
 
+function formatDurationMs(ms) {
+    if (!Number.isFinite(ms) || ms <= 0) return '0 Min';
+    const totalMin = Math.floor(ms / 60_000);
+    if (totalMin < 60) return `${totalMin} Min`;
+    const hours = Math.floor(totalMin / 60);
+    const minutes = totalMin % 60;
+    return minutes ? `${hours} Std ${minutes} Min` : `${hours} Std`;
+}
+
+function GeneralTab({ enabled, games, onToggle, onAdd, onRemove }) {
+    return (
+        <div className="flex flex-col gap-8">
+            <div className="bg-card border border-border rounded-xl p-4 flex items-center justify-between gap-4">
+                <div className="flex flex-col">
+                    <span className="text-sm font-medium text-foreground">Aktivitätsstatus teilen</span>
+                    <span className="text-xs text-muted-foreground mt-0.5">
+                        Wenn aktiviert, sehen andere, welches Spiel du gerade spielst.
+                    </span>
+                </div>
+                <Toggle value={enabled} onChange={onToggle} />
+            </div>
+
+            <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-8 justify-between">
+                    <div className="flex flex-col">
+                        <h2 className="text-sm font-semibold text-foreground">Eigene Spiele</h2>
+                        <span className="text-xs text-muted-foreground mt-0.5">
+                            Yappie erkennt viele Spiele automatisch. Hier kannst du eigene hinzufügen.
+                        </span>
+                    </div>
+                    <button
+                        onClick={onAdd}
+                        disabled={!enabled}
+                        className="flex items-center whitespace-nowrap gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/80 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <FontAwesomeIcon icon={faPlus} className="text-xs" />
+                        Spiel hinzufügen
+                    </button>
+                </div>
+
+                {games.length === 0 ? (
+                    <div className="bg-card border border-border rounded-xl px-4 py-8 text-center text-sm text-muted-foreground">
+                        Du hast noch keine eigenen Spiele hinzugefügt.
+                    </div>
+                ) : (
+                    <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
+                        {games.map(g => (
+                            <div key={g.processName} className="flex items-center justify-between px-4 py-2.5">
+                                <div className="flex flex-col min-w-0">
+                                    <span className="text-sm text-foreground truncate">{g.displayName}</span>
+                                    <span className="text-[11px] text-muted-foreground truncate">{g.processName}</span>
+                                </div>
+                                <button
+                                    onClick={() => onRemove(g.processName)}
+                                    className="text-muted-foreground hover:text-red-400 cursor-pointer px-2 py-1 rounded-md hover:bg-muted"
+                                    title="Entfernen"
+                                >
+                                    <FontAwesomeIcon icon={faTrash} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function PrivacyTab() {
+    const { user } = useAuth();
+    const queryClient = useQueryClient();
+    const [confirming, setConfirming] = useState(false);
+    const [busy, setBusy] = useState(false);
+
+    const { data: sessions = [], isLoading } = useQuery({
+        queryKey: ['my-activity-sessions'],
+        queryFn: () => fetchMyActivitySessions(100),
+        staleTime: 30 * 1000,
+    });
+
+    function invalidateAll() {
+        queryClient.invalidateQueries({ queryKey: ['my-activity-sessions'] });
+        queryClient.invalidateQueries({ queryKey: ['activity-stats', user.id] });
+        queryClient.invalidateQueries({ queryKey: ['friends-activity-feed'] });
+    }
+
+    async function handleDeleteOne(id) {
+        setBusy(true);
+        const res = await deleteActivitySession(id);
+        if (!res.error) invalidateAll();
+        setBusy(false);
+    }
+
+    async function handleDeleteAll() {
+        setBusy(true);
+        const res = await deleteAllActivitySessions();
+        if (!res.error) invalidateAll();
+        setConfirming(false);
+        setBusy(false);
+    }
+
+    return (
+        <div className="flex flex-col gap-6">
+            <div className="bg-card border border-border rounded-xl p-4">
+                <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col">
+                        <h2 className="text-sm font-semibold text-foreground">Aktivitätsverlauf</h2>
+                        <span className="text-xs text-muted-foreground mt-0.5">
+                            Yappie speichert deine Spiel-Sessions, damit du deine Spielzeit-Statistiken
+                            siehst. Du kannst sie jederzeit löschen – einzeln oder komplett.
+                        </span>
+                    </div>
+                    {sessions.length > 0 && !confirming && (
+                        <button
+                            onClick={() => setConfirming(true)}
+                            disabled={busy}
+                            className="flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-md bg-dnd/15 border border-dnd/30 text-dnd text-sm font-medium hover:bg-dnd/25 cursor-pointer disabled:opacity-50"
+                        >
+                            <FontAwesomeIcon icon={faTrash} className="text-xs" />
+                            Alles löschen
+                        </button>
+                    )}
+                </div>
+                {confirming && (
+                    <div className="mt-4 p-3 rounded-lg bg-dnd/10 border border-dnd/30 flex items-center justify-between gap-3">
+                        <span className="text-sm text-foreground">
+                            Wirklich den gesamten Aktivitätsverlauf löschen? Diese Aktion ist endgültig.
+                        </span>
+                        <div className="flex items-center gap-2 shrink-0">
+                            <button
+                                onClick={() => setConfirming(false)}
+                                disabled={busy}
+                                className="px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+                            >
+                                Abbrechen
+                            </button>
+                            <button
+                                onClick={handleDeleteAll}
+                                disabled={busy}
+                                className="px-3 py-1.5 rounded-md bg-dnd text-white text-sm font-medium hover:bg-dnd/90 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                            >
+                                {busy && <FontAwesomeIcon icon={faSpinner} className="animate-spin text-xs" />}
+                                Endgültig löschen
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {isLoading ? (
+                <div className="flex items-center justify-center py-8 text-muted-foreground text-sm gap-2">
+                    <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
+                    Lädt…
+                </div>
+            ) : sessions.length === 0 ? (
+                <div className="bg-card border border-border rounded-xl px-4 py-8 text-center text-sm text-muted-foreground">
+                    Noch keine Aktivität aufgezeichnet.
+                </div>
+            ) : (
+                <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
+                    {sessions.map(s => {
+                        const end = s.endedAt ? new Date(s.endedAt).getTime() : Date.now();
+                        const duration = end - new Date(s.startedAt).getTime();
+                        const startLabel = new Date(s.startedAt).toLocaleString('de-DE', {
+                            day: '2-digit', month: '2-digit', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit',
+                        });
+                        return (
+                            <div key={s.id} className="flex items-center gap-3 px-4 py-2.5">
+                                {s.icon ? (
+                                    <img src={s.icon} alt="" className="w-9 h-9 rounded-md object-cover shrink-0" />
+                                ) : (
+                                    <div className="w-9 h-9 rounded-md bg-primary/20 text-primary flex items-center justify-center shrink-0">
+                                        <FontAwesomeIcon icon={faGamepad} />
+                                    </div>
+                                )}
+                                <div className="flex flex-col min-w-0 flex-1">
+                                    <span className="text-sm text-foreground truncate">{s.name}</span>
+                                    <span className="text-[11px] text-muted-foreground">
+                                        {startLabel} · {formatDurationMs(duration)}
+                                        {!s.endedAt && <span className="ml-1 text-primary">· läuft</span>}
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={() => handleDeleteOne(s.id)}
+                                    disabled={busy}
+                                    className="text-muted-foreground hover:text-red-400 cursor-pointer px-2 py-1 rounded-md hover:bg-muted disabled:opacity-50"
+                                    title="Diesen Eintrag löschen"
+                                >
+                                    <FontAwesomeIcon icon={faTrash} />
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
+const TABS = [
+    { id: 'general', label: 'Allgemein' },
+    { id: 'privacy', label: 'Datenschutz' },
+];
+
 function ActivitySection() {
     const [enabled, setEnabledState] = useState(getActivityEnabled);
     const [games, setGames] = useState(getCustomGames);
     const [adding, setAdding] = useState(false);
+    const [tab, setTab] = useState('general');
 
     useEffect(() => {
         return subscribe(() => {
@@ -166,59 +379,34 @@ function ActivitySection() {
                 <h1 className="text-lg font-bold text-foreground">Aktivität</h1>
             </div>
 
-            <div className="max-w-[70%] py-4 px-4 w-full mx-auto flex flex-col gap-8 overflow-y-auto">
-                <div className="bg-card border border-border rounded-xl p-4 flex items-center justify-between gap-4">
-                    <div className="flex flex-col">
-                        <span className="text-sm font-medium text-foreground">Aktivitätsstatus teilen</span>
-                        <span className="text-xs text-muted-foreground mt-0.5">
-                            Wenn aktiviert, sehen andere, welches Spiel du gerade spielst.
-                        </span>
-                    </div>
-                    <Toggle value={enabled} onChange={handleToggle} />
-                </div>
-
-                <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-8 justify-between">
-                        <div className="flex flex-col">
-                            <h2 className="text-sm font-semibold text-foreground">Eigene Spiele</h2>
-                            <span className="text-xs text-muted-foreground mt-0.5">
-                                Yappie erkennt viele Spiele automatisch. Hier kannst du eigene hinzufügen.
-                            </span>
-                        </div>
+            <div className="max-w-[70%] py-4 px-4 w-full mx-auto flex flex-col overflow-y-auto">
+                <div className="border-b border-border flex gap-1 mb-6">
+                    {TABS.map(t => (
                         <button
-                            onClick={() => setAdding(true)}
-                            disabled={!enabled}
-                            className="flex items-center whitespace-nowrap gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/80 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            key={t.id}
+                            onClick={() => setTab(t.id)}
+                            className={`px-3 py-2 text-sm font-medium cursor-pointer transition-colors border-b-2 -mb-px ${
+                                tab === t.id
+                                    ? 'text-foreground border-primary'
+                                    : 'text-muted-foreground border-transparent hover:text-foreground'
+                            }`}
                         >
-                            <FontAwesomeIcon icon={faPlus} className="text-xs" />
-                            Spiel hinzufügen
+                            {t.label}
                         </button>
-                    </div>
-
-                    {games.length === 0 ? (
-                        <div className="bg-card border border-border rounded-xl px-4 py-8 text-center text-sm text-muted-foreground">
-                            Du hast noch keine eigenen Spiele hinzugefügt.
-                        </div>
-                    ) : (
-                        <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
-                            {games.map(g => (
-                                <div key={g.processName} className="flex items-center justify-between px-4 py-2.5">
-                                    <div className="flex flex-col min-w-0">
-                                        <span className="text-sm text-foreground truncate">{g.displayName}</span>
-                                        <span className="text-[11px] text-muted-foreground truncate">{g.processName}</span>
-                                    </div>
-                                    <button
-                                        onClick={() => handleRemove(g.processName)}
-                                        className="text-muted-foreground hover:text-red-400 cursor-pointer px-2 py-1 rounded-md hover:bg-muted"
-                                        title="Entfernen"
-                                    >
-                                        <FontAwesomeIcon icon={faTrash} />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                    ))}
                 </div>
+
+                {tab === 'general' && (
+                    <GeneralTab
+                        enabled={enabled}
+                        games={games}
+                        onToggle={handleToggle}
+                        onAdd={() => setAdding(true)}
+                        onRemove={handleRemove}
+                    />
+                )}
+
+                {tab === 'privacy' && <PrivacyTab />}
             </div>
 
             {adding && (

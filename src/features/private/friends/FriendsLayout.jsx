@@ -5,10 +5,12 @@ import {Navigate, NavLink, Outlet, useLocation} from "react-router-dom";
 import {t} from "i18next";
 import {useLastPath} from "../../../hooks/useLastPath.js";
 import {useEffect} from "react";
+import FriendsActivityPanel from "./FriendsActivityPanel.jsx";
 
 function FriendsLayout() {
     const location = useLocation();
     const { savePath } = useLastPath('friends')
+    const showActivityPanel = !location.pathname.endsWith('/add');
 
     useEffect(() => {
         savePath(location.pathname);
@@ -41,7 +43,12 @@ function FriendsLayout() {
                     </div>
                 </div>
             </ContentHeader>
-            <Outlet />
+            <div className="flex flex-1 min-h-0">
+                <div className="flex-1 min-w-0 flex flex-col">
+                    <Outlet />
+                </div>
+                {showActivityPanel && <FriendsActivityPanel />}
+            </div>
         </>
     )
 }

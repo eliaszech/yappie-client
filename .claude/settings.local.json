@@ -21,7 +21,8 @@
       "Bash(docker exec *)",
       "PowerShell(Set-Location C:\\\\Users\\\\elias\\\\WebstormProjects\\\\yappie-backend; $env:DATABASE_URL = \"postgresql://yappie:yappie@localhost:5432/yappie\"; npx prisma migrate dev --name add_read_state_and_pins 2>&1 | Out-String)",
       "PowerShell(Get-Command *)",
-      "Bash(git log *)"
+      "Bash(git log *)",
+      "Bash(dir srcfeatures *)"
     ]
   }
 }

@@ -23,11 +23,11 @@ function UnreadConversationLink({ conversation, user }) {
         <NavLink
             to={`/@me/messages/${conversation.id}`}
             title={title}
-            className={({isActive}) => `relative group/dm w-12 h-12 rounded-2xl overflow-visible flex items-center justify-center transition-all duration-200 ${
+            className={({isActive}) => `relative group/dm w-12 h-12 rounded-full overflow-visible flex items-center justify-center transition-all duration-200 ${
                 isActive ? 'ring-2 ring-primary' : ''
             }`}
         >
-            <div className="w-12 h-12 rounded-2xl overflow-hidden bg-card flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-card flex items-center justify-center">
                 {first?.avatar ? (
                     <img src={first.avatar} alt={title} className="w-full h-full object-cover" />
                 ) : (

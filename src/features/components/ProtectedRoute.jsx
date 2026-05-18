@@ -2,6 +2,7 @@ import { useAuth } from "../../hooks/useAuth.js";
 import { Navigate } from "react-router-dom";
 import { VoiceProvider } from "../../context/VoiceProvider.jsx";
 import { UserPopupProvider } from "../../context/user/UserPopupProvider.jsx";
+import { ProfileModalProvider } from "../../context/user/ProfileModalProvider.jsx";
 import SplashScreen from "./SplashScreen.jsx";
 import { useIdleReporter } from "../../hooks/useIdleReporter.js";
 import { useAfkMove } from "../../hooks/useAfkMove.js";
@@ -34,9 +35,11 @@ function ProtectedRoute({ children }) {
     return (
         <VoiceProvider>
             <VoiceEffects />
-            <UserPopupProvider>
-                {children}
-            </UserPopupProvider>
+            <ProfileModalProvider>
+                <UserPopupProvider>
+                    {children}
+                </UserPopupProvider>
+            </ProfileModalProvider>
         </VoiceProvider>
     );
 }

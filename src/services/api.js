@@ -120,12 +120,40 @@ export const removePollVote = (pollId, optionId) => apiRequest('DELETE', `/polls
 
 export const updateProfile = (data) => apiRequest('PATCH', `/@me/profile`, data);
 export const changePassword = (data) => apiRequest('PATCH', `/@me/password`, data);
+export const fetchUserProfile = (userId) => apiRequest('GET', `/users/${userId}/profile`);
+export const fetchActivityStats = (userId, range = '30d') => apiRequest('GET', `/users/${userId}/activity-stats?range=${range}`);
+export const fetchMutualFriends = (userId) => apiRequest('GET', `/users/${userId}/mutual-friends`);
+export const fetchCommonServers = (userId) => apiRequest('GET', `/users/${userId}/common-servers`);
+export const fetchFriendsActivityFeed = (limit = 30) => apiRequest('GET', `/@me/friends/activity-feed?limit=${limit}`);
+export const fetchMyActivitySessions = (limit = 100) => apiRequest('GET', `/@me/activity-sessions?limit=${limit}`);
+export const deleteActivitySession = (sessionId) => apiRequest('DELETE', `/@me/activity-sessions/${sessionId}`);
+export const deleteAllActivitySessions = () => apiRequest('DELETE', `/@me/activity-sessions`);
+export const removeBanner = () => apiRequest('DELETE', `/@me/banner`);
 
 export async function uploadAvatar(file) {
     const formData = new FormData();
     formData.append('avatar', file);
     try {
         const res = await fetch(`${API_URL}/@me/avatar`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}` },
+            body: formData,
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            return { error: err.error || 'Upload fehlgeschlagen' };
+        }
+        return res.json();
+    } catch (e) {
+        return { error: e.message };
+    }
+}
+
+export async function uploadBanner(file) {
+    const formData = new FormData();
+    formData.append('banner', file);
+    try {
+        const res = await fetch(`${API_URL}/@me/banner`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${getToken()}` },
             body: formData,
