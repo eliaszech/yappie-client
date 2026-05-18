@@ -1,12 +1,14 @@
 import UserAvatar from "../../components/UserAvatar.jsx";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faSpinnerThird} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
+import {faThumbtack} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import MessageActionPopup from "./MessageActionPopup.jsx";
 import HasUserPopup from "../../components/user/HasUserPopup.jsx";
 import Reactions from "./Reactions.jsx";
 import {useReplyState} from "../../../hooks/messages/useReplyState.js";
 import {useState, useRef, useEffect} from "react";
 import {useAuth} from "../../../hooks/useAuth.js";
+import {useUserStatus} from "../../../hooks/usePresence.js";
 import {editMessage} from "../../../hooks/messages/useEditMessage.js";
 import LinkEmbed, {extractFirstUrl} from "./LinkEmbed.jsx";
 import {faServer} from "@awesome.me/kit-95376d5d61/icons/classic/light";
@@ -15,9 +17,11 @@ import {joinServer} from "../../../services/api.js";
 import {useQueryClient} from "@tanstack/react-query";
 import MessageInput from "./MessageInput.jsx";
 import MessageAttachments from "./MessageAttachments.jsx";
+import PollMessage from "./PollMessage.jsx";
 import {getSocket} from "../../../services/socket.js";
 
 const MENTION_REGEX = /@(\w+)/g;
+const SPECIAL_MENTION_REGEX = /(?<!\w)@(everyone|here)(?!\w)/g;
 const CHANNEL_REGEX = /#([\w-]+)/g;
 const LINK_REGEX = /https?:\/\/[^\s<>"[\]{}|\\^`]+/g;
 
@@ -71,6 +75,8 @@ function InviteMessage({invite}) {
 function MessageItem({message, color = '', isGrouped = false, disabled = false}) {
     const { user: messageUser } = message;
     const { user } = useAuth();
+    const liveStatus = useUserStatus(user?.id);
+    const myStatus = liveStatus ?? user?.status;
     const { serverId } = useParams();
     const [hovered, setHovered] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -141,6 +147,13 @@ function MessageItem({message, color = '', isGrouped = false, disabled = false})
             segments.push({ start: match.index, end: match.index + match[0].length, type: 'link', content: match[0], href: match[0] });
         }
 
+        for (const match of text.matchAll(SPECIAL_MENTION_REGEX)) {
+            const overlaps = segments.some(s => match.index < s.end && match.index + match[0].length > s.start);
+            if (!overlaps) {
+                segments.push({ start: match.index, end: match.index + match[0].length, type: 'special-mention', content: match[0], kind: match[1] });
+            }
+        }
+
         for (const match of text.matchAll(MENTION_REGEX)) {
             const overlaps = segments.some(s => match.index < s.end && match.index + match[0].length > s.start);
             const mention = (mentions || []).find(m => m.user.username === match[1]);
@@ -179,13 +192,22 @@ function MessageItem({message, color = '', isGrouped = false, disabled = false})
         if (ch) navigate(`/servers/${serverId}/channels/${ch.id}`);
     }
 
-    const amIMentioned = (message && message.mentions.some(mention => mention.user.id === user.id)) || (message.replyTo && message.replyTo.user.id === user.id && message.userId !== user.id);
+    const amIMentioned = (message && message.mentions.some(mention => mention.user.id === user.id))
+        || (message.replyTo && message.replyTo.user.id === user.id && message.userId !== user.id)
+        || message.mentionEveryone
+        || (message.mentionHere && myStatus !== 'invisible');
     const embedUrl = !message.pending && message.type !== 'server_invite' ? extractFirstUrl(message.text) : null;
 
-    return disabled || !isGrouped || message.replyTo ? (
+    return disabled || !isGrouped || message.replyTo || message.pinned ? (
         <div onMouseMove={() => !hovered && setHovered(true)}
              onMouseLeave={() => setHovered(false)}
             id={`message-${message.id}`} className={`${disabled ? 'pointer-events-none' : ''} ${amIMentioned ? 'bg-idle/5! border-idle! hover:bg-idle/10!' : ''} ${replyTo && replyTo.id === message.id ? 'bg-primary/10 border-primary hover:bg-primary/15' : 'hover:bg-muted/50 border-transparent'} relative border-l-2 flex flex-col mt-4 transition-colors duration-300  group`}>
+            {message.pinned && (
+                <div className="flex items-center gap-1.5 px-4 pt-1 text-xs text-muted-foreground">
+                    <FontAwesomeIcon icon={faThumbtack} className="text-[10px]" />
+                    <span>Angepinnt</span>
+                </div>
+            )}
             {message.replyTo && (
                 <div onClick={() => scrollToMessage(message.replyTo.id)} className="flex items-center bg-primary/3  py-1 pl-4 relative hover:bg-primary/10 cursor-pointer">
                     <div className="absolute top-1/2 left-8 w-6 h-3 border-l-2 border-t-2 border-primary/80 rounded-tl-md"></div>
@@ -231,24 +253,29 @@ function MessageItem({message, color = '', isGrouped = false, disabled = false})
                     ) : (
                         <div className={`${message.pending ? 'text-muted-foreground' : 'text-foreground'} flex flex-col gap-1 whitespace-pre-wrap text-base`}>
                             {message.edited && <span className="text-[10px] leading-1 pt-1 text-muted-foreground">(bearbeitet)</span>}
-                            <div className="flex">
-                                {parseMessageText(message.text, message.mentions).map((part, index) =>
-                                    part.type === 'mention' ? (
-                                        <HasUserPopup classes={"w-max"} key={index} user={part.mentionUser}>
-                                            <span className="text-primary hover:underline cursor-pointer">{part.content}</span>
-                                        </HasUserPopup>
-                                    ) : part.type === 'channel' ? (
-                                        <span key={index} onClick={() => navigateToChannel(part.channelName)} className="w-max text-primary font-medium cursor-pointer hover:underline">
-                                            {part.content}
-                                        </span>
-                                    ) : part.type === 'link' ? (
-                                        <a key={index} href={part.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part.content}</a>
-                                    ) : (
-                                        <span key={index}>{part.content}</span>
-                                    )
-                                )}
-                            </div>
+                            {message.text && (
+                                <div className="flex">
+                                    {parseMessageText(message.text, message.mentions).map((part, index) =>
+                                        part.type === 'mention' ? (
+                                            <HasUserPopup classes={"w-max"} key={index} user={part.mentionUser}>
+                                                <span className="text-primary hover:underline cursor-pointer">{part.content}</span>
+                                            </HasUserPopup>
+                                        ) : part.type === 'special-mention' ? (
+                                            <span key={index} className="bg-idle/15 text-idle rounded px-1 font-medium">{part.content}</span>
+                                        ) : part.type === 'channel' ? (
+                                            <span key={index} onClick={() => navigateToChannel(part.channelName)} className="w-max text-primary font-medium cursor-pointer hover:underline">
+                                                {part.content}
+                                            </span>
+                                        ) : part.type === 'link' ? (
+                                            <a key={index} href={part.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part.content}</a>
+                                        ) : (
+                                            <span key={index}>{part.content}</span>
+                                        )
+                                    )}
+                                </div>
+                            )}
                             {message.type === 'server_invite' && <InviteMessage invite={message.invite} />}
+                            {message.type === 'poll' && message.poll && <PollMessage message={message} />}
                         </div>
                     )}
                     {message.attachments?.length > 0 && !isEditing && <MessageAttachments attachments={message.attachments} />}
@@ -285,24 +312,29 @@ function MessageItem({message, color = '', isGrouped = false, disabled = false})
                 ) : (
                     <div className={`${message.pending ? 'text-muted-foreground' : 'text-foreground'} flex flex-col gap-1 whitespace-pre-wrap text-base`}>
                         {message.edited && <span className="text-[10px] leading-1 pt-1 text-muted-foreground">(bearbeitet)</span>}
-                        <div className="flex">
-                            {parseMessageText(message.text, message.mentions).map((part, index) =>
-                                part.type === 'mention' ? (
-                                    <HasUserPopup classes={"w-max"} key={index} user={part.mentionUser}>
-                                        <span className="text-primary hover:underline cursor-pointer">{part.content}</span>
-                                    </HasUserPopup>
-                                ) : part.type === 'channel' ? (
-                                    <span key={index} onClick={() => navigateToChannel(part.channelName)} className="w-max text-primary font-medium cursor-pointer hover:underline">
-                                    {part.content}
-                                </span>
-                                ) : part.type === 'link' ? (
-                                    <a key={index} href={part.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part.content}</a>
-                                ) : (
-                                    <span key={index}>{part.content}</span>
-                                )
-                            )}
-                        </div>
+                        {message.text && (
+                            <div className="flex">
+                                {parseMessageText(message.text, message.mentions).map((part, index) =>
+                                    part.type === 'mention' ? (
+                                        <HasUserPopup classes={"w-max"} key={index} user={part.mentionUser}>
+                                            <span className="text-primary hover:underline cursor-pointer">{part.content}</span>
+                                        </HasUserPopup>
+                                    ) : part.type === 'special-mention' ? (
+                                        <span key={index} className="bg-idle/15 text-idle rounded px-1 font-medium">{part.content}</span>
+                                    ) : part.type === 'channel' ? (
+                                        <span key={index} onClick={() => navigateToChannel(part.channelName)} className="w-max text-primary font-medium cursor-pointer hover:underline">
+                                        {part.content}
+                                    </span>
+                                    ) : part.type === 'link' ? (
+                                        <a key={index} href={part.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part.content}</a>
+                                    ) : (
+                                        <span key={index}>{part.content}</span>
+                                    )
+                                )}
+                            </div>
+                        )}
                         {message.type === 'server_invite' && <InviteMessage invite={message.invite} />}
+                        {message.type === 'poll' && message.poll && <PollMessage message={message} />}
                     </div>
                 )}
                 {message.attachments?.length > 0 && !isEditing && <MessageAttachments attachments={message.attachments} />}

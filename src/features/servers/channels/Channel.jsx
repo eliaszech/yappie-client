@@ -12,6 +12,8 @@ import MemberSidebarList from "./MemberSidebarList.jsx";
 import {getSocket} from "../../../services/socket.js";
 import MessageInput from "../../messages/components/MessageInput.jsx";
 import Chat from "../../messages/components/Chat.jsx";
+import PinsPopover from "../../messages/components/PinsPopover.jsx";
+import SearchPopover from "../../messages/components/SearchPopover.jsx";
 
 function Channel() {
     const {channelId} = useParams();
@@ -44,6 +46,10 @@ function Channel() {
                     <FontAwesomeIcon icon={faHashtag} />
                     <span className="font-medium">{channel.name}</span>
                 </div>
+                <div className="ml-auto flex items-center gap-2">
+                    <PinsPopover channelId={channel.id} />
+                    <SearchPopover type="channel" roomId={channel.id} />
+                </div>
             </ContentHeader>
             <div className="flex h-full w-full overflow-hidden">
                 <div className="flex flex-col w-full h-full relative">
@@ -54,7 +60,6 @@ function Channel() {
                             <div className="text-xl">Am anfang war nichts. Dann gab es #{channel.name}. Und es war gut</div>
                         </div>
                     </Chat>
-                    <div className="absolute z-2 bottom-[64px] left-0 w-full h-16 bg-gradient-to-b from-transparent to-background pointer-events-none"></div>
                     <MessageInput type="channel" serverId={channel.serverId} roomId={channel.id} roomName={channel.name} />
                 </div>
                 <div className="max-w-xs w-full bg-card/70 h-full border-l border-border">

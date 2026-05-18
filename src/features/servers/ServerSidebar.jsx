@@ -34,8 +34,8 @@ function ServerSidebar() {
     if (isError || server.status === 404) return <Navigate to="/error/404" replace={true} />
 
     return(
-        <div className="w-full h-full bg-card rounded-tl-2xl border-l border-border flex flex-col grow overflow-y-auto pb-[65px]">
-            <div className="relative px-2 h-12 flex justify-between items-center border-b-2 border-border shrink-0 text-foreground bg-guild-bar">
+        <div className="w-full h-full bg-card/85 rounded-tl-2xl border-l border-border flex flex-col grow overflow-y-auto pb-[65px]">
+            <div className="relative px-2 h-12 flex justify-between items-center border-b-2 border-border shrink-0 text-foreground bg-guild-bar/85">
                 <button
                     onClick={() => setServerDropdownOpen(true)}
                     className="cursor-pointer font-bold flex items-center gap-2.5 hover:bg-muted/50 rounded-md px-2 py-1 transition-all"

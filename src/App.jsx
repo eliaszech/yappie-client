@@ -23,6 +23,12 @@ import {useReactMessage} from "./hooks/messages/useReactMessage.js";
 import Register from "./features/auth/Register.jsx";
 import FriendsListPending from "./features/private/friends/FriendsListPending.jsx";
 import {useFriendRequests} from "./hooks/friends/useFriendRequests.js";
+import {useReadStates} from "./hooks/useReadStates.js";
+import {usePinSubscription} from "./hooks/messages/usePinSubscription.js";
+import {usePollSubscription} from "./hooks/messages/usePollSubscription.js";
+import {useConversationEvents} from "./hooks/useConversationEvents.js";
+import {useNotifications} from "./hooks/useNotifications.js";
+import {useBadgeCount} from "./hooks/useBadgeCount.js";
 import {useUserServerUpdate} from "./hooks/server/useUserServerUpdate.js";
 import {useActivitySubscription, useGameActivityReporter} from "./hooks/useActivity.js";
 import KickedFromServerDialog from "./features/servers/dialogs/KickedFromServerDialog.jsx";
@@ -74,6 +80,12 @@ function App() {
     useReactMessage();
     useMessages();
     useFriendRequests();
+    useReadStates();
+    usePinSubscription();
+    usePollSubscription();
+    useConversationEvents();
+    useNotifications();
+    useBadgeCount();
 
     return (
         <ContextMenuProvider>

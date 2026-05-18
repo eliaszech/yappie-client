@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, cloneElement, isValidElement } from 'react';
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 
 function Dropdown({ trigger, items, content, position = 'right', width = 'w-56', offset = "0" }) {
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
+    const close = () => setOpen(false);
 
     useEffect(() => {
         function handleClick(e) {
@@ -60,7 +61,7 @@ function Dropdown({ trigger, items, content, position = 'right', width = 'w-56',
                         );
                     })}
 
-                    {content}
+                    {content && (isValidElement(content) ? cloneElement(content, { close, setVisible: close }) : content)}
                 </div>
             )}
         </div>

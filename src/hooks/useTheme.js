@@ -1,422 +1,300 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
-export const THEMES = {
-    dark: {
-        name: 'Dunkel',
-        group: 'dunkel',
-        vars: {
-            '--background':          '220 15% 13%',
-            '--foreground':          '210 10% 82%',
-            '--card':                '220 16% 11%',
-            '--card-foreground':     '210 10% 82%',
-            '--popover':             '220 16% 11%',
-            '--popover-foreground':  '210 10% 82%',
-            '--primary':             '175 55% 50%',
-            '--primary-foreground':  '0 0% 5%',
-            '--secondary':           '25 5% 21%',
-            '--secondary-foreground':'142 20% 70%',
-            '--muted':               '220 13% 18%',
-            '--muted-foreground':    '215 8% 46%',
-            '--accent':              '142 80% 50%',
-            '--accent-foreground':   '0 0% 5%',
-            '--border':              '220 14% 16%',
-            '--input':               '220 14% 16%',
-            '--ring':                '175 55% 50%',
-            '--guild-bar':           '220 17% 7%',
-        },
-        preview: { bg: '220 15% 13%', card: '220 16% 11%', primary: '175 55% 50%', sidebar: '220 17% 7%' },
-    },
-    midnight: {
-        name: 'Mitternacht',
-        group: 'dunkel',
-        vars: {
-            '--background':          '230 17% 9%',
-            '--foreground':          '225 10% 82%',
-            '--card':                '230 18% 7%',
-            '--card-foreground':     '225 10% 82%',
-            '--popover':             '230 18% 7%',
-            '--popover-foreground':  '225 10% 82%',
-            '--primary':             '235 85% 65%',
-            '--primary-foreground':  '0 0% 100%',
-            '--secondary':           '230 12% 15%',
-            '--secondary-foreground':'225 20% 70%',
-            '--muted':               '230 14% 13%',
-            '--muted-foreground':    '225 8% 42%',
-            '--accent':              '235 85% 65%',
-            '--accent-foreground':   '0 0% 100%',
-            '--border':              '230 15% 11%',
-            '--input':               '230 15% 11%',
-            '--ring':                '235 85% 65%',
-            '--guild-bar':           '230 20% 5%',
-        },
-        preview: { bg: '230 17% 9%', card: '230 18% 7%', primary: '235 85% 65%', sidebar: '230 20% 5%' },
-    },
-    moonlight: {
-        name: 'Mondlicht',
-        group: 'dunkel',
-        vars: {
-            '--background':          '220 10% 14%',
-            '--foreground':          '215 12% 84%',
-            '--card':                '220 10% 12%',
-            '--card-foreground':     '215 12% 84%',
-            '--popover':             '220 10% 12%',
-            '--popover-foreground':  '215 12% 84%',
-            '--primary':             '210 80% 62%',
-            '--primary-foreground':  '0 0% 100%',
-            '--secondary':           '220 8% 20%',
-            '--secondary-foreground':'215 15% 68%',
-            '--muted':               '220 9% 19%',
-            '--muted-foreground':    '215 7% 46%',
-            '--accent':              '210 80% 62%',
-            '--accent-foreground':   '0 0% 100%',
-            '--border':              '220 10% 17%',
-            '--input':               '220 10% 17%',
-            '--ring':                '210 80% 62%',
-            '--guild-bar':           '220 12% 8%',
-        },
-        preview: { bg: '220 10% 14%', card: '220 10% 12%', primary: '210 80% 62%', sidebar: '220 12% 8%' },
-    },
-    purple: {
-        name: 'Purpur',
-        group: 'dunkel',
-        vars: {
-            '--background':          '252 15% 13%',
-            '--foreground':          '252 10% 83%',
-            '--card':                '252 17% 10%',
-            '--card-foreground':     '252 10% 83%',
-            '--popover':             '252 17% 10%',
-            '--popover-foreground':  '252 10% 83%',
-            '--primary':             '258 78% 68%',
-            '--primary-foreground':  '0 0% 100%',
-            '--secondary':           '252 12% 20%',
-            '--secondary-foreground':'252 15% 72%',
-            '--muted':               '252 13% 17%',
-            '--muted-foreground':    '252 7% 47%',
-            '--accent':              '258 78% 68%',
-            '--accent-foreground':   '0 0% 100%',
-            '--border':              '252 14% 16%',
-            '--input':               '252 14% 16%',
-            '--ring':                '258 78% 68%',
-            '--guild-bar':           '252 18% 7%',
-        },
-        preview: { bg: '252 15% 13%', card: '252 17% 10%', primary: '258 78% 68%', sidebar: '252 18% 7%' },
-    },
-    forest: {
-        name: 'Waldgrün',
-        group: 'dunkel',
-        vars: {
-            '--background':          '148 12% 12%',
-            '--foreground':          '145 8% 82%',
-            '--card':                '148 13% 10%',
-            '--card-foreground':     '145 8% 82%',
-            '--popover':             '148 13% 10%',
-            '--popover-foreground':  '145 8% 82%',
-            '--primary':             '142 62% 45%',
-            '--primary-foreground':  '0 0% 5%',
-            '--secondary':           '148 10% 19%',
-            '--secondary-foreground':'145 14% 68%',
-            '--muted':               '148 10% 17%',
-            '--muted-foreground':    '145 5% 46%',
-            '--accent':              '142 62% 45%',
-            '--accent-foreground':   '0 0% 5%',
-            '--border':              '148 11% 15%',
-            '--input':               '148 11% 15%',
-            '--ring':                '142 62% 45%',
-            '--guild-bar':           '148 14% 7%',
-        },
-        preview: { bg: '148 12% 12%', card: '148 13% 10%', primary: '142 62% 45%', sidebar: '148 14% 7%' },
-    },
-    sunset: {
-        name: 'Sonnenuntergang',
-        group: 'dunkel',
-        vars: {
-            '--background':          '20 14% 13%',
-            '--foreground':          '25 10% 83%',
-            '--card':                '20 15% 10%',
-            '--card-foreground':     '25 10% 83%',
-            '--popover':             '20 15% 10%',
-            '--popover-foreground':  '25 10% 83%',
-            '--primary':             '28 92% 57%',
-            '--primary-foreground':  '0 0% 5%',
-            '--secondary':           '20 10% 19%',
-            '--secondary-foreground':'25 14% 68%',
-            '--muted':               '20 12% 17%',
-            '--muted-foreground':    '20 7% 47%',
-            '--accent':              '28 92% 57%',
-            '--accent-foreground':   '0 0% 5%',
-            '--border':              '20 12% 15%',
-            '--input':               '20 12% 15%',
-            '--ring':                '28 92% 57%',
-            '--guild-bar':           '20 16% 7%',
-        },
-        preview: { bg: '20 14% 13%', card: '20 15% 10%', primary: '28 92% 57%', sidebar: '20 16% 7%' },
-    },
-    rose: {
-        name: 'Rosenrot',
-        group: 'dunkel',
-        vars: {
-            '--background':          '345 13% 12%',
-            '--foreground':          '345 8% 83%',
-            '--card':                '345 15% 10%',
-            '--card-foreground':     '345 8% 83%',
-            '--popover':             '345 15% 10%',
-            '--popover-foreground':  '345 8% 83%',
-            '--primary':             '345 78% 60%',
-            '--primary-foreground':  '0 0% 100%',
-            '--secondary':           '345 10% 19%',
-            '--secondary-foreground':'345 12% 68%',
-            '--muted':               '345 11% 17%',
-            '--muted-foreground':    '345 6% 47%',
-            '--accent':              '345 78% 60%',
-            '--accent-foreground':   '0 0% 100%',
-            '--border':              '345 11% 15%',
-            '--input':               '345 11% 15%',
-            '--ring':                '345 78% 60%',
-            '--guild-bar':           '345 16% 7%',
-        },
-        preview: { bg: '345 13% 12%', card: '345 15% 10%', primary: '345 78% 60%', sidebar: '345 16% 7%' },
-    },
-    light: {
-        name: 'Hell',
-        group: 'hell',
-        vars: {
-            '--background':          '220 18% 93%',
-            '--foreground':          '220 15% 18%',
-            '--card':                '0 0% 100%',
-            '--card-foreground':     '220 15% 18%',
-            '--popover':             '0 0% 100%',
-            '--popover-foreground':  '220 15% 18%',
-            '--primary':             '175 55% 38%',
-            '--primary-foreground':  '0 0% 100%',
-            '--secondary':           '220 14% 86%',
-            '--secondary-foreground':'220 12% 35%',
-            '--muted':               '220 14% 88%',
-            '--muted-foreground':    '220 8% 48%',
-            '--accent':              '142 50% 40%',
-            '--accent-foreground':   '0 0% 100%',
-            '--border':              '220 13% 80%',
-            '--input':               '220 13% 84%',
-            '--ring':                '175 55% 38%',
-            '--guild-bar':           '220 14% 85%',
-        },
-        preview: { bg: '220 18% 93%', card: '0 0% 100%', primary: '175 55% 38%', sidebar: '220 14% 85%' },
-    },
-    lavender: {
-        name: 'Lavendel',
-        group: 'hell',
-        vars: {
-            '--background':          '250 30% 94%',
-            '--foreground':          '250 20% 20%',
-            '--card':                '0 0% 100%',
-            '--card-foreground':     '250 20% 20%',
-            '--popover':             '0 0% 100%',
-            '--popover-foreground':  '250 20% 20%',
-            '--primary':             '258 70% 55%',
-            '--primary-foreground':  '0 0% 100%',
-            '--secondary':           '250 20% 88%',
-            '--secondary-foreground':'250 15% 35%',
-            '--muted':               '250 22% 90%',
-            '--muted-foreground':    '250 10% 50%',
-            '--accent':              '258 70% 55%',
-            '--accent-foreground':   '0 0% 100%',
-            '--border':              '250 18% 82%',
-            '--input':               '250 18% 86%',
-            '--ring':                '258 70% 55%',
-            '--guild-bar':           '250 25% 87%',
-        },
-        preview: { bg: '250 30% 94%', card: '0 0% 100%', primary: '258 70% 55%', sidebar: '250 25% 87%' },
-    },
-    sakura: {
-        name: 'Kirschblüte',
-        group: 'hell',
-        vars: {
-            '--background':          '345 40% 95%',
-            '--foreground':          '345 20% 18%',
-            '--card':                '0 0% 100%',
-            '--card-foreground':     '345 20% 18%',
-            '--popover':             '0 0% 100%',
-            '--popover-foreground':  '345 20% 18%',
-            '--primary':             '345 72% 52%',
-            '--primary-foreground':  '0 0% 100%',
-            '--secondary':           '345 22% 89%',
-            '--secondary-foreground':'345 15% 36%',
-            '--muted':               '345 25% 91%',
-            '--muted-foreground':    '345 10% 50%',
-            '--accent':              '345 72% 52%',
-            '--accent-foreground':   '0 0% 100%',
-            '--border':              '345 20% 83%',
-            '--input':               '345 20% 87%',
-            '--ring':                '345 72% 52%',
-            '--guild-bar':           '345 28% 88%',
-        },
-        preview: { bg: '345 40% 95%', card: '0 0% 100%', primary: '345 72% 52%', sidebar: '345 28% 88%' },
-    },
-    sky: {
-        name: 'Himmelblau',
-        group: 'hell',
-        vars: {
-            '--background':          '205 45% 93%',
-            '--foreground':          '205 25% 16%',
-            '--card':                '0 0% 100%',
-            '--card-foreground':     '205 25% 16%',
-            '--popover':             '0 0% 100%',
-            '--popover-foreground':  '205 25% 16%',
-            '--primary':             '205 80% 42%',
-            '--primary-foreground':  '0 0% 100%',
-            '--secondary':           '205 22% 87%',
-            '--secondary-foreground':'205 15% 34%',
-            '--muted':               '205 25% 89%',
-            '--muted-foreground':    '205 10% 48%',
-            '--accent':              '205 80% 42%',
-            '--accent-foreground':   '0 0% 100%',
-            '--border':              '205 18% 81%',
-            '--input':               '205 18% 85%',
-            '--ring':                '205 80% 42%',
-            '--guild-bar':           '205 28% 85%',
-        },
-        preview: { bg: '205 45% 93%', card: '0 0% 100%', primary: '205 80% 42%', sidebar: '205 28% 85%' },
-    },
-    neon: {
-        name: 'Neon',
-        group: 'vibrant',
-        vars: {
-            '--background':          '220 20% 10%',
-            '--foreground':          '180 100% 90%',
-            '--card':                '220 22% 8%',
-            '--card-foreground':     '180 100% 90%',
-            '--popover':             '220 22% 8%',
-            '--popover-foreground':  '180 100% 90%',
-            '--primary':             '170 100% 50%',
-            '--primary-foreground':  '220 20% 8%',
-            '--secondary':           '220 18% 16%',
-            '--secondary-foreground':'170 80% 70%',
-            '--muted':               '220 18% 14%',
-            '--muted-foreground':    '200 30% 55%',
-            '--accent':              '295 100% 55%',
-            '--accent-foreground':   '0 0% 100%',
-            '--border':              '220 18% 14%',
-            '--input':               '220 18% 14%',
-            '--ring':                '170 100% 50%',
-            '--guild-bar':           '220 24% 5%',
-        },
-        preview: { bg: '220 20% 10%', card: '220 22% 8%', primary: '170 100% 50%', sidebar: '220 24% 5%' },
-    },
-    lava: {
-        name: 'Lava',
-        group: 'vibrant',
-        vars: {
-            '--background':          '10 22% 10%',
-            '--foreground':          '30 100% 90%',
-            '--card':                '10 24% 8%',
-            '--card-foreground':     '30 100% 90%',
-            '--popover':             '10 24% 8%',
-            '--popover-foreground':  '30 100% 90%',
-            '--primary':             '15 100% 55%',
-            '--primary-foreground':  '0 0% 5%',
-            '--secondary':           '10 18% 17%',
-            '--secondary-foreground':'30 80% 70%',
-            '--muted':               '10 18% 14%',
-            '--muted-foreground':    '20 25% 52%',
-            '--accent':              '45 100% 50%',
-            '--accent-foreground':   '0 0% 5%',
-            '--border':              '10 18% 14%',
-            '--input':               '10 18% 14%',
-            '--ring':                '15 100% 55%',
-            '--guild-bar':           '10 26% 5%',
-        },
-        preview: { bg: '10 22% 10%', card: '10 24% 8%', primary: '15 100% 55%', sidebar: '10 26% 5%' },
-    },
-    electric: {
-        name: 'Elektrisch',
-        group: 'vibrant',
-        vars: {
-            '--background':          '240 25% 9%',
-            '--foreground':          '230 100% 92%',
-            '--card':                '240 27% 7%',
-            '--card-foreground':     '230 100% 92%',
-            '--popover':             '240 27% 7%',
-            '--popover-foreground':  '230 100% 92%',
-            '--primary':             '230 100% 62%',
-            '--primary-foreground':  '0 0% 100%',
-            '--secondary':           '240 22% 15%',
-            '--secondary-foreground':'230 80% 75%',
-            '--muted':               '240 22% 13%',
-            '--muted-foreground':    '230 20% 52%',
-            '--accent':              '180 100% 50%',
-            '--accent-foreground':   '240 25% 8%',
-            '--border':              '240 22% 13%',
-            '--input':               '240 22% 13%',
-            '--ring':                '230 100% 62%',
-            '--guild-bar':           '240 28% 4%',
-        },
-        preview: { bg: '240 25% 9%', card: '240 27% 7%', primary: '230 100% 62%', sidebar: '240 28% 4%' },
-    },
-    acid: {
-        name: 'Acid',
-        group: 'vibrant',
-        vars: {
-            '--background':          '80 20% 8%',
-            '--foreground':          '80 100% 88%',
-            '--card':                '80 22% 6%',
-            '--card-foreground':     '80 100% 88%',
-            '--popover':             '80 22% 6%',
-            '--popover-foreground':  '80 100% 88%',
-            '--primary':             '75 100% 50%',
-            '--primary-foreground':  '80 20% 6%',
-            '--secondary':           '80 16% 14%',
-            '--secondary-foreground':'75 80% 65%',
-            '--muted':               '80 16% 12%',
-            '--muted-foreground':    '80 20% 48%',
-            '--accent':              '295 100% 58%',
-            '--accent-foreground':   '0 0% 100%',
-            '--border':              '80 16% 12%',
-            '--input':               '80 16% 12%',
-            '--ring':                '75 100% 50%',
-            '--guild-bar':           '80 24% 4%',
-        },
-        preview: { bg: '80 20% 8%', card: '80 22% 6%', primary: '75 100% 50%', sidebar: '80 24% 4%' },
-    },
-    candy: {
-        name: 'Candy',
-        group: 'vibrant',
-        vars: {
-            '--background':          '320 22% 10%',
-            '--foreground':          '320 100% 92%',
-            '--card':                '320 24% 8%',
-            '--card-foreground':     '320 100% 92%',
-            '--popover':             '320 24% 8%',
-            '--popover-foreground':  '320 100% 92%',
-            '--primary':             '320 100% 60%',
-            '--primary-foreground':  '0 0% 100%',
-            '--secondary':           '320 18% 16%',
-            '--secondary-foreground':'320 80% 75%',
-            '--muted':               '320 18% 14%',
-            '--muted-foreground':    '320 22% 52%',
-            '--accent':              '55 100% 55%',
-            '--accent-foreground':   '320 22% 8%',
-            '--border':              '320 18% 14%',
-            '--input':               '320 18% 14%',
-            '--ring':                '320 100% 60%',
-            '--guild-bar':           '320 26% 5%',
-        },
-        preview: { bg: '320 22% 10%', card: '320 24% 8%', primary: '320 100% 60%', sidebar: '320 26% 5%' },
-    },
+// All themes target WCAG AA contrast: body text >=7:1 against background,
+// secondary text >=4.5:1. Each theme defines the full var set so switching
+// never leaves stale values bleeding through from a previous theme.
+
+const DARK_BASE = {
+    '--background':            '220 14% 13%',
+    '--foreground':            '210 14% 90%',
+    '--card':                  '220 16% 10%',
+    '--card-foreground':       '210 14% 90%',
+    '--popover':               '220 16% 10%',
+    '--popover-foreground':    '210 14% 90%',
+    '--secondary':             '220 12% 22%',
+    '--secondary-foreground':  '210 14% 78%',
+    '--muted':                 '220 13% 18%',
+    '--muted-foreground':      '215 12% 62%',
+    '--destructive':           '0 72% 56%',
+    '--destructive-foreground':'0 0% 100%',
+    '--border':                '220 14% 18%',
+    '--input':                 '220 14% 18%',
+    '--guild-bar':             '220 18% 7%',
 };
 
+const LIGHT_BASE = {
+    '--background':            '220 22% 95%',
+    '--foreground':            '220 18% 16%',
+    '--card':                  '0 0% 100%',
+    '--card-foreground':       '220 18% 16%',
+    '--popover':               '0 0% 100%',
+    '--popover-foreground':    '220 18% 16%',
+    '--secondary':             '220 16% 88%',
+    '--secondary-foreground':  '220 14% 28%',
+    '--muted':                 '220 18% 90%',
+    '--muted-foreground':      '220 8% 42%',
+    '--destructive':           '0 70% 48%',
+    '--destructive-foreground':'0 0% 100%',
+    '--border':                '220 14% 82%',
+    '--input':                 '220 14% 82%',
+    '--guild-bar':             '220 18% 87%',
+};
+
+function tinted(base, hue, overrides = {}) {
+    const out = { ...base };
+    for (const [key, value] of Object.entries(base)) {
+        const m = value.match(/^(\d+) (\d+)% (\d+)%$/);
+        if (m) {
+            out[key] = `${hue} ${m[2]}% ${m[3]}%`;
+        }
+    }
+    return { ...out, ...overrides };
+}
+
+function darkGradient(hue = 220) {
+    // Subtle diagonal gradient: same hue, two slightly different L/S values.
+    // Stays close to --background so cards still pop.
+    return `linear-gradient(135deg, hsl(${hue} 18% 10%) 0%, hsl(${hue} 14% 13%) 50%, hsl(${hue} 16% 9%) 100%)`;
+}
+
+function lightGradient(hue = 220) {
+    return `linear-gradient(135deg, hsl(${hue} 24% 96%) 0%, hsl(${hue} 22% 93%) 50%, hsl(${hue} 26% 91%) 100%)`;
+}
+
+function darkTheme({ name, group = 'dark', hue, primary, primaryFg = '0 0% 8%', accent, accentFg, gradient }) {
+    const base = hue != null ? tinted(DARK_BASE, hue) : DARK_BASE;
+    return {
+        name,
+        group,
+        vars: {
+            ...base,
+            '--primary': primary,
+            '--primary-foreground': primaryFg,
+            '--accent': accent ?? primary,
+            '--accent-foreground': accentFg ?? primaryFg,
+            '--ring': primary,
+            '--gradient-app': gradient ?? darkGradient(hue ?? 220),
+        },
+    };
+}
+
+function lightTheme({ name, group = 'light', hue, primary, primaryFg = '0 0% 100%', accent, accentFg, gradient }) {
+    const base = hue != null ? tinted(LIGHT_BASE, hue) : LIGHT_BASE;
+    return {
+        name,
+        group,
+        vars: {
+            ...base,
+            '--primary': primary,
+            '--primary-foreground': primaryFg,
+            '--accent': accent ?? primary,
+            '--accent-foreground': accentFg ?? primaryFg,
+            '--ring': primary,
+            '--gradient-app': gradient ?? lightGradient(hue ?? 220),
+        },
+    };
+}
+
+export const STATIC_THEMES = {
+    dark:     darkTheme({
+        name: 'Dunkel',
+        primary: '175 60% 52%', primaryFg: '180 50% 8%',
+        gradient: 'linear-gradient(135deg, hsl(220 18% 10%) 0%, hsl(200 22% 11%) 50%, hsl(175 25% 9%) 100%)',
+    }),
+    midnight: darkTheme({
+        name: 'Mitternacht',
+        hue: 230, primary: '232 85% 68%', primaryFg: '0 0% 100%',
+        gradient: 'linear-gradient(135deg, hsl(232 30% 8%) 0%, hsl(245 28% 10%) 50%, hsl(260 26% 7%) 100%)',
+    }),
+    forest: darkTheme({
+        name: 'Waldgrün',
+        hue: 150, primary: '150 55% 55%', primaryFg: '150 40% 8%',
+        gradient: 'linear-gradient(135deg, hsl(150 22% 9%) 0%, hsl(165 18% 11%) 50%, hsl(140 24% 8%) 100%)',
+    }),
+    sunset: darkTheme({
+        name: 'Sonnenuntergang',
+        hue: 20, primary: '28 92% 62%', primaryFg: '20 50% 10%',
+        gradient: 'linear-gradient(135deg, hsl(20 30% 10%) 0%, hsl(8 26% 12%) 50%, hsl(342 22% 9%) 100%)',
+    }),
+    rose: darkTheme({
+        name: 'Rosenrot',
+        hue: 342, primary: '342 80% 65%', primaryFg: '0 0% 100%',
+        gradient: 'linear-gradient(135deg, hsl(342 22% 10%) 0%, hsl(320 20% 12%) 50%, hsl(0 22% 9%) 100%)',
+    }),
+    ozean: darkTheme({
+        name: 'Ozean',
+        hue: 205, primary: '200 75% 60%', primaryFg: '210 50% 8%',
+        gradient: 'linear-gradient(135deg, hsl(205 32% 9%) 0%, hsl(220 26% 11%) 50%, hsl(195 30% 8%) 100%)',
+    }),
+    sage: darkTheme({
+        name: 'Salbei',
+        hue: 85, primary: '85 45% 60%', primaryFg: '85 40% 10%',
+        gradient: 'linear-gradient(135deg, hsl(85 20% 10%) 0%, hsl(70 18% 11%) 50%, hsl(100 22% 9%) 100%)',
+    }),
+    lavender: darkTheme({
+        name: 'Lavendel',
+        hue: 270, primary: '270 70% 70%', primaryFg: '0 0% 100%',
+        gradient: 'linear-gradient(135deg, hsl(270 24% 10%) 0%, hsl(285 22% 12%) 50%, hsl(255 26% 9%) 100%)',
+    }),
+    slate: {
+        name: 'Schiefer',
+        group: 'dark',
+        vars: {
+            '--background':            '220 6% 14%',
+            '--foreground':            '220 8% 90%',
+            '--card':                  '220 8% 11%',
+            '--card-foreground':       '220 8% 90%',
+            '--popover':               '220 8% 11%',
+            '--popover-foreground':    '220 8% 90%',
+            '--primary':               '210 30% 72%',
+            '--primary-foreground':    '215 40% 12%',
+            '--secondary':             '220 6% 22%',
+            '--secondary-foreground':  '220 8% 78%',
+            '--muted':                 '220 6% 18%',
+            '--muted-foreground':      '220 6% 62%',
+            '--accent':                '210 30% 72%',
+            '--accent-foreground':     '215 40% 12%',
+            '--destructive':           '0 72% 56%',
+            '--destructive-foreground':'0 0% 100%',
+            '--border':                '220 6% 20%',
+            '--input':                 '220 6% 20%',
+            '--ring':                  '210 30% 72%',
+            '--guild-bar':             '220 8% 8%',
+            '--gradient-app':          'linear-gradient(135deg, hsl(220 8% 10%) 0%, hsl(215 10% 12%) 50%, hsl(225 6% 9%) 100%)',
+        },
+    },
+    light:  lightTheme({
+        name: 'Hell',
+        primary: '175 60% 36%',
+        gradient: 'linear-gradient(135deg, hsl(220 30% 96%) 0%, hsl(200 26% 94%) 50%, hsl(175 24% 93%) 100%)',
+    }),
+    sakura: lightTheme({
+        name: 'Kirschblüte',
+        hue: 342, primary: '342 70% 48%',
+        gradient: 'linear-gradient(135deg, hsl(342 35% 96%) 0%, hsl(320 30% 94%) 50%, hsl(0 28% 95%) 100%)',
+    }),
+};
+
+const CUSTOM_CONFIG_KEY = 'yappie-custom-theme';
+const DEFAULT_CUSTOM_CONFIG = { hue: 175, saturation: 60, mode: 'dark' };
+
+function clampHue(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return DEFAULT_CUSTOM_CONFIG.hue;
+    return ((n % 360) + 360) % 360;
+}
+
+function clampPct(v, min, max, fallback) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(max, Math.max(min, n));
+}
+
+export function getCustomConfig() {
+    try {
+        const raw = localStorage.getItem(CUSTOM_CONFIG_KEY);
+        if (!raw) return { ...DEFAULT_CUSTOM_CONFIG };
+        const parsed = JSON.parse(raw);
+        return {
+            hue: clampHue(parsed.hue),
+            saturation: clampPct(parsed.saturation, 30, 100, 60),
+            mode: parsed.mode === 'light' ? 'light' : 'dark',
+        };
+    } catch {
+        return { ...DEFAULT_CUSTOM_CONFIG };
+    }
+}
+
+export function setCustomConfig(config) {
+    const safe = {
+        hue: clampHue(config.hue),
+        saturation: clampPct(config.saturation, 30, 100, 60),
+        mode: config.mode === 'light' ? 'light' : 'dark',
+    };
+    localStorage.setItem(CUSTOM_CONFIG_KEY, JSON.stringify(safe));
+    return safe;
+}
+
+function buildCustomVars(config) {
+    const { hue, saturation, mode } = config;
+    if (mode === 'light') {
+        return lightTheme({
+            name: 'Eigener Stil',
+            hue,
+            primary: `${hue} ${Math.min(saturation, 70)}% 40%`,
+        }).vars;
+    }
+    return darkTheme({
+        name: 'Eigener Stil',
+        hue,
+        primary: `${hue} ${saturation}% 58%`,
+        primaryFg: saturation >= 70 ? `${hue} 40% 8%` : '0 0% 100%',
+    }).vars;
+}
+
+function systemPrefersDark() {
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? true;
+}
+
+function resolveVars(id) {
+    if (id === 'system') {
+        return systemPrefersDark() ? STATIC_THEMES.dark.vars : STATIC_THEMES.light.vars;
+    }
+    if (id === 'custom') {
+        return buildCustomVars(getCustomConfig());
+    }
+    return (STATIC_THEMES[id] ?? STATIC_THEMES.dark).vars;
+}
+
+function applyVars(vars) {
+    const root = document.documentElement;
+    for (const [key, value] of Object.entries(vars)) {
+        root.style.setProperty(key, value);
+    }
+}
+
 function applyThemeById(id) {
-    const theme = THEMES[id] ?? THEMES.dark;
-    Object.entries(theme.vars).forEach(([key, value]) => {
-        document.documentElement.style.setProperty(key, value);
-    });
+    applyVars(resolveVars(id));
 }
 
 export function initTheme() {
     const saved = localStorage.getItem('yappie-theme') || 'dark';
     applyThemeById(saved);
+    if (saved === 'system') {
+        window.matchMedia?.('(prefers-color-scheme: dark)')
+            .addEventListener?.('change', () => applyThemeById('system'));
+    }
+}
+
+// Exposes both static themes and the synthetic "system" / "custom" entries.
+export function listThemes() {
+    return {
+        system: { name: 'Systemdesign', group: 'system' },
+        ...STATIC_THEMES,
+        custom: { name: 'Eigener Stil', group: 'custom' },
+    };
+}
+
+// Returns the colors used by the preview card for any theme id, computed
+// against the *current* state (so custom + system reflect their live values).
+export function getThemePreview(id) {
+    const vars = resolveVars(id);
+    return {
+        bg:        vars['--background'],
+        card:      vars['--card'],
+        primary:   vars['--primary'],
+        sidebar:   vars['--guild-bar'],
+        fg:        vars['--foreground'],
+        mutedFg:   vars['--muted-foreground'],
+        secondary: vars['--secondary'],
+        border:    vars['--border'],
+        gradient:  vars['--gradient-app'],
+    };
 }
 
 export function useTheme() {
     const [themeId, setThemeId] = useState(() => localStorage.getItem('yappie-theme') || 'dark');
+    const [, forceRerender] = useState(0);
 
     const applyTheme = useCallback((id) => {
         applyThemeById(id);
@@ -424,5 +302,37 @@ export function useTheme() {
         setThemeId(id);
     }, []);
 
-    return { themeId, applyTheme };
+    // Live preview without committing — used for hover effect in the selector.
+    // Pass `null` to revert to the currently-saved theme.
+    const previewTheme = useCallback((id) => {
+        if (id == null) {
+            const saved = localStorage.getItem('yappie-theme') || 'dark';
+            applyThemeById(saved);
+        } else {
+            applyThemeById(id);
+        }
+    }, []);
+
+    const updateCustom = useCallback((patch) => {
+        const next = setCustomConfig({ ...getCustomConfig(), ...patch });
+        if ((localStorage.getItem('yappie-theme') || 'dark') === 'custom') {
+            applyThemeById('custom');
+        }
+        forceRerender(n => n + 1);
+        return next;
+    }, []);
+
+    useEffect(() => {
+        if (themeId !== 'system') return;
+        const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
+        if (!mq) return;
+        const handler = () => {
+            applyThemeById('system');
+            forceRerender(n => n + 1);
+        };
+        mq.addEventListener?.('change', handler);
+        return () => mq.removeEventListener?.('change', handler);
+    }, [themeId]);
+
+    return { themeId, applyTheme, previewTheme, updateCustom, customConfig: getCustomConfig() };
 }

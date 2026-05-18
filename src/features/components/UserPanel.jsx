@@ -11,7 +11,6 @@ import UserAvatar from "./UserAvatar.jsx";
 import {useAuth} from "../../hooks/useAuth.js";
 import {useVoice} from "../../hooks/useVoice.jsx";
 import {faMicrophoneSlash, faPhoneSlash, faHeadphonesSlash} from "@awesome.me/kit-95376d5d61/icons/classic/light";
-import {useState} from "react";
 import HasUserPopup from "./user/HasUserPopup.jsx";
 import StatusText from "./user/StatusText.jsx";
 import {useIsOnline, useUserStatus} from "../../hooks/usePresence.js";
@@ -22,8 +21,7 @@ import {faGamepad} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 function UserPanel() {
     const { user } = useAuth();
     const { openSettings } = useSettings();
-    const [ setChangeStatusVisible ] = useState(false);
-    const { isConnected, channelName, serverName, krisp, leaveVoice, muted, toggleMute, deafened, toggleDeafen, connectionStatus, retryCount } = useVoice();
+    const { isConnected, channelName, serverName, krisp, leaveVoice, muted, toggleMute, deafened, toggleDeafen, connectionStatus, retryCount, isAfk } = useVoice();
 
     const online = useIsOnline(user.id) ?? user.online;
     const status = useUserStatus(user.id) ?? user.status;
@@ -100,7 +98,7 @@ function UserPanel() {
 
             <div className="flex items-center justify-between pl-1 pr-2 py-1">
                 <HasUserPopup classes="w-full" isProfilePopup={true} user={user} orientation="top">
-                    <div className="flex items-center gap-3 hover:bg-card px-2 grow py-1 rounded-lg cursor-pointer" onClick={() => setChangeStatusVisible(true)}>
+                    <div className="flex items-center gap-3 hover:bg-card px-2 grow py-1 rounded-lg cursor-pointer">
                         <UserAvatar icon={user.username.charAt(0).toUpperCase()} avatar={user.avatar} online={online} status={status} />
                         <div className="flex flex-col min-w-0">
                             <span className="text-foreground text-base font-medium truncate">
@@ -113,7 +111,12 @@ function UserPanel() {
                     </div>
                 </HasUserPopup>
                 <div className="flex items-center gap-1">
-                    <button onClick={toggleMute} className={`cursor-pointer rounded-lg ${muted ? 'text-red-400' : 'text-foreground'}  text-xl hover:bg-card/80 hover:text-foreground px-1.5 py-1.5`}>
+                    <button
+                        onClick={toggleMute}
+                        disabled={isAfk}
+                        title={isAfk ? 'Im AFK-Kanal gesperrt' : undefined}
+                        className={`rounded-lg ${muted ? 'text-red-400' : 'text-foreground'} text-xl px-1.5 py-1.5 ${isAfk ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-card/80 hover:text-foreground'}`}
+                    >
                         <FontAwesomeIcon icon={muted ? faMicrophoneSlash : faMicrophone} />
                     </button>
                     <button onClick={toggleDeafen} className={`cursor-pointer rounded-lg ${deafened ? 'text-red-400' : 'text-foreground/80'} text-xl hover:bg-card/80 hover:text-foreground px-1.5 py-1.5`}>

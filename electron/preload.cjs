@@ -51,6 +51,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setCustomGames: (games) => ipcRenderer.send('electron:set-custom-games', games),
     setActivityEnabled: (enabled) => ipcRenderer.send('electron:set-activity-enabled', enabled),
 
+    // Notifications / window
+    setBadgeCount: (count) => ipcRenderer.send('app:set-badge', count),
+    focusWindow: () => ipcRenderer.send('app:focus-window'),
+    flashFrame: (on) => ipcRenderer.send('app:flash-frame', on),
+    showNotification: (opts) => ipcRenderer.invoke('app:show-notification', opts),
+    getIdleSeconds: () => ipcRenderer.invoke('app:get-idle-seconds'),
+    onNotificationClick: (callback) => {
+        ipcRenderer.removeAllListeners('app:notification-clicked');
+        ipcRenderer.on('app:notification-clicked', (_event, clickId) => callback(clickId));
+    },
+
     // Updater
     onUpdateStatus: (callback) => {
         ipcRenderer.removeAllListeners('update:status');

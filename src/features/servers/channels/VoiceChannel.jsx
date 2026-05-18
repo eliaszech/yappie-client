@@ -1,6 +1,6 @@
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {useVoice} from "../../../hooks/useVoice.jsx";
-import {faDisplay, faMicrophoneSlash, faVolumeHigh, faHeadphonesSlash} from "@awesome.me/kit-95376d5d61/icons/classic/light";
+import {faDisplay, faMicrophoneSlash, faVolumeHigh, faHeadphonesSlash, faMoon} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {faArrowsRotate, faGear} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import {useChannelParticipants} from "../../../hooks/useChannelParticipants.js";
 import UserAvatar from "../../components/UserAvatar.jsx";
@@ -17,9 +17,13 @@ function VoiceChannel({ channel, server, onSettings }) {
     const handleParticipantContextMenu = useParticipantContextMenu();
     const isActive = activeChannelId === channel.id;
     const isConnecting = isActive && (connectionStatus === 'connecting' || connectionStatus === 'reconnecting');
+    const isConnected = isActive && connectionStatus === 'connected';
+    const isAfkChannel = server.afkChannelId && channel.id === server.afkChannelId;
 
-    const polledParticipants = useChannelParticipants(isActive ? null : channel.id);
-    const participants = isActive ? liveParticipants : polledParticipants;
+    // While connecting, keep the polled list visible so the already-present
+    // users don't blink out before LiveKit emits its first participant snapshot.
+    const polledParticipants = useChannelParticipants(isConnected ? null : channel.id);
+    const participants = isConnected ? liveParticipants : polledParticipants;
     const hasAnyPresence = isConnecting || (participants || []).length > 0;
     const avatarByUserId = useMemberAvatars(server.id);
 
@@ -37,9 +41,15 @@ function VoiceChannel({ channel, server, onSettings }) {
             <div className="group relative flex items-center">
                 <button
                     onClick={handleClick}
+                    title={isAfkChannel ? 'AFK-Kanal – Mikro ist hier gesperrt' : undefined}
                     className={`${isActive ? 'bg-muted/50 text-foreground' : 'text-muted-foreground'} cursor-pointer w-full flex items-center gap-2.5 px-2 py-1 pr-7 rounded-md font-medium transition-all hover:text-foreground hover:bg-muted/50`}>
-                    <FontAwesomeIcon className={`shrink-0 ${hasAnyPresence ? 'text-primary' : ''}`} icon={faVolumeHigh} />
+                    <FontAwesomeIcon className={`shrink-0 ${hasAnyPresence ? 'text-primary' : ''}`} icon={isAfkChannel ? faMoon : faVolumeHigh} />
                     <span className="truncate">{channel.name}</span>
+                    {isAfkChannel && (
+                        <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold mr-1">
+                            AFK
+                        </span>
+                    )}
                 </button>
                 <button
                     onClick={() => onSettings?.(channel)}

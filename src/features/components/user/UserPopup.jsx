@@ -214,16 +214,27 @@ function UserPopup() {
         <>
             <div className="fixed inset-0 z-49 pointer-events-auto" onClick={closePopup} />
             <div ref={ref}
-                 className="fixed z-50 w-80 bg-card border border-border rounded-lg shadow-xl"
+                 className="fixed z-50 w-80 bg-card border border-border/60 rounded-xl shadow-2xl"
                  style={style}>
-                {/* Banner */}
-                <div className="relative h-16 bg-primary rounded-t-lg">
+                {/* Banner with primary→accent gradient + radial highlight */}
+                <div
+                    className="relative h-20 rounded-t-xl overflow-hidden"
+                    style={{
+                        background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)',
+                    }}
+                >
+                    <div
+                        className="absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none"
+                        style={{
+                            background: 'radial-gradient(circle at 25% 20%, rgba(255,255,255,0.55) 0%, transparent 55%)',
+                        }}
+                    />
                     {!isSelf && (
-                        <div className="absolute top-2 right-2 flex gap-1">
+                        <div className="absolute top-2 right-2 flex gap-1 z-10">
                             <button
                                 onClick={friendClickable ? handleFriendClick : undefined}
                                 title={friendTitle}
-                                className={`w-8 h-8 flex items-center justify-center rounded-full bg-card/90 transition-colors text-sm ${friendClickable ? 'cursor-pointer hover:bg-card' : 'cursor-default'}`}
+                                className={`w-8 h-8 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-md border border-white/15 transition-colors text-sm ${friendClickable ? 'cursor-pointer hover:bg-black/55' : 'cursor-default'}`}
                             >
                                 <FontAwesomeIcon icon={friendIcon} className={friendIconClass} />
                             </button>
@@ -232,13 +243,13 @@ function UserPopup() {
                                 <button
                                     onClick={() => { setShowMore(v => !v); setMoreView('main'); }}
                                     title="Mehr Optionen"
-                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-card/90 hover:bg-card cursor-pointer transition-colors text-sm"
+                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-md border border-white/15 hover:bg-black/55 cursor-pointer transition-colors text-sm"
                                 >
-                                    <FontAwesomeIcon icon={faEllipsis} className="text-muted-foreground" />
+                                    <FontAwesomeIcon icon={faEllipsis} className="text-white/90" />
                                 </button>
 
                                 {showMore && (
-                                    <div className="absolute right-0 top-full mt-1 w-52 bg-card border border-border rounded-lg shadow-xl z-[60] py-1">
+                                    <div className="absolute right-0 top-full mt-1 w-52 bg-card/95 backdrop-blur-xl border border-border rounded-lg shadow-xl z-[60] py-1">
                                         {moreView === 'main' ? (
                                             <>
                                                 <button
@@ -300,36 +311,39 @@ function UserPopup() {
                 </div>
 
                 {/* Avatar */}
-                <div className="px-4 -mt-8">
-                    <UserAvatar size="w-16 h-16 text-2xl border-4 border-card"
-                        onlineSize="w-5 h-5 bottom-0 right-0" icon={popup.user.username.charAt(0).toUpperCase()}
+                <div className="px-4 -mt-10 relative z-10">
+                    <UserAvatar size="w-20 h-20 text-3xl border-4 border-card shadow-xl"
+                        onlineSize="w-5 h-5 bottom-0.5 right-0.5" icon={popup.user.username.charAt(0).toUpperCase()}
                         avatar={popup.user.avatar} online={online} status={status}
                     />
                 </div>
 
                 {/* User Info */}
-                <div className="p-4">
-                    <div className="text-xl font-bold text-foreground">{popup.user.displayName ?? popup.user.username}</div>
+                <div className="px-4 pb-4 pt-2">
+                    <div className="text-xl font-bold text-foreground leading-tight">{popup.user.displayName ?? popup.user.username}</div>
                     <div className="text-sm text-muted-foreground">{popup.user.username}</div>
 
                     {showActivity && (
-                        <div className="mt-3 pt-3 border-t border-border">
+                        <div
+                            className="mt-4 p-3 rounded-xl border border-primary/25 relative overflow-hidden"
+                            style={{ background: 'linear-gradient(135deg, hsl(var(--primary) / 0.18) 0%, hsl(var(--accent) / 0.10) 100%)' }}
+                        >
                             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                 Aktivität
                             </span>
-                            <div className="mt-2 flex items-center gap-3 px-2.5 py-3 rounded-md bg-muted/40">
+                            <div className="mt-2 flex items-center gap-3">
                                 {activity.icon ? (
-                                    <img src={activity.icon} alt="" className="w-11 h-11 shrink-0 rounded-lg object-cover" />
+                                    <img src={activity.icon} alt="" className="w-11 h-11 shrink-0 rounded-lg object-cover ring-1 ring-primary/30" />
                                 ) : (
-                                    <div className="w-11 h-11 shrink-0 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
+                                    <div className="w-11 h-11 shrink-0 rounded-lg bg-primary/25 text-primary flex items-center justify-center">
                                         <FontAwesomeIcon icon={faGamepad} className="text-base" />
                                     </div>
                                 )}
                                 <div className="flex flex-col min-w-0 flex-1">
-                                    <span className="text-sm mb-0.5 font-semibold text-foreground truncate" title={activity.name}>{activity.name}</span>
+                                    <span className="text-sm font-semibold text-foreground truncate" title={activity.name}>{activity.name}</span>
                                     {playtimeLabel && (
                                         <div className="flex items-center gap-1 text-primary">
-                                            <FontAwesomeIcon className="text-sm" icon={faGamepadModern} />
+                                            <FontAwesomeIcon className="text-xs" icon={faGamepadModern} />
                                             <span className="text-[11px] text-primary truncate">{playtimeLabel}</span>
                                         </div>
                                     )}
@@ -338,9 +352,9 @@ function UserPopup() {
                         </div>
                     )}
 
-                    <div className={showActivity ? "mt-3 pt-3 border-t border-border" : "mt-2"}>
+                    <div className="mt-3 p-3 rounded-xl bg-card/55 backdrop-blur-sm border border-border/60">
                         <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Mitglied seit</span>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-sm text-foreground mt-1">
                             {new Date(popup.user.createdAt).toLocaleDateString('de-DE', {
                                 day: 'numeric',
                                 month: 'long',
@@ -350,7 +364,7 @@ function UserPopup() {
                     </div>
 
                     {popup.roles?.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-border">
+                        <div className="mt-3 p-3 rounded-xl bg-card/55 backdrop-blur-sm border border-border/60">
                             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                 Rollen
                             </span>
@@ -362,9 +376,9 @@ function UserPopup() {
                                             key={role.id}
                                             className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border"
                                             style={{
-                                                background: `${role.color || '#99aab5'}18`,
+                                                background: `${role.color || '#99aab5'}1F`,
                                                 color: role.color || '#99aab5',
-                                                borderColor: `${role.color || '#99aab5'}40`,
+                                                borderColor: `${role.color || '#99aab5'}55`,
                                             }}
                                         >
                                             <span className="w-2 h-2 rounded-full shrink-0" style={{ background: role.color || '#99aab5' }} />
@@ -377,27 +391,22 @@ function UserPopup() {
                     )}
 
                     {isSelf && popup.isProfilePopup && (
-                        <div className="flex flex-col mt-4 rounded-lg bg-muted text-foreground divide-y divide-border">
-                            <div className="">
-                                <button
-                                    onClick={() => { closePopup(); openSettings('profile'); }}
-                                    className="cursor-pointer text-left px-3 py-3 w-full hover:bg-card/50 text-sm font-medium"
-                                >
-                                    <FontAwesomeIcon icon={faPen} className="mr-3" />
-                                    Profil bearbeiten
+                        <div className="flex flex-col mt-4 rounded-xl bg-card/55 backdrop-blur-sm border border-border/60 text-foreground divide-y divide-border/60">
+                            <button
+                                onClick={() => { closePopup(); openSettings('profile'); }}
+                                className="cursor-pointer text-left px-3 py-3 w-full hover:bg-muted/40 text-sm font-medium transition-colors"
+                            >
+                                <FontAwesomeIcon icon={faPen} className="mr-3 text-muted-foreground" />
+                                Profil bearbeiten
+                            </button>
+                            <Dropdown offset="4" trigger={
+                                <button className="cursor-pointer text-left px-3 py-3 w-full hover:bg-muted/40 text-sm font-medium transition-colors">
+                                    <StatusText online={online} userStatus={ status } showRealStatus={true} />
                                 </button>
-                            </div>
-                            <div className="">
-                                <Dropdown offset="4" trigger={
-                                    <button className="cursor-pointer text-left px-3 py-3 w-full hover:bg-card/50 text-sm font-medium">
-                                        <StatusText online={online} userStatus={ status } showRealStatus={true} />
-                                    </button>
-                                } content={
-                                    <StatusPicker />
-                                } position="rightBottom" />
-                            </div>
+                            } content={
+                                <StatusPicker />
+                            } position="rightBottom" />
                         </div>
-
                     )}
 
                     {!isSelf && (
@@ -409,7 +418,7 @@ function UserPopup() {
                                        }
                                    }}
                                    onChange={(e) => setInput(e.target.value)}
-                                   className="w-full px-3 py-2 text-sm rounded bg-input border border-border outline-none focus:ring-2 focus:ring-primary/80 text-foreground placeholder:text-muted-foreground!"/>
+                                   className="w-full px-3 py-2 text-sm rounded-lg bg-card/55 backdrop-blur-sm border border-border/60 outline-none focus:ring-2 focus:ring-primary/80 focus:border-transparent text-foreground placeholder:text-muted-foreground! transition-all"/>
                         </div>
                     )}
                 </div>

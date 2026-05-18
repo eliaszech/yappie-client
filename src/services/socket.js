@@ -14,8 +14,12 @@ let friendRequestCallback = null;
 let userServerUpdateCallback = null;
 
 let voiceCallback = null;
+let afkMoveCallback = null;
+let pollUpdateCallback = null;
 let activityCallback = null;
 let activitySyncCallback = null;
+let pinCallback = null;
+let conversationCreatedCallback = null;
 
 let eventsRegistered = false;
 
@@ -74,12 +78,32 @@ function registerEvents() {
         if (voiceCallback) voiceCallback('leave', data);
     });
 
+    socket.on('voice:afk', (data) => {
+        if (afkMoveCallback) afkMoveCallback(data);
+    });
+
+    socket.on('poll:update', (data) => {
+        if (pollUpdateCallback) pollUpdateCallback(data);
+    });
+
     socket.on('user:activityChange', (data) => {
         if (activityCallback) activityCallback(data);
     });
 
     socket.on('user:activitySync', (snapshot) => {
         if (activitySyncCallback) activitySyncCallback(snapshot);
+    });
+
+    socket.on('message:pinned', (data) => {
+        if (pinCallback) pinCallback('pinned', data);
+    });
+
+    socket.on('message:unpinned', (data) => {
+        if (pinCallback) pinCallback('unpinned', data);
+    });
+
+    socket.on('conversation:new', (conversation) => {
+        if (conversationCreatedCallback) conversationCreatedCallback(conversation);
     });
 
     eventsRegistered = true;
@@ -133,12 +157,28 @@ export function onVoiceChange(callback) {
     voiceCallback = callback;
 }
 
+export function onAfkMove(callback) {
+    afkMoveCallback = callback;
+}
+
+export function onPollUpdate(callback) {
+    pollUpdateCallback = callback;
+}
+
 export function onActivityChange(callback) {
     activityCallback = callback;
 }
 
 export function onActivitySync(callback) {
     activitySyncCallback = callback;
+}
+
+export function onPinUpdate(callback) {
+    pinCallback = callback;
+}
+
+export function onConversationCreated(callback) {
+    conversationCreatedCallback = callback;
 }
 
 export function getSocket() {

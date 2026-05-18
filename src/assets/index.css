@@ -67,6 +67,8 @@
     --guild-bar: 220 17% 7%;
     --color-guild-bar: hsl(var(--guild-bar));
 
+    --gradient-app: linear-gradient(135deg, hsl(220 18% 10%) 0%, hsl(200 22% 11%) 50%, hsl(175 25% 9%) 100%);
+
     --online: 142 80% 50%;
     --color-online: hsl(var(--online));
 

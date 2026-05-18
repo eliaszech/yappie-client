@@ -1,5 +1,5 @@
 import MessageItem from "./MessageItem.jsx";
-import {useEffect, useRef, useState} from "react";
+import {useEffect, useMemo, useRef, useState} from "react";
 import {useQuery, useQueryClient} from "@tanstack/react-query";
 import {fetchMessages} from "../../../services/api.js";
 import Spinner from "../../components/static/Spinner.jsx";
@@ -8,6 +8,7 @@ import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faMessages} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {faArrowDown} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import {useAuth} from "../../../hooks/useAuth.js";
+import {markChannelAsRead, markConversationAsRead} from "../../../hooks/useReadStates.js";
 
 function Chat({children, type = 'conversation', roomId}) {
     const {user} = useAuth();
@@ -17,6 +18,7 @@ function Chat({children, type = 'conversation', roomId}) {
     const lastSeenMessageIdRef = useRef(null);
     const [loadingMore, setLoadingMore] = useState(false);
     const [hasNewMessages, setHasNewMessages] = useState(false);
+    const [unreadMarker, setUnreadMarker] = useState(null);
     const queryClient = useQueryClient();
 
     const {data: messages, isLoading, isError} = useQuery({
@@ -69,6 +71,35 @@ function Chat({children, type = 'conversation', roomId}) {
     }, [roomId]);
 
     useEffect(() => {
+        if (!roomId) return;
+
+        // Snapshot des lastReadAt VOR dem markRead-Call, damit die Trennlinie
+        // an Ort und Stelle bleibt während wir den Channel als gelesen markieren.
+        const rs = queryClient.getQueryData(['readStates']);
+        const list = type === 'channel' ? rs?.channels : rs?.conversations;
+        const idKey = type === 'channel' ? 'channelId' : 'conversationId';
+        const entry = Array.isArray(list) ? list.find(c => c[idKey] === roomId) : null;
+        setUnreadMarker(entry?.lastReadAt ?? null);
+
+        function markRead() {
+            if (type === 'channel') markChannelAsRead(queryClient, roomId);
+            else if (type === 'conversation') markConversationAsRead(queryClient, roomId, user?.id);
+        }
+
+        markRead();
+
+        function onFocus() {
+            if (document.visibilityState === 'visible') markRead();
+        }
+        window.addEventListener('focus', onFocus);
+        document.addEventListener('visibilitychange', onFocus);
+        return () => {
+            window.removeEventListener('focus', onFocus);
+            document.removeEventListener('visibilitychange', onFocus);
+        };
+    }, [roomId, type, queryClient, user?.id]);
+
+    useEffect(() => {
         if(!messagesContainerRef.current) return;
         const messagesContainer = messagesContainerRef.current;
 
@@ -112,12 +143,25 @@ function Chat({children, type = 'conversation', roomId}) {
 
         if(atBottom) {
             scrollToBottom(true);
+            if (document.visibilityState === 'visible' && document.hasFocus()) {
+                if (type === 'channel') markChannelAsRead(queryClient, roomId);
+                else if (type === 'conversation') markConversationAsRead(queryClient, roomId, user?.id);
+            }
         } else {
             setHasNewMessages(true);
         }
-    }, [messages, user?.id]);
+    }, [messages, user?.id, type, roomId, queryClient]);
 
 
+
+    const firstUnreadId = useMemo(() => {
+        if (!unreadMarker || !messages || messages.length === 0) return null;
+        const marker = new Date(unreadMarker).getTime();
+        const found = messages.find(m =>
+            new Date(m.createdAt).getTime() > marker && m.userId !== user?.id
+        );
+        return found?.id ?? null;
+    }, [unreadMarker, messages, user?.id]);
 
     function shouldPrependDateLine(current, previous) {
         if (!previous) return true;
@@ -148,13 +192,21 @@ function Chat({children, type = 'conversation', roomId}) {
                     Neue Nachrichten
                 </button>
             )}
-            <div ref={messagesContainerRef} className="flex grow flex-col-reverse pb-8 pt-12 overflow-y-auto">
+            <div
+                ref={messagesContainerRef}
+                className="flex grow flex-col-reverse pb-8 pt-12 overflow-y-auto"
+                style={{
+                    maskImage: 'linear-gradient(to top, transparent 0, black 32px)',
+                    WebkitMaskImage: 'linear-gradient(to top, transparent 0, black 32px)',
+                }}
+            >
                 <div ref={messagesEndRef} />
                 { messages.length > 0 && [...messages].reverse().map((message, index, reversed) => {
                     const previous = reversed[index + 1];
                     const isGrouped = shouldGroupMessage(message, previous);
                     const shouldPrependDate = shouldPrependDateLine(message, previous);
 
+                    const showUnreadMarker = message.id === firstUnreadId;
                     return (
                         <div key={message.id}>
                             { shouldPrependDate && (
@@ -163,7 +215,14 @@ function Chat({children, type = 'conversation', roomId}) {
                                     <div className="z-2 w-max px-4 bg-background">{new Date(message.createdAt).toLocaleDateString([], { day: '2-digit', month: '2-digit', year: 'numeric'})}</div>
                                 </div>
                             )}
-                            <MessageItem isGrouped={isGrouped} message={message} />
+                            { showUnreadMarker && (
+                                <div className="flex items-center mx-4 my-2 relative">
+                                    <div className="flex-1 h-[1px] bg-dnd/70"></div>
+                                    <span className="px-2 text-[10px] font-bold uppercase tracking-wider text-dnd bg-background">Neu</span>
+                                    <div className="h-[1px] w-4 bg-dnd/70"></div>
+                                </div>
+                            )}
+                            <MessageItem isGrouped={showUnreadMarker ? false : isGrouped} message={message} />
                         </div>
                     )
                 })}

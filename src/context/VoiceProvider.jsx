@@ -3,7 +3,14 @@ import { VoiceContext } from './VoiceContext';
 import {fetchVoiceToken} from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import {getSocket} from "../services/socket.js";
-import {playJoinSound, playLeaveSound} from "../services/sounds.js";
+import {
+    playJoinSound,
+    playLeaveSound,
+    playMuteOnSound,
+    playMuteOffSound,
+    playDeafenOnSound,
+    playDeafenOffSound,
+} from "../services/sounds.js";
 
 export function VoiceProvider({ children }) {
     const { user } = useAuth();
@@ -25,6 +32,7 @@ export function VoiceProvider({ children }) {
         muted: false,
         deafened: false,
         mutedByDeafen: false,
+        isAfk: false,
     });
 
     function setKrisp(krisp) {
@@ -102,6 +110,8 @@ export function VoiceProvider({ children }) {
             ...prev,
             token: res.token,
             serverUrl: res.url,
+            isAfk: !!res.afk,
+            muted: res.afk ? true : prev.muted,
             participants: [],
         }));
 
@@ -119,7 +129,7 @@ export function VoiceProvider({ children }) {
         if (res.error) return false;
         setVoiceState(prev => {
             if (!prev.channelId) return prev;
-            return { ...prev, token: res.token, serverUrl: res.url };
+            return { ...prev, token: res.token, serverUrl: res.url, isAfk: !!res.afk };
         });
         return true;
     }
@@ -141,6 +151,7 @@ export function VoiceProvider({ children }) {
             serverId: null,
             serverName: null,
             participants: [],
+            isAfk: false,
         }));
         setScreenSharesState([]);
         setConnectionStatusState('idle');
@@ -148,12 +159,19 @@ export function VoiceProvider({ children }) {
     }
 
     function toggleMute() {
-        setVoiceState(prev => ({ ...prev, muted: !prev.muted, mutedByDeafen: false }));
+        setVoiceState(prev => {
+            if (prev.isAfk) return prev;
+            const nextMuted = !prev.muted;
+            if (nextMuted) playMuteOnSound();
+            else playMuteOffSound();
+            return { ...prev, muted: nextMuted, mutedByDeafen: false };
+        });
     }
 
     function toggleDeafen() {
         setVoiceState(prev => {
             if (!prev.deafened) {
+                playDeafenOnSound();
                 return {
                     ...prev,
                     deafened: true,
@@ -161,6 +179,7 @@ export function VoiceProvider({ children }) {
                     mutedByDeafen: !prev.muted,
                 };
             }
+            playDeafenOffSound();
             return {
                 ...prev,
                 deafened: false,
@@ -188,6 +207,7 @@ export function VoiceProvider({ children }) {
         setScreenShareEnabled: voiceActions.setScreenShareEnabled,
         setParticipantVolume: voiceActions.setParticipantVolume,
         setMicGain: voiceActions.setMicGain,
+        setMicThreshold: voiceActions.setMicThreshold,
         setMicDevice: voiceActions.setMicDevice,
         setSpeakerDevice: voiceActions.setSpeakerDevice,
         setVoiceError,

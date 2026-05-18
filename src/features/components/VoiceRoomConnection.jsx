@@ -10,6 +10,7 @@ import {
     getMicDeviceId, setMicDeviceId,
     getSpeakerDeviceId, setSpeakerDeviceId,
     getMicGain, setMicGain,
+    getMicThreshold, setMicThreshold,
 } from "../../services/voiceSettings.js";
 import { playJoinSound, playLeaveSound } from "../../services/sounds.js";
 
@@ -77,11 +78,56 @@ function VoiceRoomContent() {
         }
     }, [connectionState]);
 
+    // Eigene speaking-Detection via audioLevel polling. LiveKit's p.isSpeaking
+    // ist server-gefiltert und hat einen ~500ms Decay — fühlt sich verzögert an.
+    // Wir lesen audioLevel direkt (frame-aktuelle Werte) und nutzen einen
+    // kurzen Decay-Timer damit Sprechpausen zwischen Worten nicht flackern.
+    const speakingMapRef = useRef({});
+    const lastSpokeAtRef = useRef({});
+    const [speakingMap, setSpeakingMap] = useState({});
+
+    useEffect(() => {
+        if (participants.length === 0) {
+            if (Object.keys(speakingMapRef.current).length > 0) {
+                speakingMapRef.current = {};
+                setSpeakingMap({});
+            }
+            return;
+        }
+
+        const SPEAKING_THRESHOLD = 0.01;   // ~-40dB, gut über Rauschen
+        const DECAY_MS = 150;              // Pause zwischen Worten überbrücken
+
+        const interval = setInterval(() => {
+            const now = performance.now();
+            const next = {};
+            let changed = false;
+            for (const p of participants) {
+                const level = p.audioLevel ?? 0;
+                if (level > SPEAKING_THRESHOLD) {
+                    lastSpokeAtRef.current[p.identity] = now;
+                }
+                const lastSpoke = lastSpokeAtRef.current[p.identity] ?? 0;
+                const speaking = (now - lastSpoke) < DECAY_MS;
+                next[p.identity] = speaking;
+                if (speakingMapRef.current[p.identity] !== speaking) changed = true;
+            }
+            if (Object.keys(speakingMapRef.current).length !== Object.keys(next).length) {
+                changed = true;
+            }
+            if (changed) {
+                speakingMapRef.current = next;
+                setSpeakingMap(next);
+            }
+        }, 50);
+        return () => clearInterval(interval);
+    }, [participants]);
+
     useEffect(() => {
         setParticipants(participants.map(p => ({
             identity: p.identity,
             name: p.name,
-            isSpeaking: p.isSpeaking,
+            isSpeaking: speakingMap[p.identity] ?? false,
             isLocal: p.isLocal,
             isMuted: p.isMicrophoneEnabled === false,
             isScreenSharing: p.isScreenShareEnabled,
@@ -95,7 +141,7 @@ function VoiceRoomContent() {
                 p.setVolume(stored);
             }
         }
-    }, [participants, deafened]);
+    }, [participants, deafened, speakingMap]);
 
     useEffect(() => {
         if (!localParticipant) return;
@@ -194,6 +240,7 @@ function VoiceRoomContent() {
                 processorRef.current = createMicPipelineProcessor({
                     initialGain: getMicGain(),
                     initialRnnoise: enabled,
+                    initialThreshold: getMicThreshold(),
                 });
             }
             await track.setProcessor(processorRef.current);
@@ -247,6 +294,10 @@ function VoiceRoomContent() {
             setMicGain: (value) => {
                 setMicGain(value);
                 processorRef.current?.setGain(value);
+            },
+            setMicThreshold: (value) => {
+                setMicThreshold(value);
+                processorRef.current?.setThreshold(value);
             },
             setMicDevice: async (deviceId) => {
                 setMicDeviceId(deviceId);

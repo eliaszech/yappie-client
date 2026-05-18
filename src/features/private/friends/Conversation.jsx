@@ -15,13 +15,19 @@ import UserItem from "../../components/UserItem.jsx";
 import MessageInput from "../../messages/components/MessageInput.jsx";
 import Chat from "../../messages/components/Chat.jsx";
 import HasUserPopup from "../../components/user/HasUserPopup.jsx";
+import SearchPopover from "../../messages/components/SearchPopover.jsx";
 import {useIsOnline, useUserStatus} from "../../../hooks/usePresence.js";
+import {useUserActivity, useActivityPlaytime} from "../../../hooks/useActivity.js";
 import {faChevronRight} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
+import {faGamepad, faGamepadModern} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import {AnimatePresence, motion} from "framer-motion";
 
 function UserSidebar({user}) {
     const online = useIsOnline(user.id) || user.online;
     const status = useUserStatus(user.id) || user.status;
+    const activity = useUserActivity(user.id);
+    const showActivity = online && activity?.name;
+    const playtimeLabel = useActivityPlaytime(activity?.since);
     const [showCommonServersWith, setShowCommonServersWith] = useState(false);
     const [showCommonFriendsWith, setShowCommonFriendsWith] = useState(false);
 
@@ -46,6 +52,30 @@ function UserSidebar({user}) {
             <div className="p-4">
                 <div className="text-xl font-bold text-foreground">{user.displayName ?? user.username}</div>
                 <div className="text-sm text-muted-foreground">{user.username}</div>
+
+                {showActivity && (
+                    <div className="mt-4 px-3 py-3 rounded-lg bg-muted/50 text-foreground overflow-hidden">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Aktivität</span>
+                        <div className="mt-2 flex items-center gap-3">
+                            {activity.icon ? (
+                                <img src={activity.icon} alt="" className="w-10 h-10 shrink-0 rounded-lg object-cover" />
+                            ) : (
+                                <div className="w-10 h-10 shrink-0 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
+                                    <FontAwesomeIcon icon={faGamepad} className="text-base" />
+                                </div>
+                            )}
+                            <div className="flex flex-col min-w-0 flex-1">
+                                <span className="text-sm font-semibold text-foreground truncate" title={activity.name}>{activity.name}</span>
+                                {playtimeLabel && (
+                                    <div className="flex items-center gap-1 text-primary">
+                                        <FontAwesomeIcon className="text-xs" icon={faGamepadModern} />
+                                        <span className="text-[11px] text-primary truncate">{playtimeLabel}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="mt-4 px-3 py-3 rounded-lg bg-muted/50 text-foreground overflow-hidden">
                     <span className="text-sm font-semibold text-foreground">Mitglied seit</span>
@@ -158,6 +188,9 @@ function Conversation() {
                     )}
                     <span className="font-medium">{conversationTitle}</span>
                 </div>
+                <div className="ml-auto flex items-center gap-2">
+                    <SearchPopover type="conversation" roomId={conversationId} />
+                </div>
             </ContentHeader>
             <div className="flex h-full w-full overflow-hidden">
                 <div className="flex flex-col w-full h-full relative">
@@ -172,7 +205,6 @@ function Conversation() {
                             </div>
                         </div>
                     </Chat>
-                    <div className="absolute z-2 bottom-[64px] left-0 w-full h-16 bg-gradient-to-b from-transparent to-background pointer-events-none"></div>
                     <MessageInput type="conversation" roomId={conversationId} roomName={conversationTitle} />
                 </div>
                 { isSingle && <UserSidebar user={otherUsers[0].user} />}

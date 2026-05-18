@@ -46,23 +46,78 @@ export function playLeaveSound() {
     blip(ctx, 392.00, t + 0.14, 0.22);  // G4
 }
 
+// Weicher Sinus-Ton mit dezenter Sub-Oktav-Schicht für Wärme. Längerer Attack
+// vermeidet Click, langes exponentielles Decay lässt den Ton sanft ausschweben.
+function softTone(ctx, freq, startTime, duration, peak = 0.11) {
+    const main = ctx.createOscillator();
+    const sub = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const subGain = ctx.createGain();
+
+    main.type = 'sine';
+    main.frequency.value = freq;
+    sub.type = 'sine';
+    sub.frequency.value = freq / 2;
+    subGain.gain.value = 0.35;
+
+    main.connect(gain);
+    sub.connect(subGain);
+    subGain.connect(gain);
+    gain.connect(ctx.destination);
+
+    gain.gain.setValueAtTime(0.0001, startTime);
+    gain.gain.exponentialRampToValueAtTime(peak, startTime + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+    main.start(startTime);
+    main.stop(startTime + duration + 0.05);
+    sub.start(startTime);
+    sub.stop(startTime + duration + 0.05);
+}
+
+// Zwei sanfte Töne mit kleiner Terz aufwärts (F5 → A5) — wirkt warm und
+// gemütlich, kein hartes "Notification!"-Gefühl. Beide schweben länger aus.
 export function playMessageSound() {
     const ctx = getCtx();
     if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    const t = ctx.currentTime;
 
-    const oscillator = ctx.createOscillator();
-    const gainNode = ctx.createGain();
+    softTone(ctx, 698.46, t,         0.45, 0.10);  // F5
+    softTone(ctx, 880,    t + 0.11,  0.55, 0.11);  // A5
+}
 
-    oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
+// Mute toggle cues: zwei schnelle Blips. Hoch→tief = aus (mute on),
+// tief→hoch = an (mute off). Kurz und dezent, damit man sie auch oft hören kann.
+export function playMuteOnSound() {
+    const ctx = getCtx();
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    const t = ctx.currentTime;
+    blip(ctx, 660, t,        0.08, 0.16);  // E5
+    blip(ctx, 440, t + 0.05, 0.10, 0.16);  // A4
+}
 
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(880, ctx.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.1);
+export function playMuteOffSound() {
+    const ctx = getCtx();
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    const t = ctx.currentTime;
+    blip(ctx, 440, t,        0.08, 0.16);  // A4
+    blip(ctx, 660, t + 0.05, 0.10, 0.16);  // E5
+}
 
-    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+// Deafen klingt fülliger und tiefer (Kopfhörer-aus-Gefühl) — gleicher
+// Richtungs-Code wie Mute (runter = aus, hoch = an).
+export function playDeafenOnSound() {
+    const ctx = getCtx();
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    const t = ctx.currentTime;
+    softTone(ctx, 392.00, t,        0.18, 0.10);  // G4
+    softTone(ctx, 261.63, t + 0.08, 0.22, 0.10);  // C4
+}
 
-    oscillator.start(ctx.currentTime);
-    oscillator.stop(ctx.currentTime + 0.3);
+export function playDeafenOffSound() {
+    const ctx = getCtx();
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    const t = ctx.currentTime;
+    softTone(ctx, 261.63, t,        0.18, 0.10);  // C4
+    softTone(ctx, 392.00, t + 0.08, 0.22, 0.10);  // G4
 }

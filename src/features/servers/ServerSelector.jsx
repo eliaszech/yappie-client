@@ -1,12 +1,14 @@
 import { NavLink } from "react-router-dom";
 
 import { FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import { faPlus, faCompass, faSparkles, faDownload } from "@awesome.me/kit-95376d5d61/icons/classic/regular";
+import { faPlus, faCompass, faDownload } from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import {useQuery} from "@tanstack/react-query";
 import {useAuth} from "../../hooks/useAuth.js";
 import {fetchConversations, fetchServers} from "../../services/api.js";
 import {useState} from "react";
 import CreateServerDialog from "./dialogs/CreateServerDialog.jsx";
+import {useServerUnread} from "../../hooks/useReadStates.js";
+import YappieLogo from "../components/YappieLogo.jsx";
 
 const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
 
@@ -39,6 +41,32 @@ function UnreadConversationLink({ conversation, user }) {
     );
 }
 
+function ServerLink({ server }) {
+    const { hasUnread, mentionCount } = useServerUnread(server.id);
+    const badge = mentionCount > 99 ? '99+' : mentionCount;
+
+    return (
+        <NavLink to={`/servers/${server.id}`} title={server.name}
+                 className={({isActive}) => `${isActive ? 'text-primary-foreground bg-primary' : 'text-muted-foreground bg-card'} relative group/srv w-12 h-12 rounded-2xl text-xl flex items-center hover:rounded-2xl hover:bg-primary hover:text-primary-foreground justify-center transition-all duration-200 overflow-visible`}>
+            <div className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center">
+                {server.icon ? (
+                    <img src={server.icon} alt={server.name} className="w-full h-full object-cover" />
+                ) : (
+                    server.name.charAt(0).toUpperCase()
+                )}
+            </div>
+            {hasUnread && mentionCount === 0 && (
+                <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-3 rounded-r-full bg-foreground" />
+            )}
+            {mentionCount > 0 && (
+                <span className="absolute -bottom-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-dnd text-white text-[10px] font-bold flex items-center justify-center border-2 border-guild-bar">
+                    {badge}
+                </span>
+            )}
+        </NavLink>
+    );
+}
+
 function ServerSelector() {
     const { user } = useAuth();
     const [showCreateServerDialog, setShowCreateServerDialog] = useState(false);
@@ -61,9 +89,9 @@ function ServerSelector() {
 
     return (
         <div className="flex flex-col h-full shrink-0 grow w-20 pt-4 gap-2 items-center bg-guild-bar text-foreground pb-[65px]">
-            <NavLink to="/@me"
-                     className={({isActive}) => `${isActive ? 'text-primary-foreground bg-primary' : 'text-muted-foreground bg-card'} w-12 h-12 rounded-2xl text-xl flex items-center hover:rounded-2xl hover:bg-primary hover:text-primary-foreground justify-center transition-all duration-200`}>
-                <FontAwesomeIcon icon={faSparkles}/>
+            <NavLink to="/@me" title="Yappie"
+                     className={({isActive}) => `${isActive ? 'ring-2 ring-primary' : ''} group w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden bg-card hover:bg-primary/10 text-primary transition-all duration-200`}>
+                <YappieLogo className="w-7 h-7 transition-transform duration-200 group-hover:scale-110" />
             </NavLink>
             {unreadConversations.length > 0 && (
                 <>
@@ -77,14 +105,7 @@ function ServerSelector() {
                 <div className="w-8 h-px bg-border mb-1"></div>
             )}
             {servers.length > 0 && servers.map((server) => (
-                <NavLink to={`/servers/${server.id}`} key={server.id} title={server.name}
-                         className={({isActive}) => `${isActive ? 'text-primary-foreground bg-primary' : 'text-muted-foreground bg-card'} w-12 h-12 rounded-2xl text-xl flex items-center hover:rounded-2xl hover:bg-primary hover:text-primary-foreground justify-center transition-all duration-200 overflow-hidden`}>
-                    {server.icon ? (
-                        <img src={server.icon} alt={server.name} className="w-full h-full object-cover" />
-                    ) : (
-                        server.name.charAt(0).toUpperCase()
-                    )}
-                </NavLink>
+                <ServerLink key={server.id} server={server} />
             ))}
 
             <div className="w-8 h-px bg-border mb-1"></div>

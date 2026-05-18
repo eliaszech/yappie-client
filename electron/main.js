@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, desktopCapturer, ipcMain, session } from 'electron';
+import { app, BrowserWindow, shell, desktopCapturer, ipcMain, session, Notification, powerMonitor } from 'electron';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import pkg from 'electron-updater';
@@ -9,6 +9,18 @@ import { startGameDetection, stopGameDetection, setCustomGames, setDetectionEnab
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = process.env.NODE_ENV === 'development';
 const isWin = process.platform === 'win32';
+
+app.setName('Yappie');
+
+function resolveIconPath() {
+    const isPackaged = app.isPackaged;
+    const ext = isWin ? 'ico' : 'png';
+    const filename = `icon.${ext}`;
+    if (isPackaged) {
+        return path.join(process.resourcesPath, 'build', filename);
+    }
+    return path.join(__dirname, '..', 'build', filename);
+}
 
 // application-loopback ships prebuilt .exe binaries we shell out to.
 // In packaged builds asarUnpack moves them next to app.asar; in dev they
@@ -239,6 +251,7 @@ function createWindow() {
         minWidth: 940,
         minHeight: 560,
         backgroundColor: '#1c1f26',
+        icon: resolveIconPath(),
         show: false,
         webPreferences: {
             preload: path.join(__dirname, 'preload.cjs'),
@@ -287,6 +300,67 @@ app.whenReady().then(() => {
 
     ipcMain.on('electron:set-activity-enabled', (_event, enabled) => {
         setDetectionEnabled(Boolean(enabled));
+    });
+
+    ipcMain.on('app:set-badge', (_event, count) => {
+        try {
+            const n = Math.max(0, Math.floor(Number(count) || 0));
+            if (typeof app.setBadgeCount === 'function') app.setBadgeCount(n);
+        } catch {}
+    });
+
+    ipcMain.on('app:focus-window', () => {
+        if (!mainWindow || mainWindow.isDestroyed()) return;
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.show();
+        mainWindow.focus();
+        if (isWin) mainWindow.flashFrame(false);
+    });
+
+    ipcMain.on('app:flash-frame', (_event, on) => {
+        if (!mainWindow || mainWindow.isDestroyed()) return;
+        if (isWin) mainWindow.flashFrame(Boolean(on));
+    });
+
+    ipcMain.handle('app:get-idle-seconds', () => {
+        try {
+            return powerMonitor.getSystemIdleTime();
+        } catch {
+            return 0;
+        }
+    });
+
+    ipcMain.handle('app:show-notification', async (event, opts) => {
+        if (!Notification.isSupported()) return null;
+        try {
+            // opts.icon kommt meist als http(s)-URL (Avatar) → Electron kann das
+            // nicht laden, also fallback auf das App-Icon.
+            const rawIcon = opts?.icon;
+            const iconPath = (typeof rawIcon === 'string' && !rawIcon.startsWith('http'))
+                ? rawIcon
+                : resolveIconPath();
+
+            const n = new Notification({
+                title: String(opts?.title ?? '').slice(0, 100),
+                body: String(opts?.body ?? '').slice(0, 200),
+                icon: iconPath,
+                silent: false,
+            });
+            const clickId = opts?.clickId ?? null;
+            n.on('click', () => {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    if (mainWindow.isMinimized()) mainWindow.restore();
+                    mainWindow.show();
+                    mainWindow.focus();
+                    if (isWin) mainWindow.flashFrame(false);
+                    mainWindow.webContents.send('app:notification-clicked', clickId);
+                }
+            });
+            n.show();
+            return true;
+        } catch {
+            return false;
+        }
     });
 
     if (!isDev) setupAutoUpdater();

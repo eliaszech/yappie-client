@@ -10,6 +10,9 @@ import {useReplyState} from "../../../hooks/messages/useReplyState.js";
 import HasEmojiPicker from "./HasEmojiPicker.jsx";
 import Suggestions from "./Suggestions.jsx";
 import ChannelSuggestions from "./ChannelSuggestions.jsx";
+import SlashCommandSuggestions from "./SlashCommandSuggestions.jsx";
+import CreatePollDialog from "../dialogs/CreatePollDialog.jsx";
+import { parseSlashInvocation } from "../slashCommands.js";
 import {DefaultElement, Editable, ReactEditor, Slate, withReact} from "slate-react";
 import {withHistory} from "slate-history";
 import {createEditor, Editor, Range, Transforms} from "slate";
@@ -20,6 +23,7 @@ import {uploadMessageFiles} from "../../../services/api.js";
 
 const MENTION_SUGGESTIONS_REGEX = /(?<!\w)@(\w*)$/;
 const CHANNEL_SUGGESTIONS_REGEX = /(?<!\S)#([\w-]*)$/;
+const SLASH_SUGGESTIONS_REGEX = /^\/(\w*)$/;
 
 const MAX_FILES = 10;
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
@@ -48,6 +52,9 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
     const [mentionQuery, setMentionQuery] = useState('');
     const [showChannelSuggestions, setShowChannelSuggestions] = useState(false);
     const [channelQuery, setChannelQuery] = useState('');
+    const [showSlashSuggestions, setShowSlashSuggestions] = useState(false);
+    const [slashQuery, setSlashQuery] = useState('');
+    const [pollDialogQuestion, setPollDialogQuestion] = useState(null);
     const [suggestionsIndex, setSuggestionsIndex] = useState(0);
     const [attachments, setAttachments] = useState([]);
     const [isDragging, setIsDragging] = useState(false);
@@ -55,6 +62,7 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
     const [attachmentError, setAttachmentError] = useState(null);
     const suggestionsRef = useRef(null);
     const channelSuggestionsRef = useRef(null);
+    const slashSuggestionsRef = useRef(null);
     const fileInputRef = useRef(null);
     const dragCounterRef = useRef(0);
     const queryClient = useQueryClient();
@@ -150,38 +158,72 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
         const range = lineStart && Editor.range(editor, lineStart, start);
         const textUpToCursor = range && Editor.string(editor, range);
 
-        if (!textUpToCursor) {
+        // Slash commands only trigger at the very start of an otherwise-empty
+        // message — once the user has typed args (space) or any other content,
+        // we get out of suggestion mode but the command still runs on send.
+        const fullText = Editor.string(editor, []);
+        const slashMatch = fullText.match(SLASH_SUGGESTIONS_REGEX);
+
+        if (!textUpToCursor && !slashMatch) {
             setShowSuggestions(false);
             setMentionQuery('');
             setShowChannelSuggestions(false);
             setChannelQuery('');
+            setShowSlashSuggestions(false);
+            setSlashQuery('');
             return;
         }
 
         const mentionMatch = textUpToCursor.match(MENTION_SUGGESTIONS_REGEX);
         const channelMatch = textUpToCursor.match(CHANNEL_SUGGESTIONS_REGEX);
 
-        if (mentionMatch) {
+        if (slashMatch) {
+            setSlashQuery(slashMatch[1]);
+            setSuggestionsIndex(0);
+            setShowSlashSuggestions(true);
+            setShowSuggestions(false);
+            setShowChannelSuggestions(false);
+            setMentionQuery('');
+            setChannelQuery('');
+        } else if (mentionMatch) {
             setMentionQuery('@' + mentionMatch[1]);
             setSuggestionsIndex(0);
             setShowSuggestions(true);
             setShowChannelSuggestions(false);
             setChannelQuery('');
+            setShowSlashSuggestions(false);
+            setSlashQuery('');
         } else if (channelMatch && type === 'channel') {
             setChannelQuery('#' + channelMatch[1]);
             setSuggestionsIndex(0);
             setShowChannelSuggestions(true);
             setShowSuggestions(false);
             setMentionQuery('');
+            setShowSlashSuggestions(false);
+            setSlashQuery('');
         } else {
             setShowSuggestions(false);
             setMentionQuery('');
             setShowChannelSuggestions(false);
             setChannelQuery('');
+            setShowSlashSuggestions(false);
+            setSlashQuery('');
         }
     }
 
-    function insertMention(user) {
+    function applySlashCommandSelection(cmd) {
+        Transforms.select(editor, {
+            anchor: Editor.start(editor, []),
+            focus: Editor.end(editor, []),
+        });
+        Transforms.delete(editor);
+        Transforms.insertText(editor, `/${cmd.name} `);
+        ReactEditor.focus(editor);
+        setShowSlashSuggestions(false);
+        setSlashQuery('');
+    }
+
+    function insertMention(payload) {
         const { selection } = editor;
         if (!selection) return;
 
@@ -200,12 +242,21 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
 
         Transforms.select(editor, mentionRange);
         Transforms.delete(editor);
-        Transforms.insertNodes(editor, {
-            type: 'mention',
-            userId: user.id,
-            username: user.username,
-            children: [{ text: '' }],
-        });
+
+        if (payload?.special) {
+            Transforms.insertNodes(editor, {
+                type: 'mention',
+                kind: payload.special.kind,
+                children: [{ text: '' }],
+            });
+        } else {
+            Transforms.insertNodes(editor, {
+                type: 'mention',
+                userId: payload.id,
+                username: payload.username,
+                children: [{ text: '' }],
+            });
+        }
 
         Transforms.move(editor, { unit: 'offset' });
         ReactEditor.focus(editor);
@@ -249,7 +300,11 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
 
     function getPlainText(nodes) {
         return nodes.map(n => {
-            if (n.type === 'mention') return `@${n.username}`;
+            if (n.type === 'mention') {
+                if (n.kind === 'everyone') return '@everyone';
+                if (n.kind === 'here') return '@here';
+                return `@${n.username}`;
+            }
             if (n.type === 'channel-mention') return `#${n.channelName}`;
             if (n.children) return getPlainText(n.children);
             return n.text ?? '';
@@ -259,18 +314,70 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
     function getMentionedUserIds(nodes) {
         const ids = [];
         for (const node of nodes) {
-            if (node.type === 'mention') ids.push(node.userId);
+            if (node.type === 'mention' && node.userId) ids.push(node.userId);
             if (node.children) ids.push(...getMentionedUserIds(node.children));
         }
         return [...new Set(ids)];
     }
 
+    function getSpecialMentions(nodes) {
+        let everyone = false;
+        let here = false;
+        for (const node of nodes) {
+            if (node.type === 'mention') {
+                if (node.kind === 'everyone') everyone = true;
+                if (node.kind === 'here') here = true;
+            }
+            if (node.children) {
+                const inner = getSpecialMentions(node.children);
+                everyone = everyone || inner.everyone;
+                here = here || inner.here;
+            }
+        }
+        return { everyone, here };
+    }
+
+    function resetEditor() {
+        Transforms.select(editor, {
+            anchor: Editor.start(editor, []),
+            focus: Editor.end(editor, []),
+        });
+        Transforms.delete(editor);
+        if (editor.children.length === 0) {
+            Transforms.insertNodes(editor, {
+                type: 'paragraph',
+                children: [{ text: '' }],
+            });
+        }
+        setInput(initialValue);
+    }
+
     async function sendMessage() {
-        const plainText = getPlainText(input).trimEnd();
+        let plainText = getPlainText(input).trimEnd();
+
+        // Slash-command interception. Runs before the regular send path.
+        const invocation = plainText.startsWith('/') ? parseSlashInvocation(plainText) : null;
+        if (invocation) {
+            if (invocation.def.requiresArgs && !invocation.args) return;
+            const result = invocation.def.run({ args: invocation.args });
+            if (result.kind === 'open-poll') {
+                setPollDialogQuestion(result.question || '');
+                resetEditor();
+                clearReplyState();
+                stopTyping();
+                return;
+            }
+            if (result.kind === 'send-text') {
+                plainText = result.text;
+                if (!plainText) return;
+            }
+        }
+
         if (!plainText.trim() && attachments.length === 0) return;
         if (isUploading) return;
 
         const mentionedUserIds = getMentionedUserIds(input);
+        const { everyone: mentionEveryone, here: mentionHere } = getSpecialMentions(input);
         const socket = getSocket();
 
         let uploadedAttachments = [];
@@ -320,21 +427,12 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
             text: plainText,
             replyToId: replyTo?.id || null,
             mentionedUserIds,
+            mentionEveryone,
+            mentionHere,
             attachmentIds: uploadedAttachments.map(a => a.id),
         });
 
-        Transforms.select(editor, {
-            anchor: Editor.start(editor, []),
-            focus: Editor.end(editor, []),
-        });
-        Transforms.delete(editor);
-        if (editor.children.length === 0) {
-            Transforms.insertNodes(editor, {
-                type: 'paragraph',
-                children: [{ text: '' }],
-            });
-        }
-        setInput(initialValue);
+        resetEditor();
         clearAttachments();
         clearReplyState();
         stopTyping();
@@ -439,6 +537,24 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
                     hideFunction={() => { setShowChannelSuggestions(false); setChannelQuery(''); }}
                 />
             )}
+            { showSlashSuggestions && (
+                <SlashCommandSuggestions
+                    ref={slashSuggestionsRef}
+                    query={slashQuery}
+                    bottom={bottomOffset}
+                    selectedIndex={suggestionsIndex}
+                    clickFunction={(cmd) => applySlashCommandSelection(cmd)}
+                    hideFunction={() => { setShowSlashSuggestions(false); setSlashQuery(''); }}
+                />
+            )}
+            { pollDialogQuestion !== null && (
+                <CreatePollDialog
+                    type={type}
+                    roomId={roomId}
+                    initialQuestion={pollDialogQuestion}
+                    onClose={() => setPollDialogQuestion(null)}
+                />
+            )}
             <div className="flex flex-col items-center h-max relative bg-card rounded-lg border border-border">
                 { replyTo && (
                     <div className="flex w-full justify-between items-center rounded-t-lg border-b border-border px-4 py-2 bg-guild-bar">
@@ -508,7 +624,8 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
                                 e.stopPropagation();
 
                                 const suggestionsOpen = (showSuggestions && mentionQuery.length > 0) ||
-                                                        (showChannelSuggestions && channelQuery.length > 0);
+                                                        (showChannelSuggestions && channelQuery.length > 0) ||
+                                                        showSlashSuggestions;
 
                                 if (suggestionsOpen) {
                                     if (e.key === 'ArrowDown') {
@@ -521,10 +638,11 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
                                         setSuggestionsIndex(i => Math.max(0, i - 1));
                                         return;
                                     }
-                                    if (e.key === 'Enter') {
+                                    if (e.key === 'Enter' || e.key === 'Tab') {
                                         e.preventDefault();
                                         if (showSuggestions) suggestionsRef.current?.selectCurrent();
-                                        else channelSuggestionsRef.current?.selectCurrent();
+                                        else if (showChannelSuggestions) channelSuggestionsRef.current?.selectCurrent();
+                                        else if (showSlashSuggestions) slashSuggestionsRef.current?.selectCurrent();
                                         return;
                                     }
                                     if (e.key === 'Escape') {
@@ -532,6 +650,8 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
                                         setMentionQuery('');
                                         setShowChannelSuggestions(false);
                                         setChannelQuery('');
+                                        setShowSlashSuggestions(false);
+                                        setSlashQuery('');
                                         return;
                                     }
                                 }

@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faGear, faUsers, faShield, faXmark, faTrash } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
+import { faGear, faUsers, faShield, faXmark, faTrash, faMoon } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { deleteServer } from "../../../services/api.js";
 import OverviewSection from "./sections/OverviewSection.jsx";
 import MembersSection from "./sections/MembersSection.jsx";
 import RolesSection from "./sections/RolesSection.jsx";
+import AfkSection from "./sections/AfkSection.jsx";
 
 const NAV = [
     {
@@ -15,6 +17,7 @@ const NAV = [
             { id: 'overview', label: 'Übersicht', icon: faGear },
             { id: 'roles',    label: 'Rollen',    icon: faShield },
             { id: 'members',  label: 'Mitglieder', icon: faUsers },
+            { id: 'afk',      label: 'AFK',       icon: faMoon },
         ],
     },
 ];
@@ -24,6 +27,7 @@ function SectionContent({ section, server }) {
         case 'overview': return <OverviewSection server={server} />;
         case 'roles':    return <RolesSection server={server} />;
         case 'members':  return <MembersSection server={server} />;
+        case 'afk':      return <AfkSection server={server} />;
         default:         return <OverviewSection server={server} />;
     }
 }
@@ -50,7 +54,7 @@ function ServerSettingsModal({ server, onClose }) {
         navigate('/@me');
     }
 
-    return (
+    return createPortal((
         <div className="fixed w-full h-full top-0 left-0 flex items-center justify-center z-[300]">
             <div onClick={onClose} className="absolute inset-0 bg-black opacity-60 z-[301] cursor-pointer" />
             <div className="rounded-lg w-full max-w-[80%] z-[302] h-full max-h-[85%] flex bg-background overflow-hidden">
@@ -139,7 +143,7 @@ function ServerSettingsModal({ server, onClose }) {
                 </div>
             </div>
         </div>
-    );
+    ), document.body);
 }
 
 export default ServerSettingsModal;

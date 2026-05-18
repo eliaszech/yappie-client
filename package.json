@@ -1,7 +1,8 @@
 {
   "name": "yappie-client",
+  "productName": "Yappie",
   "private": true,
-  "version": "0.4.1",
+  "version": "0.5.0",
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
@@ -9,8 +10,25 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "build:icons": "node scripts/build-icons.mjs",
     "electron:dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
     "electron:build": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false vite build && electron-builder"
+  },
+  "build": {
+    "appId": "com.yappie.client",
+    "productName": "Yappie",
+    "directories": {
+      "buildResources": "build"
+    },
+    "win": {
+      "icon": "build/icon.ico"
+    },
+    "mac": {
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "icon": "build/icon.png"
+    }
   },
   "dependencies": {
     "@awesome.me/kit-95376d5d61": "^1.0.7",
@@ -48,6 +66,8 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "png-to-ico": "^3.0.1",
+    "sharp": "^0.34.5",
     "tailwind-scrollbar": "^4.0.2",
     "tailwindcss": "^4.2.1",
     "vite": "^7.3.1",

@@ -100,6 +100,24 @@ export const fetchConversations = (userId) => apiRequest('POST', `/conversations
 export const fetchConversation = (conversationId) => apiRequest('GET', `/conversations/${conversationId}`);
 export const fetchOrCreateConversationWith = (receiverId) => apiRequest('POST', `/conversations/getOrCreate`, { targetUserId: receiverId });
 
+export const fetchReadStates = () => apiRequest('GET', `/@me/read-states`);
+export const markChannelRead = (channelId) => apiRequest('POST', `/channels/${channelId}/read`);
+export const markConversationRead = (conversationId) => apiRequest('POST', `/conversations/${conversationId}/read`);
+export const hideConversation = (conversationId) => apiRequest('POST', `/conversations/${conversationId}/hide`);
+
+export const fetchChannelPins = (channelId) => apiRequest('GET', `/channels/${channelId}/pins`);
+export const pinMessage = (channelId, messageId) => apiRequest('POST', `/channels/${channelId}/messages/${messageId}/pin`);
+export const unpinMessage = (channelId, messageId) => apiRequest('DELETE', `/channels/${channelId}/messages/${messageId}/pin`);
+
+export const searchMessages = (type, id, query) => apiRequest('GET',
+    type === 'channel'
+        ? `/channels/${id}/search?q=${encodeURIComponent(query)}`
+        : `/conversations/${id}/search?q=${encodeURIComponent(query)}`);
+
+export const createPoll = (data) => apiRequest('POST', `/polls`, data);
+export const votePoll = (pollId, optionId) => apiRequest('POST', `/polls/${pollId}/vote`, { optionId });
+export const removePollVote = (pollId, optionId) => apiRequest('DELETE', `/polls/${pollId}/vote/${optionId}`);
+
 export const updateProfile = (data) => apiRequest('PATCH', `/@me/profile`, data);
 export const changePassword = (data) => apiRequest('PATCH', `/@me/password`, data);
 

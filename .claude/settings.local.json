@@ -12,7 +12,16 @@
       "Bash(npx eslint *)",
       "Bash(git stash *)",
       "Bash(npm run *)",
-      "PowerShell(tasklist *)"
+      "PowerShell(tasklist *)",
+      "Bash(npx prisma *)",
+      "Bash(cat local.env)",
+      "Bash(cat server.env)",
+      "Bash(cat prisma.config.ts)",
+      "PowerShell(Set-Location C:\\\\Users\\\\elias\\\\WebstormProjects\\\\yappie-backend; $env:DATABASE_URL = \"postgresql://treechat:treechat@localhost:5432/treechat\"; npx prisma migrate dev --name add_read_state_and_pins 2>&1 | Out-String)",
+      "Bash(docker exec *)",
+      "PowerShell(Set-Location C:\\\\Users\\\\elias\\\\WebstormProjects\\\\yappie-backend; $env:DATABASE_URL = \"postgresql://yappie:yappie@localhost:5432/yappie\"; npx prisma migrate dev --name add_read_state_and_pins 2>&1 | Out-String)",
+      "PowerShell(Get-Command *)",
+      "Bash(git log *)"
     ]
   }
 }

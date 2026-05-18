@@ -16,8 +16,8 @@ function MessagesSidebar() {
     }, [location.pathname]);
 
     return(
-        <div className="h-full w-full bg-card rounded-tl-2xl border-l border-border flex flex-col grow overflow-y-auto pb-[65px]">
-            <div className="px-2 h-12 flex items-center border-b-2 border-border shrink-0 bg-guild-bar">
+        <div className="h-full w-full bg-card/85 rounded-tl-2xl border-l border-border flex flex-col grow overflow-y-auto pb-[65px]">
+            <div className="px-2 h-12 flex items-center border-b-2 border-border shrink-0 bg-guild-bar/85">
                 <a href="#findOrStart"
                    className="w-full flex items-center gap-2.5 px-2 py-2 rounded-md text-xs transition-all bg-muted/50 hover:bg-muted text-foreground">
                     Find or start a conversation</a>

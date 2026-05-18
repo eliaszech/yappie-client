@@ -3,6 +3,15 @@ import { Navigate } from "react-router-dom";
 import { VoiceProvider } from "../../context/VoiceProvider.jsx";
 import { UserPopupProvider } from "../../context/user/UserPopupProvider.jsx";
 import SplashScreen from "./SplashScreen.jsx";
+import { useIdleReporter } from "../../hooks/useIdleReporter.js";
+import { useAfkMove } from "../../hooks/useAfkMove.js";
+
+function VoiceEffects() {
+    // Mounted inside VoiceProvider so the hooks can actually read voice state.
+    useIdleReporter();
+    useAfkMove();
+    return null;
+}
 
 function ProtectedRoute({ children }) {
     const { user, loading, authError, retryCount, isReconnecting, retry, logout } = useAuth();
@@ -24,6 +33,7 @@ function ProtectedRoute({ children }) {
 
     return (
         <VoiceProvider>
+            <VoiceEffects />
             <UserPopupProvider>
                 {children}
             </UserPopupProvider>

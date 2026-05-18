@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGear, faShield, faXmark, faTrash } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import { useQueryClient } from "@tanstack/react-query";
@@ -53,7 +54,7 @@ function ChannelSettingsModal({ channel, server, onClose }) {
         }
     }
 
-    return (
+    return createPortal((
         <div className="fixed w-full h-full top-0 left-0 flex items-center justify-center z-[300]">
             <div onClick={onClose} className="absolute inset-0 bg-black opacity-60 z-[301] cursor-pointer" />
             <div className="rounded-lg w-full max-w-[80%] z-[302] h-full max-h-[85%] flex bg-background overflow-hidden">
@@ -93,7 +94,11 @@ function ChannelSettingsModal({ channel, server, onClose }) {
                         ))}
 
                         <div className="mt-auto pt-4 border-t border-border">
-                            {confirmDelete ? (
+                            {server.afkChannelId === channel.id ? (
+                                <div className="px-2 py-2 text-xs text-muted-foreground leading-snug">
+                                    Dies ist der AFK-Kanal. Wähle in den Server-Einstellungen einen anderen aus, bevor du diesen löschst.
+                                </div>
+                            ) : confirmDelete ? (
                                 <div className="flex flex-col gap-2 px-2 py-1">
                                     <span className="text-xs text-muted-foreground">Kanal wirklich löschen?</span>
                                     <div className="flex gap-2">
@@ -144,7 +149,7 @@ function ChannelSettingsModal({ channel, server, onClose }) {
                 </div>
             </div>
         </div>
-    );
+    ), document.body);
 }
 
 export default ChannelSettingsModal;

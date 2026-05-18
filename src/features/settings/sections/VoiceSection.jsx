@@ -6,8 +6,11 @@ import {
     getMicDeviceId, setMicDeviceId,
     getSpeakerDeviceId, setSpeakerDeviceId,
     getMicGain, setMicGain as persistMicGain,
+    getMicThreshold, setMicThreshold as persistMicThreshold,
     DEFAULT_DEVICE, MIN_MIC_GAIN, MAX_MIC_GAIN,
+    MIN_MIC_THRESHOLD, MAX_MIC_THRESHOLD,
 } from "../../../services/voiceSettings.js";
+import MicLevelMeter from "../components/MicLevelMeter.jsx";
 
 function DeviceSelect({ icon, label, devices, value, onChange, placeholder }) {
     return (
@@ -39,13 +42,14 @@ function DeviceSelect({ icon, label, devices, value, onChange, placeholder }) {
 }
 
 function VoiceSection() {
-    const { setMicDevice, setSpeakerDevice, setMicGain, isConnected } = useVoice() ?? {};
+    const { setMicDevice, setSpeakerDevice, setMicGain, setMicThreshold, isConnected } = useVoice() ?? {};
 
     const [inputs, setInputs] = useState([]);
     const [outputs, setOutputs] = useState([]);
     const [micId, setMicIdState] = useState(getMicDeviceId);
     const [speakerId, setSpeakerIdState] = useState(getSpeakerDeviceId);
     const [gain, setGainState] = useState(getMicGain);
+    const [threshold, setThresholdState] = useState(getMicThreshold);
     const [permError, setPermError] = useState(null);
 
     async function refreshDevices() {
@@ -95,6 +99,13 @@ function VoiceSection() {
         else persistMicGain(v);
     }
 
+    function handleThresholdChange(e) {
+        const v = Number(e.target.value);
+        setThresholdState(v);
+        if (setMicThreshold) setMicThreshold(v);
+        else persistMicThreshold(v);
+    }
+
     const labelsMissing = inputs.length > 0 && inputs.every(d => !d.label);
 
     return (
@@ -124,15 +135,77 @@ function VoiceSection() {
                     </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4">
-                    <DeviceSelect
-                        icon={faMicrophone}
-                        label="Eingabegerät"
-                        devices={inputs}
-                        value={micId}
-                        onChange={handleMicChange}
-                        placeholder="Mikrofon"
-                    />
+                <div className="grid grid-cols-2 gap-4 items-start">
+                    <div className="flex flex-col gap-3">
+                        <DeviceSelect
+                            icon={faMicrophone}
+                            label="Eingabegerät"
+                            devices={inputs}
+                            value={micId}
+                            onChange={handleMicChange}
+                            placeholder="Mikrofon"
+                        />
+
+                        <div className="flex flex-col gap-3 bg-card border border-border rounded-lg p-3">
+                            <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="font-medium text-foreground">Pegel</span>
+                                    <span className="text-muted-foreground tabular-nums">
+                                        {threshold > 0 ? `Aktiv ab ${Math.round((threshold / MAX_MIC_THRESHOLD) * 100)}%` : 'Immer aktiv'}
+                                    </span>
+                                </div>
+                                <MicLevelMeter
+                                    deviceId={micId}
+                                    gain={gain}
+                                    threshold={threshold}
+                                    active={!labelsMissing || inputs.length > 0}
+                                />
+                            </div>
+
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="font-medium text-foreground">Aktivierungspegel</span>
+                                    <span className="text-muted-foreground tabular-nums">
+                                        {threshold > 0 ? `${Math.round((threshold / MAX_MIC_THRESHOLD) * 100)}%` : 'Aus'}
+                                    </span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min={MIN_MIC_THRESHOLD}
+                                    max={MAX_MIC_THRESHOLD}
+                                    step="0.005"
+                                    value={threshold}
+                                    onChange={handleThresholdChange}
+                                    className="w-full accent-primary cursor-pointer"
+                                    aria-label="Aktivierungspegel"
+                                />
+                                <p className="text-[11px] text-muted-foreground leading-snug">
+                                    Erst ab diesem Pegel wird dein Mikro gesendet. Auf 0 = immer offen.
+                                </p>
+                            </div>
+
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="font-medium text-foreground">Eingabelautstärke</span>
+                                    <span className="text-muted-foreground tabular-nums">{Math.round(gain * 100)}%</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min={MIN_MIC_GAIN}
+                                    max={MAX_MIC_GAIN}
+                                    step="0.05"
+                                    value={gain}
+                                    onChange={handleGainChange}
+                                    className="w-full accent-primary cursor-pointer"
+                                    aria-label="Eingabelautstärke"
+                                />
+                                <p className="text-[11px] text-muted-foreground leading-snug">
+                                    Verstärkt dein Mikro bevor es gesendet wird. Über 100 % kann clippen.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <DeviceSelect
                         icon={faVolumeHigh}
                         label="Ausgabegerät"
@@ -141,25 +214,6 @@ function VoiceSection() {
                         onChange={handleSpeakerChange}
                         placeholder="Lautsprecher"
                     />
-                </div>
-
-                <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium text-foreground">Eingabelautstärke</span>
-                        <span className="text-muted-foreground tabular-nums">{Math.round(gain * 100)}%</span>
-                    </div>
-                    <input
-                        type="range"
-                        min={MIN_MIC_GAIN}
-                        max={MAX_MIC_GAIN}
-                        step="0.05"
-                        value={gain}
-                        onChange={handleGainChange}
-                        className="w-full accent-primary cursor-pointer"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                        Verstärkt dein Mikrofon, bevor es an andere gesendet wird. Über 100 % kann clippen.
-                    </p>
                 </div>
 
                 {!isConnected && (

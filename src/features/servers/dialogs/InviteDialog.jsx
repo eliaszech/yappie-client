@@ -1,4 +1,4 @@
-
+import {createPortal} from "react-dom";
 import {useQuery} from "@tanstack/react-query";
 import {createInvite, fetchFriends, fetchOrCreateConversationWith} from "../../../services/api.js";
 import UserAvatar from "../../components/UserAvatar.jsx";
@@ -70,7 +70,7 @@ function InviteDialog({server, onCancel}) {
 
     const filteredUsers = friends?.filter(friend => friend.username.toLowerCase().includes(search.toLowerCase()));
 
-    return (
+    return createPortal((
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/60" onClick={onCancel} />
             <div className="relative bg-background rounded-lg border border-border shadow-xl w-125">
@@ -102,7 +102,7 @@ function InviteDialog({server, onCancel}) {
                 </div>
             </div>
         </div>
-    );
+    ), document.body);
 }
 
 export default InviteDialog;
