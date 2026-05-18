@@ -1,7 +1,7 @@
 import {useUserPopup} from "../../../hooks/user/useUserPopup.js";
 import {useEffect, useRef, useState} from "react";
 import {useIsOnline, useUserStatus} from "../../../hooks/usePresence.js";
-import {useUserActivity} from "../../../hooks/useActivity.js";
+import {useUserActivity, useActivityPlaytime} from "../../../hooks/useActivity.js";
 import UserAvatar from "../UserAvatar.jsx";
 import {useAuth} from "../../../hooks/useAuth.js";
 import Dropdown from "../Dropdown.jsx";
@@ -20,7 +20,13 @@ import {
 import {useNavigate} from "react-router-dom";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faPen, faMessage, faUserCheck, faUserMinus, faBan, faGamepad} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
-import {faEllipsis, faChevronRight, faChevronLeft, faLink} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
+import {
+    faEllipsis,
+    faChevronRight,
+    faChevronLeft,
+    faLink,
+    faGamepadModern
+} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import {faUserPlus, faUserClock} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {useSettings} from "../../../context/SettingsContext.jsx";
 import {useQuery, useQueryClient} from "@tanstack/react-query";
@@ -42,6 +48,7 @@ function UserPopup() {
     const status = useUserStatus(popup.user.id) ?? popup.user.status;
     const activity = useUserActivity(popup.user.id);
     const showActivity = online && activity?.name;
+    const playtimeLabel = useActivityPlaytime(activity?.since);
 
     const { data: friends = [] } = useQuery({
         queryKey: ['friends'],
@@ -306,21 +313,33 @@ function UserPopup() {
                     <div className="text-sm text-muted-foreground">{popup.user.username}</div>
 
                     {showActivity && (
-                        <div className="mt-3 p-2.5 rounded-md bg-primary/10 border border-primary/20 flex items-center gap-2">
-                            {activity.icon ? (
-                                <img src={activity.icon} alt="" className="w-9 h-9 shrink-0 rounded-lg" />
-                            ) : (
-                                <FontAwesomeIcon icon={faGamepad} className="text-primary text-sm shrink-0" />
-                            )}
-                            <div className="flex flex-col min-w-0">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-primary/80">Spielt gerade</span>
-                                <span className="text-sm font-medium text-foreground truncate">{activity.name}</span>
+                        <div className="mt-3 pt-3 border-t border-border">
+                            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                Aktivität
+                            </span>
+                            <div className="mt-2 flex items-center gap-3 px-2.5 py-3 rounded-md bg-muted/40">
+                                {activity.icon ? (
+                                    <img src={activity.icon} alt="" className="w-11 h-11 shrink-0 rounded-lg object-cover" />
+                                ) : (
+                                    <div className="w-11 h-11 shrink-0 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
+                                        <FontAwesomeIcon icon={faGamepad} className="text-base" />
+                                    </div>
+                                )}
+                                <div className="flex flex-col min-w-0 flex-1">
+                                    <span className="text-sm mb-0.5 font-semibold text-foreground truncate" title={activity.name}>{activity.name}</span>
+                                    {playtimeLabel && (
+                                        <div className="flex items-center gap-1 text-primary">
+                                            <FontAwesomeIcon className="text-sm" icon={faGamepadModern} />
+                                            <span className="text-[11px] text-primary truncate">{playtimeLabel}</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
 
-                    <div className="mt-2">
-                        <span className="text-xs font-semibold text-foreground">Mitglied seit</span>
+                    <div className={showActivity ? "mt-3 pt-3 border-t border-border" : "mt-2"}>
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Mitglied seit</span>
                         <p className="text-xs text-muted-foreground mt-1">
                             {new Date(popup.user.createdAt).toLocaleDateString('de-DE', {
                                 day: 'numeric',

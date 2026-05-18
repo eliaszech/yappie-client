@@ -27,8 +27,9 @@ import VoiceVideoTile from "../../components/VoiceVideoTile.jsx";
 import Spinner from "../../components/static/Spinner.jsx";
 import MemberSidebarList from "./MemberSidebarList.jsx";
 import { useParticipantContextMenu } from "../../../hooks/useParticipantContextMenu.jsx";
+import { useMemberAvatars } from "../../../hooks/useMemberAvatars.js";
 
-function ParticipantTile({ participant, onContextMenu, avatarSize = 'w-20 h-20' }) {
+function ParticipantTile({ participant, onContextMenu, avatarSize = 'w-20 h-20', avatar }) {
     const name = participant.name || participant.identity;
     return (
         <div
@@ -45,6 +46,7 @@ function ParticipantTile({ participant, onContextMenu, avatarSize = 'w-20 h-20' 
             )}
             <UserAvatar
                 icon={(name || '?').charAt(0).toUpperCase()}
+                avatar={avatar}
                 displayOnline={false}
                 size={avatarSize}
             />
@@ -187,6 +189,7 @@ function VoiceChannelView() {
 
     const polledParticipants = useChannelParticipants(isActive ? null : channelId);
     const participants = isActive ? liveParticipants : polledParticipants;
+    const avatarByUserId = useMemberAvatars(serverId);
 
     const localShare = useMemo(
         () => screenShares.find(s => s.isLocal),
@@ -357,6 +360,7 @@ function VoiceChannelView() {
                                     <div key={p.identity + '-strip'} className="aspect-video h-full shrink-0">
                                         <ParticipantTile
                                             participant={p}
+                                            avatar={p.avatar ?? avatarByUserId.get(p.identity)}
                                             avatarSize="w-12 h-12"
                                             onContextMenu={(e) => handleParticipantContextMenu(e, p)}
                                         />
@@ -396,6 +400,7 @@ function VoiceChannelView() {
                                         <ParticipantTile
                                             key={p.identity}
                                             participant={p}
+                                            avatar={p.avatar ?? avatarByUserId.get(p.identity)}
                                             avatarSize={avatarSize}
                                             onContextMenu={(e) => handleParticipantContextMenu(e, p)}
                                         />

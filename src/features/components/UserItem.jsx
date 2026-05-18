@@ -4,6 +4,7 @@ import UserAvatar from "./UserAvatar.jsx";
 import StatusText from "./user/StatusText.jsx";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGamepad } from '@awesome.me/kit-95376d5d61/icons/classic/solid';
+import {faGamepadModern} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 
 function UserItem({user, serverMember = null, color = '', paddings = 'px-2 py-1'}) {
     user = serverMember?.user ?? user;
@@ -15,7 +16,7 @@ function UserItem({user, serverMember = null, color = '', paddings = 'px-2 py-1'
 
     const subline = showActivity ? (
         <span className="flex items-center gap-1 text-xs text-foreground/70 truncate" title={`Spielt ${activity.name}`}>
-            <FontAwesomeIcon icon={faGamepad} className="text-[10px] shrink-0" />
+            <FontAwesomeIcon icon={faGamepadModern} className="text-[10px] text-primary shrink-0" />
             <span className="truncate">{activity.name}</span>
         </span>
     ) : (

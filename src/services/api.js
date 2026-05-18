@@ -121,3 +121,41 @@ export async function uploadAvatar(file) {
         return { error: e.message };
     }
 }
+
+export async function uploadServerIcon(serverId, file) {
+    const formData = new FormData();
+    formData.append('icon', file);
+    try {
+        const res = await fetch(`${API_URL}/servers/${serverId}/icon`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}` },
+            body: formData,
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            return { error: err.error || 'Upload fehlgeschlagen' };
+        }
+        return res.json();
+    } catch (e) {
+        return { error: e.message };
+    }
+}
+
+export async function uploadMessageFiles(files) {
+    const formData = new FormData();
+    for (const file of files) formData.append('files', file);
+    try {
+        const res = await fetch(`${API_URL}/uploads/messages`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}` },
+            body: formData,
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            return { error: err.error || 'Upload fehlgeschlagen' };
+        }
+        return res.json();
+    } catch (e) {
+        return { error: e.message };
+    }
+}

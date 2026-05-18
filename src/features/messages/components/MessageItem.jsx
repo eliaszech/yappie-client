@@ -14,6 +14,7 @@ import {useNavigate, useParams} from "react-router-dom";
 import {joinServer} from "../../../services/api.js";
 import {useQueryClient} from "@tanstack/react-query";
 import MessageInput from "./MessageInput.jsx";
+import MessageAttachments from "./MessageAttachments.jsx";
 import {getSocket} from "../../../services/socket.js";
 
 const MENTION_REGEX = /@(\w+)/g;
@@ -250,6 +251,7 @@ function MessageItem({message, color = '', isGrouped = false, disabled = false})
                             {message.type === 'server_invite' && <InviteMessage invite={message.invite} />}
                         </div>
                     )}
+                    {message.attachments?.length > 0 && !isEditing && <MessageAttachments attachments={message.attachments} />}
                     {embedUrl && !isEditing && <LinkEmbed url={embedUrl} />}
                     <Reactions disabled={disabled} message={message} />
                 </div>
@@ -303,6 +305,7 @@ function MessageItem({message, color = '', isGrouped = false, disabled = false})
                         {message.type === 'server_invite' && <InviteMessage invite={message.invite} />}
                     </div>
                 )}
+                {message.attachments?.length > 0 && !isEditing && <MessageAttachments attachments={message.attachments} />}
                 {embedUrl && !isEditing && <LinkEmbed url={embedUrl} />}
                 <Reactions disabled={disabled} message={message} />
             </div>

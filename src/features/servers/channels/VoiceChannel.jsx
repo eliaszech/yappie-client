@@ -8,6 +8,7 @@ import {useNavigate} from "react-router-dom";
 import {useAuth} from "../../../hooks/useAuth.js";
 import HasUserPopup from "../../components/user/HasUserPopup.jsx";
 import { useParticipantContextMenu } from "../../../hooks/useParticipantContextMenu.jsx";
+import { useMemberAvatars } from "../../../hooks/useMemberAvatars.js";
 
 function VoiceChannel({ channel, server, onSettings }) {
     const { joinVoice, channelId: activeChannelId, muted, deafened, participants: liveParticipants = [], connectionStatus, retryCount } = useVoice();
@@ -20,6 +21,7 @@ function VoiceChannel({ channel, server, onSettings }) {
     const polledParticipants = useChannelParticipants(isActive ? null : channel.id);
     const participants = isActive ? liveParticipants : polledParticipants;
     const hasAnyPresence = isConnecting || (participants || []).length > 0;
+    const avatarByUserId = useMemberAvatars(server.id);
 
     async function handleClick() {
         if (!isActive) await joinVoice({ channel, server, attributes: {
@@ -70,7 +72,7 @@ function VoiceChannel({ channel, server, onSettings }) {
                             className="w-full flex text-foreground cursor-pointer items-center gap-2 px-2 py-1 rounded-md font-medium transition-all hover:text-foreground hover:bg-muted/50"
                         >
                             <div className={`ring-3 ${p.isSpeaking ? 'ring-primary' : 'ring-transparent'} rounded-full`}>
-                                <UserAvatar icon={(p.name || '').charAt(0).toUpperCase()} avatar={p.avatar} displayOnline={false} size="w-6 h-6" />
+                                <UserAvatar icon={(p.name || '').charAt(0).toUpperCase()} avatar={p.avatar ?? avatarByUserId.get(p.identity)} displayOnline={false} size="w-6 h-6" />
                             </div>
                             <div className={p.isSpeaking ? 'text-foreground' : 'text-muted-foreground'}>{p.displayName ?? p.name}</div>
                             <div className="ml-auto flex items-center gap-1.5">

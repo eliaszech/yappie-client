@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSpinner } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
-import { updateServer } from "../../../../services/api.js";
+import { faSpinner, faCamera } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
+import { updateServer, uploadServerIcon } from "../../../../services/api.js";
 import { useQueryClient } from "@tanstack/react-query";
 
 function SaveBar({ visible, onReset, onSave, saving }) {
@@ -28,10 +28,37 @@ function SaveBar({ visible, onReset, onSave, saving }) {
 function OverviewSection({ server }) {
     const [name, setName] = useState(server.name);
     const [saving, setSaving] = useState(false);
+    const [iconUploading, setIconUploading] = useState(false);
     const [error, setError] = useState('');
+    const fileInputRef = useRef(null);
     const queryClient = useQueryClient();
 
     const hasChanges = name.trim() !== server.name;
+
+    async function handleIconChange(e) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 8 * 1024 * 1024) {
+            setError('Datei zu groß (max. 8 MB)');
+            return;
+        }
+
+        setIconUploading(true);
+        setError('');
+        const res = await uploadServerIcon(server.id, file);
+        if (!res.error) {
+            queryClient.setQueryData(['server', server.id], (old) => old ? { ...old, icon: res.icon } : old);
+            queryClient.setQueryData(['servers'], (old) => {
+                if (!old) return old;
+                return old.map(s => s.id === server.id ? { ...s, icon: res.icon } : s);
+            });
+        } else {
+            setError(res.error);
+        }
+        setIconUploading(false);
+        e.target.value = '';
+    }
 
     function handleReset() {
         setName(server.name);
@@ -68,8 +95,28 @@ function OverviewSection({ server }) {
                     <div className="h-16 bg-primary" />
                     <div className="px-5 pb-5">
                         <div className="-mt-8 mb-3">
-                            <div className="w-16 h-16 rounded-full border-4 border-card bg-primary flex items-center justify-center text-primary-foreground text-2xl font-bold select-none">
-                                {(name || server.name).charAt(0).toUpperCase()}
+                            <div
+                                className="relative group cursor-pointer w-16 h-16"
+                                onClick={() => fileInputRef.current?.click()}
+                                title="Server-Icon ändern"
+                            >
+                                <div className="w-16 h-16 rounded-full border-4 border-card overflow-hidden bg-primary flex items-center justify-center text-primary-foreground text-2xl font-bold select-none">
+                                    {server.icon ? (
+                                        <img src={server.icon} alt="Server-Icon" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span>{(name || server.name).charAt(0).toUpperCase()}</span>
+                                    )}
+                                </div>
+                                <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-0.5">
+                                    {iconUploading ? (
+                                        <FontAwesomeIcon icon={faSpinner} spin className="text-white text-lg" />
+                                    ) : (
+                                        <>
+                                            <FontAwesomeIcon icon={faCamera} className="text-white text-base" />
+                                            <span className="text-white text-[10px] font-semibold leading-none">ÄNDERN</span>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
                         <div className="text-lg font-bold text-foreground">{name || server.name}</div>
@@ -80,6 +127,8 @@ function OverviewSection({ server }) {
                         </div>
                     </div>
                 </div>
+
+                <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/gif,image/webp" className="hidden" onChange={handleIconChange} />
 
                 {/* Name input */}
                 <div className="bg-card rounded-xl border border-border p-5">

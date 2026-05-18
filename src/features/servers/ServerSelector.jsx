@@ -77,9 +77,13 @@ function ServerSelector() {
                 <div className="w-8 h-px bg-border mb-1"></div>
             )}
             {servers.length > 0 && servers.map((server) => (
-                <NavLink to={`/servers/${server.id}`} key={server.id}
-                         className={({isActive}) => `${isActive ? 'text-primary-foreground bg-primary' : 'text-muted-foreground bg-card'} w-12 h-12 rounded-2xl text-xl flex items-center hover:rounded-2xl hover:bg-primary hover:text-primary-foreground justify-center transition-all duration-200`}>
-                    {server.name.charAt(0).toUpperCase()}
+                <NavLink to={`/servers/${server.id}`} key={server.id} title={server.name}
+                         className={({isActive}) => `${isActive ? 'text-primary-foreground bg-primary' : 'text-muted-foreground bg-card'} w-12 h-12 rounded-2xl text-xl flex items-center hover:rounded-2xl hover:bg-primary hover:text-primary-foreground justify-center transition-all duration-200 overflow-hidden`}>
+                    {server.icon ? (
+                        <img src={server.icon} alt={server.name} className="w-full h-full object-cover" />
+                    ) : (
+                        server.name.charAt(0).toUpperCase()
+                    )}
                 </NavLink>
             ))}
 

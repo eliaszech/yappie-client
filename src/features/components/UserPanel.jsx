@@ -2,37 +2,34 @@ import {
     faCog,
     faHeadset,
     faMicrophone,
-    faSignOut,
     faWaveform,
     faWireless,
-    faArrowsRotate,
+    faArrowsRotate, faGamepadModern,
 } from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import UserAvatar from "./UserAvatar.jsx";
 import {useAuth} from "../../hooks/useAuth.js";
-import {useNavigate} from "react-router-dom";
-import {useQueryClient} from "@tanstack/react-query";
 import {useVoice} from "../../hooks/useVoice.jsx";
 import {faMicrophoneSlash, faPhoneSlash, faHeadphonesSlash} from "@awesome.me/kit-95376d5d61/icons/classic/light";
-import StatusPicker from "./user/StatusPicker.jsx";
 import {useState} from "react";
 import HasUserPopup from "./user/HasUserPopup.jsx";
 import StatusText from "./user/StatusText.jsx";
 import {useIsOnline, useUserStatus} from "../../hooks/usePresence.js";
-import {useUserActivity} from "../../hooks/useActivity.js";
+import {useUserActivity, useActivityPlaytime} from "../../hooks/useActivity.js";
 import {useSettings} from "../../context/SettingsContext.jsx";
 import {faGamepad} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 
 function UserPanel() {
     const { user } = useAuth();
     const { openSettings } = useSettings();
-    const [ changeStatusVisible, setChangeStatusVisible ] = useState(false);
-    const { isConnected, channelName, serverName, krisp, setKrisp, leaveVoice, muted, toggleMute, deafened, toggleDeafen, connectionStatus, retryCount } = useVoice();
+    const [ setChangeStatusVisible ] = useState(false);
+    const { isConnected, channelName, serverName, krisp, leaveVoice, muted, toggleMute, deafened, toggleDeafen, connectionStatus, retryCount } = useVoice();
 
     const online = useIsOnline(user.id) ?? user.online;
     const status = useUserStatus(user.id) ?? user.status;
     const activity = useUserActivity(user.id);
     const showActivity = online && activity?.name;
+    const playtimeLabel = useActivityPlaytime(activity?.since);
 
     function toggleKrisp() {
         if (!krisp) return;
@@ -44,6 +41,28 @@ function UserPanel() {
 
     return(
         <div className="absolute bottom-2 left-2 w-[385px] z-10 bg-muted  backdrop-blur-md rounded-lg  justify-between flex flex-col">
+            {showActivity && (
+                <div className="px-3 py-2 border-b border-border">
+                    <div className="flex items-center gap-3">
+                        {activity.icon ? (
+                            <img src={activity.icon} alt="" className="w-8 h-8 shrink-0 rounded-lg object-cover" />
+                        ) : (
+                            <div className="w-10 h-10 shrink-0 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
+                                <FontAwesomeIcon icon={faGamepadModern} className="text-base" />
+                            </div>
+                        )}
+                        <div className="flex flex-col min-w-0 flex-1">
+                            <span className=" font-semibold text-foreground truncate" title={activity.name}>{activity.name}</span>
+                            {playtimeLabel && (
+                                <div className="flex items-center gap-1 text-primary">
+                                    <FontAwesomeIcon className="text-sm" icon={faGamepadModern} />
+                                    <span className="text-[11px] text-primary truncate">{playtimeLabel}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
             {(isConnected || connectionStatus === 'connecting') && (
                 <div className="pl-3 pr-2 py-2 border-b border-border">
                     <div className="flex items-center justify-between">
@@ -78,6 +97,7 @@ function UserPanel() {
                     </div>
                 </div>
             )}
+
             <div className="flex items-center justify-between pl-1 pr-2 py-1">
                 <HasUserPopup classes="w-full" isProfilePopup={true} user={user} orientation="top">
                     <div className="flex items-center gap-3 hover:bg-card px-2 grow py-1 rounded-lg cursor-pointer" onClick={() => setChangeStatusVisible(true)}>
@@ -86,16 +106,9 @@ function UserPanel() {
                             <span className="text-foreground text-base font-medium truncate">
                                 {user.displayName ?? user.username}
                             </span>
-                            {showActivity ? (
-                                <span className="flex items-center gap-1 text-xs text-foreground/70 truncate" title={`Spielt ${activity.name}`}>
-                                    <FontAwesomeIcon icon={faGamepad} className="text-[10px] shrink-0" />
-                                    <span className="truncate">{activity.name}</span>
-                                </span>
-                            ) : (
-                                <span className="text-muted-foreground text-xs">
-                                    <StatusText hideBubble={true} hideDescription={true} online={online} userStatus={status} showRealStatus={true} />
-                                </span>
-                            )}
+                            <span className="text-muted-foreground text-xs">
+                                <StatusText hideBubble={true} hideDescription={true} online={online} userStatus={status} showRealStatus={true} />
+                            </span>
                         </div>
                     </div>
                 </HasUserPopup>

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { onActivityChange, onActivitySync, getSocket } from '../services/socket.js';
 import { getActivityEnabled, getCustomGames, subscribe as subscribeActivitySettings } from '../services/activitySettings.js';
@@ -39,6 +39,40 @@ export function useUserActivity(userId) {
         staleTime: Infinity,
     });
     return activities[userId] ?? null;
+}
+
+function formatPlaytime(ms) {
+    if (!Number.isFinite(ms) || ms < 0) return null;
+    const totalMin = Math.floor(ms / 60_000);
+    if (totalMin < 1) return 'Gerade gestartet';
+    if (totalMin < 60) return `Seit ${totalMin} Min`;
+    const hours = Math.floor(totalMin / 60);
+    const minutes = totalMin % 60;
+    if (hours < 24) {
+        return minutes > 0 ? `Seit ${hours} Std ${minutes} Min` : `Seit ${hours} Std`;
+    }
+    const days = Math.floor(hours / 24);
+    const remHours = hours % 24;
+    const dayLabel = days === 1 ? 'Tag' : 'Tagen';
+    return remHours > 0 ? `Seit ${days} ${dayLabel} ${remHours} Std` : `Seit ${days} ${dayLabel}`;
+}
+
+export function useActivityPlaytime(since) {
+    const [label, setLabel] = useState(() => since ? formatPlaytime(Date.now() - since) : null);
+
+    useEffect(() => {
+        if (!since) {
+            setLabel(null);
+            return;
+        }
+        setLabel(formatPlaytime(Date.now() - since));
+        const id = setInterval(() => {
+            setLabel(formatPlaytime(Date.now() - since));
+        }, 30_000);
+        return () => clearInterval(id);
+    }, [since]);
+
+    return label;
 }
 
 // Bridges electron's game detection IPC to a server-side activity:set emit.
