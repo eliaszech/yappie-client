@@ -15,6 +15,7 @@ import { useAuth } from '../../../hooks/useAuth.js';
 import { useNavigate } from 'react-router-dom';
 import RolePickerDialog from '../members/RolePickerDialog.jsx';
 import {getSocket} from "../../../services/socket.js";
+import { hasPermission, PERMISSIONS } from "../../../services/permissions.js";
 function KickConfirmDialog({ member, onConfirm, onClose }) {
     const [kicking, setKicking] = useState(false);
 
@@ -74,6 +75,9 @@ function MemberSidebarList({ serverId }) {
     });
 
     const isOwner = server?.ownerId === currentUser?.id;
+    const canManageRoles = hasPermission(server, PERMISSIONS.MANAGE_ROLES);
+    const canKick = hasPermission(server, PERMISSIONS.KICK_MEMBERS);
+    const canBan = hasPermission(server, PERMISSIONS.BAN_MEMBERS);
 
     if (isLoading) return <Spinner size="w-10 h-10" />;
     if (isError) return <ErrorMessage icon={<FontAwesomeIcon icon={faUsers} />} title="Fehler beim Laden" message="Mitglieder konnten nicht geladen werden" />;
@@ -81,19 +85,22 @@ function MemberSidebarList({ serverId }) {
     const onlineMembers = members.filter(m => m.user.online);
     const offlineMembers = members.filter(m => !m.user.online);
 
-    function getTopRole(member) {
-        const memberRoles = member.roles || [];
-        let topIndex = Infinity;
-        let topRole = null;
-        for (const r of memberRoles) {
-            const roleId = r.role?.id ?? r.id;
-            const idx = roles.findIndex(role => role.id === roleId);
-            if (idx !== -1 && idx < topIndex) {
-                topIndex = idx;
-                topRole = roles[idx];
-            }
+    // Roles is sorted by [isOwnerRole desc, position desc] — index 0 is the
+    // top of the hierarchy. We need two top-role pickers:
+    //  - hoisted: only roles flagged hoist (drives the sidebar grouping)
+    //  - colored: anything with a color (drives username tint)
+    function topRoleBy(member, predicate) {
+        const memberRoleIds = new Set((member.roles || []).map(r => r.role?.id ?? r.id));
+        for (const role of roles) {
+            if (memberRoleIds.has(role.id) && predicate(role)) return role;
         }
-        return topRole;
+        return null;
+    }
+    function getTopHoistedRole(member) {
+        return topRoleBy(member, r => r.hoist && !r.isEveryone);
+    }
+    function getTopColoredRole(member) {
+        return topRoleBy(member, r => !!r.color && !r.isEveryone);
     }
 
     async function handleKick(member) {
@@ -122,29 +129,38 @@ function MemberSidebarList({ serverId }) {
             },
         ];
 
-        if (!isSelf && isOwner) {
-            items.push({ separator: true });
-            items.push({ label: 'MODERATION', header: true });
-            items.push({
-                label: 'Rollen verwalten',
-                icon: faTag,
-                onClick: () => setRolePicker(member),
-            });
-            items.push({ separator: true });
-            items.push({
-                label: 'Rauswerfen',
-                icon: faUserXmark,
-                danger: true,
-                onClick: () => setConfirmKick(member),
-            });
-            items.push({
-                label: 'Sperren',
-                icon: faBan,
-                danger: true,
-                disabled: true,
-                disabledLabel: 'Bald',
-                onClick: () => {},
-            });
+        if (!isSelf) {
+            const modItems = [];
+            if (canManageRoles) {
+                modItems.push({
+                    label: 'Rollen verwalten',
+                    icon: faTag,
+                    onClick: () => setRolePicker(member),
+                });
+            }
+            if (canKick) {
+                modItems.push({
+                    label: 'Rauswerfen',
+                    icon: faUserXmark,
+                    danger: true,
+                    onClick: () => setConfirmKick(member),
+                });
+            }
+            if (canBan) {
+                modItems.push({
+                    label: 'Sperren',
+                    icon: faBan,
+                    danger: true,
+                    disabled: true,
+                    disabledLabel: 'Bald',
+                    onClick: () => {},
+                });
+            }
+            if (modItems.length > 0) {
+                items.push({ separator: true });
+                items.push({ label: 'MODERATION', header: true });
+                items.push(...modItems);
+            }
         }
 
         return items;
@@ -154,7 +170,8 @@ function MemberSidebarList({ serverId }) {
     const assignedIds = new Set();
 
     for (const role of roles) {
-        const roleMembers = onlineMembers.filter(m => getTopRole(m)?.id === role.id);
+        if (!role.hoist || role.isEveryone) continue;
+        const roleMembers = onlineMembers.filter(m => getTopHoistedRole(m)?.id === role.id);
         if (roleMembers.length > 0) {
             grouped.push({ role, members: roleMembers });
             roleMembers.forEach(m => assignedIds.add(m.user.id));
@@ -164,14 +181,14 @@ function MemberSidebarList({ serverId }) {
     const ungroupedOnline = onlineMembers.filter(m => !assignedIds.has(m.user.id));
 
     function renderMember(member) {
-        const topRole = getTopRole(member);
+        const colorRole = getTopColoredRole(member);
         return (
             <div
                 key={member.userId ?? member.user.id}
                 onContextMenu={(e) => openContextMenu(e, buildContextItems(member))}
             >
                 <HasUserPopup user={member.user} orientation="left" roles={member.roles}>
-                    <UserItem serverMember={member} color={topRole?.color} />
+                    <UserItem serverMember={member} color={colorRole?.color} />
                 </HasUserPopup>
             </div>
         );
@@ -221,6 +238,7 @@ function MemberSidebarList({ serverId }) {
             {rolePicker && (
                 <RolePickerDialog
                     serverId={serverId}
+                    server={server}
                     member={rolePicker}
                     onClose={() => setRolePicker(null)}
                 />

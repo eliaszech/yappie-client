@@ -4,8 +4,9 @@ import { fetchRoles, fetchMembers, assignRole, removeRole } from '../../../servi
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faXmark } from '@awesome.me/kit-95376d5d61/icons/classic/solid';
 import {getSocket} from "../../../services/socket.js";
+import { canActOnRole } from "../../../services/permissions.js";
 
-function RolePickerDialog({ serverId, member, onClose }) {
+function RolePickerDialog({ serverId, server, member, onClose }) {
     const { data: allRoles = [] } = useQuery({
         queryKey: ['roles', serverId],
         queryFn: () => fetchRoles(serverId),
@@ -59,10 +60,14 @@ function RolePickerDialog({ serverId, member, onClose }) {
                 </div>
 
                 <div className="py-1 max-h-72 overflow-y-auto">
-                    {allRoles.length === 0 && (
-                        <p className="text-xs text-muted-foreground px-4 py-3">Keine Rollen vorhanden</p>
-                    )}
-                    {allRoles.map(role => {
+                    {(() => {
+                        const assignable = allRoles.filter(r => !r.isEveryone && (server ? canActOnRole(server, r) : true));
+                        if (assignable.length === 0) {
+                            return <p className="text-xs text-muted-foreground px-4 py-3">Keine zuweisbaren Rollen</p>;
+                        }
+                        return null;
+                    })()}
+                    {allRoles.filter(r => !r.isEveryone && (server ? canActOnRole(server, r) : true)).map(role => {
                         const assigned = memberRoleIds.has(role.id);
                         return (
                             <button

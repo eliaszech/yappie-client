@@ -42,12 +42,14 @@ function InviteDialog({server, onCancel}) {
     });
 
     useEffect(() => {
-        async function fetchInvite() {
+        if (!server?.id) return;
+        let cancelled = false;
+        (async () => {
             const inviteObject = await createInvite(server.id);
-            setInvite(inviteObject);
-        }
-        fetchInvite();
-    }, [server])
+            if (!cancelled && !inviteObject?.error) setInvite(inviteObject);
+        })();
+        return () => { cancelled = true; };
+    }, [server?.id]);
 
     async function handleInvite(friendId) {
         const socket = getSocket();

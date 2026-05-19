@@ -5,6 +5,7 @@ import pkg from 'electron-updater';
 const { autoUpdater } = pkg;
 import { exec } from 'child_process';
 import { startGameDetection, stopGameDetection, setCustomGames, setDetectionEnabled } from './gameDetection.js';
+import { setupCrashReporter, recordRendererCrash, flushPendingCrashes } from './crashReporter.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = process.env.NODE_ENV === 'development';
@@ -283,11 +284,25 @@ function emitGame(game) {
     }
 }
 
+setupCrashReporter();
+
 app.whenReady().then(() => {
     if (process.platform === 'win32') app.setAppUserModelId('com.yappie.client');
     setupIpc();
     createWindow();
     startGameDetection(emitGame);
+
+    ipcMain.handle('crash:flush', async (_event, apiUrl) => {
+        try {
+            return await flushPendingCrashes(apiUrl);
+        } catch (err) {
+            return { error: err?.message ?? String(err) };
+        }
+    });
+
+    ipcMain.on('crash:record', (_event, payload) => {
+        if (payload && typeof payload === 'object') recordRendererCrash(payload);
+    });
     // Send the current value to any newly-loaded renderer so it picks up the
     // last detection without waiting for the next change.
     ipcMain.handle('electron:get-current-game', () => lastGame);

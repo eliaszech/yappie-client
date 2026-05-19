@@ -10,6 +10,9 @@ import {faChevronDown, faUserPlus, faUsers} from "@awesome.me/kit-95376d5d61/ico
 import ChannelList from "./channels/ChannelList.jsx";
 import ServerDropdown from "./ServerDropdown.jsx";
 import ServerSettingsModal from "./settings/ServerSettingsModal.jsx";
+import ServerNowPlaying from "./ServerNowPlaying.jsx";
+import InviteDialog from "./dialogs/InviteDialog.jsx";
+import { hasPermission, PERMISSIONS } from "../../services/permissions.js";
 
 function ServerSidebar() {
     const { serverId } = useParams();
@@ -18,6 +21,7 @@ function ServerSidebar() {
     const { savePath } = useLastPath(`server-${serverId}`);
     const [serverDropdownOpen, setServerDropdownOpen] = useState(false);
     const [serverSettingsOpen, setServerSettingsOpen] = useState(false);
+    const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
 
     const { data: server = null, isLoading, isError } = useQuery({
         queryKey: ['server', serverId],
@@ -42,9 +46,15 @@ function ServerSidebar() {
                 >
                     {server.name} <FontAwesomeIcon className="text-xs" icon={faChevronDown} />
                 </button>
-                <button className="cursor-pointer font-bold flex text-sm items-center gap-2.5 hover:bg-muted/50 rounded-md px-2 py-1.5 transition-all">
-                    <FontAwesomeIcon icon={faUserPlus} />
-                </button>
+                {hasPermission(server, PERMISSIONS.CREATE_INVITES) && (
+                    <button
+                        onClick={() => setInviteDialogOpen(true)}
+                        title="Leute einladen"
+                        className="cursor-pointer font-bold flex text-sm items-center gap-2.5 hover:bg-muted/50 rounded-md px-2 py-1.5 transition-all"
+                    >
+                        <FontAwesomeIcon icon={faUserPlus} />
+                    </button>
+                )}
                 {serverDropdownOpen && (
                     <ServerDropdown
                         closeDropdown={() => setServerDropdownOpen(false)}
@@ -62,7 +72,12 @@ function ServerSidebar() {
                 </NavLink>
             </div>
             <div className="h-px bg-border w-full" />
+            <ServerNowPlaying serverId={serverId} />
             <ChannelList server={server} />
+
+            {inviteDialogOpen && (
+                <InviteDialog server={server} onCancel={() => setInviteDialogOpen(false)} />
+            )}
 
             {serverSettingsOpen && (
                 <ServerSettingsModal

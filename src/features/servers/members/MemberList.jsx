@@ -13,6 +13,7 @@ import HasUserPopup from '../../components/user/HasUserPopup.jsx';
 import Spinner from '../../components/static/Spinner.jsx';
 import NoResultsMessage from '../../components/static/NoResultsMessage.jsx';
 import { useAuth } from '../../../hooks/useAuth.js';
+import { hasPermission, PERMISSIONS } from '../../../services/permissions.js';
 import { useNavigate } from 'react-router-dom';
 import { useContextMenu } from '../../../hooks/useContextMenu.js';
 import RolePickerDialog from './RolePickerDialog.jsx';
@@ -103,6 +104,9 @@ function MemberList() {
     });
 
     const isOwner = server?.ownerId === currentUser?.id;
+    const canManageRoles = hasPermission(server, PERMISSIONS.MANAGE_ROLES);
+    const canKick = hasPermission(server, PERMISSIONS.KICK_MEMBERS);
+    const canBan = hasPermission(server, PERMISSIONS.BAN_MEMBERS);
 
     const filtered = members.filter(m =>
         (m.user.displayName ?? m.user.username).toLowerCase().includes(search.toLowerCase()) ||
@@ -134,29 +138,38 @@ function MemberList() {
             },
         ];
 
-        if (!isSelf && isOwner) {
-            items.push({ separator: true });
-            items.push({ label: 'MODERATION', header: true });
-            items.push({
-                label: 'Rollen verwalten',
-                icon: faTag,
-                onClick: () => setRolePicker(member),
-            });
-            items.push({ separator: true });
-            items.push({
-                label: 'Rauswerfen',
-                icon: faUserXmark,
-                danger: true,
-                onClick: () => setConfirmKick(member),
-            });
-            items.push({
-                label: 'Sperren',
-                icon: faBan,
-                danger: true,
-                disabled: true,
-                disabledLabel: 'Bald',
-                onClick: () => {},
-            });
+        if (!isSelf) {
+            const modItems = [];
+            if (canManageRoles) {
+                modItems.push({
+                    label: 'Rollen verwalten',
+                    icon: faTag,
+                    onClick: () => setRolePicker(member),
+                });
+            }
+            if (canKick) {
+                modItems.push({
+                    label: 'Rauswerfen',
+                    icon: faUserXmark,
+                    danger: true,
+                    onClick: () => setConfirmKick(member),
+                });
+            }
+            if (canBan) {
+                modItems.push({
+                    label: 'Sperren',
+                    icon: faBan,
+                    danger: true,
+                    disabled: true,
+                    disabledLabel: 'Bald',
+                    onClick: () => {},
+                });
+            }
+            if (modItems.length > 0) {
+                items.push({ separator: true });
+                items.push({ label: 'MODERATION', header: true });
+                items.push(...modItems);
+            }
         }
 
         return items;
@@ -207,7 +220,7 @@ function MemberList() {
                         {filtered.map(member => {
                             const isSelf = member.user.id === currentUser.id;
                             const memberRoles = member.roles || [];
-                            const topRoleColor = memberRoles[0]?.role?.color ?? null;
+                            const topRoleColor = memberRoles.find(r => !r.role?.isEveryone)?.role?.color ?? null;
 
                             return (
                                 <div
@@ -278,6 +291,7 @@ function MemberList() {
             {rolePicker && (
                 <RolePickerDialog
                     serverId={serverId}
+                    server={server}
                     member={rolePicker}
                     onClose={() => setRolePicker(null)}
                 />

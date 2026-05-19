@@ -62,6 +62,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('app:notification-clicked', (_event, clickId) => callback(clickId));
     },
 
+    // Crash reporting
+    flushCrashes: (apiUrl) => ipcRenderer.invoke('crash:flush', apiUrl),
+    recordCrash: (payload) => ipcRenderer.send('crash:record', payload),
+
     // Updater
     onUpdateStatus: (callback) => {
         ipcRenderer.removeAllListeners('update:status');

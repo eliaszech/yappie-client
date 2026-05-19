@@ -8,7 +8,7 @@ import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {useAuth} from "../../../hooks/useAuth.js";
 import ConversationItem from "./components/ConversationItem.jsx";
 
-function ConversationList() {
+function ConversationList({ onNewConversation }) {
     const { user } = useAuth();
 
     const { data: conversations = [], isLoading, isError } = useQuery({
@@ -25,7 +25,13 @@ function ConversationList() {
         <div className="flex flex-col px-3">
             <div className="flex items-center justify-between px-2 py-3 text-xs text-muted-foreground">
                 <span className="uppercase">Direktnachrichten</span>
-                <button><FontAwesomeIcon icon={faPlus} /></button>
+                <button
+                    onClick={onNewConversation}
+                    title="Neue Direktnachricht"
+                    className="cursor-pointer hover:text-foreground transition-colors"
+                >
+                    <FontAwesomeIcon icon={faPlus} />
+                </button>
             </div>
             <div className="flex flex-col gap-1">
                 {conversations.map((conversation) => <ConversationItem key={conversation.id} conversation={conversation} />)}

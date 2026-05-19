@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faGear, faUsers, faShield, faXmark, faTrash, faMoon } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
+import { faGear, faUsers, faShield, faXmark, faTrash, faMoon, faLink, faFaceSmile } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { deleteServer } from "../../../services/api.js";
@@ -9,34 +9,71 @@ import OverviewSection from "./sections/OverviewSection.jsx";
 import MembersSection from "./sections/MembersSection.jsx";
 import RolesSection from "./sections/RolesSection.jsx";
 import AfkSection from "./sections/AfkSection.jsx";
+import InvitesSection from "./sections/InvitesSection.jsx";
+import EmojisSection from "./sections/EmojisSection.jsx";
+import { hasPermission, PERMISSIONS } from "../../../services/permissions.js";
 
-const NAV = [
-    {
-        category: 'SERVEREINSTELLUNGEN',
-        items: [
-            { id: 'overview', label: 'Übersicht', icon: faGear },
-            { id: 'roles',    label: 'Rollen',    icon: faShield },
-            { id: 'members',  label: 'Mitglieder', icon: faUsers },
-            { id: 'afk',      label: 'AFK',       icon: faMoon },
-        ],
-    },
-];
+function buildNav(server) {
+    const canManageDetails = hasPermission(server, PERMISSIONS.MANAGE_SERVER);
+    const canManageRoles = hasPermission(server, PERMISSIONS.MANAGE_ROLES);
+    const canManageEmojis = hasPermission(server, PERMISSIONS.MANAGE_EMOJIS);
+    const canKick = hasPermission(server, PERMISSIONS.KICK_MEMBERS);
+    const canBan = hasPermission(server, PERMISSIONS.BAN_MEMBERS);
+    const canInvite = hasPermission(server, PERMISSIONS.CREATE_INVITES);
+    const canManageInvites = hasPermission(server, PERMISSIONS.MANAGE_INVITES);
+
+    const general = [];
+    if (canManageDetails) general.push({ id: 'overview', label: 'Übersicht', icon: faGear });
+
+    const management = [];
+    if (canManageRoles) management.push({ id: 'roles', label: 'Rollen', icon: faShield });
+    if (canManageRoles || canKick || canBan) {
+        management.push({ id: 'members', label: 'Mitglieder', icon: faUsers });
+    }
+    if (canInvite || canManageInvites) {
+        management.push({ id: 'invites', label: 'Einladungen', icon: faLink });
+    }
+    if (canManageEmojis) management.push({ id: 'emojis', label: 'Emojis', icon: faFaceSmile });
+
+    const voice = [];
+    if (canManageDetails) voice.push({ id: 'afk', label: 'AFK', icon: faMoon });
+
+    const groups = [];
+    if (general.length)    groups.push({ category: 'ALLGEMEIN',  items: general });
+    if (management.length) groups.push({ category: 'VERWALTUNG', items: management });
+    if (voice.length)      groups.push({ category: 'VOICE',      items: voice });
+    return groups;
+}
 
 function SectionContent({ section, server }) {
     switch (section) {
         case 'overview': return <OverviewSection server={server} />;
         case 'roles':    return <RolesSection server={server} />;
         case 'members':  return <MembersSection server={server} />;
+        case 'invites':  return <InvitesSection server={server} />;
+        case 'emojis':   return <EmojisSection server={server} />;
         case 'afk':      return <AfkSection server={server} />;
         default:         return <OverviewSection server={server} />;
     }
 }
 
 function ServerSettingsModal({ server, onClose }) {
-    const [section, setSection] = useState('overview');
+    const NAV = buildNav(server);
+    const allowedIds = NAV.flatMap(g => g.items.map(i => i.id));
+    const initialSection = allowedIds.includes('overview') ? 'overview' : (allowedIds[0] ?? 'overview');
+
+    const [section, setSection] = useState(initialSection);
     const [confirmDelete, setConfirmDelete] = useState(false);
     const queryClient = useQueryClient();
     const navigate = useNavigate();
+
+    // Fall back to the first allowed tab if a live-sync demotes the user out of
+    // their currently-viewed tab (e.g. someone removed MANAGE_SERVER from them).
+    useEffect(() => {
+        if (!allowedIds.includes(section) && allowedIds.length > 0) {
+            setSection(allowedIds[0]);
+        }
+    }, [section, allowedIds]);
 
     useEffect(() => {
         const handle = (e) => { if (e.key === 'Escape') onClose(); };
@@ -89,36 +126,38 @@ function ServerSettingsModal({ server, onClose }) {
                             </div>
                         ))}
 
-                        {/* Delete server */}
-                        <div className="mt-auto pt-4 border-t border-border">
-                            {confirmDelete ? (
-                                <div className="flex flex-col gap-2 px-2 py-1">
-                                    <span className="text-xs text-muted-foreground">Server wirklich löschen?</span>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => setConfirmDelete(false)}
-                                            className="flex-1 text-xs py-1.5 rounded-md bg-muted text-foreground hover:bg-muted/80 cursor-pointer transition-colors"
-                                        >
-                                            Abbrechen
-                                        </button>
-                                        <button
-                                            onClick={handleDelete}
-                                            className="flex-1 text-xs py-1.5 rounded-md bg-dnd text-white hover:bg-dnd/80 cursor-pointer transition-colors"
-                                        >
-                                            Löschen
-                                        </button>
+                        {/* Delete server (owner only) */}
+                        {server.isOwner && (
+                            <div className="mt-auto pt-4 border-t border-border">
+                                {confirmDelete ? (
+                                    <div className="flex flex-col gap-2 px-2 py-1">
+                                        <span className="text-xs text-muted-foreground">Server wirklich löschen?</span>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => setConfirmDelete(false)}
+                                                className="flex-1 text-xs py-1.5 rounded-md bg-muted text-foreground hover:bg-muted/80 cursor-pointer transition-colors"
+                                            >
+                                                Abbrechen
+                                            </button>
+                                            <button
+                                                onClick={handleDelete}
+                                                className="flex-1 text-xs py-1.5 rounded-md bg-dnd text-white hover:bg-dnd/80 cursor-pointer transition-colors"
+                                            >
+                                                Löschen
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            ) : (
-                                <button
-                                    onClick={() => setConfirmDelete(true)}
-                                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md font-medium text-dnd hover:bg-dnd/10 transition-colors cursor-pointer"
-                                >
-                                    <FontAwesomeIcon icon={faTrash} className="w-3.5 shrink-0" />
-                                    Server löschen
-                                </button>
-                            )}
-                        </div>
+                                ) : (
+                                    <button
+                                        onClick={() => setConfirmDelete(true)}
+                                        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md font-medium text-dnd hover:bg-dnd/10 transition-colors cursor-pointer"
+                                    >
+                                        <FontAwesomeIcon icon={faTrash} className="w-3.5 shrink-0" />
+                                        Server löschen
+                                    </button>
+                                )}
+                            </div>
+                        )}
                     </nav>
                 </div>
 

@@ -20,6 +20,8 @@ let activityCallback = null;
 let activitySyncCallback = null;
 let pinCallback = null;
 let conversationCreatedCallback = null;
+let roleChangeCallback = null;
+let memberRolesChangeCallback = null;
 
 let eventsRegistered = false;
 
@@ -106,6 +108,22 @@ function registerEvents() {
         if (conversationCreatedCallback) conversationCreatedCallback(conversation);
     });
 
+    socket.on('role:created', (data) => {
+        if (roleChangeCallback) roleChangeCallback('created', data);
+    });
+    socket.on('role:updated', (data) => {
+        if (roleChangeCallback) roleChangeCallback('updated', data);
+    });
+    socket.on('role:deleted', (data) => {
+        if (roleChangeCallback) roleChangeCallback('deleted', data);
+    });
+    socket.on('role:positions', (data) => {
+        if (roleChangeCallback) roleChangeCallback('positions', data);
+    });
+    socket.on('member:roles-changed', (data) => {
+        if (memberRolesChangeCallback) memberRolesChangeCallback(data);
+    });
+
     eventsRegistered = true;
 }
 
@@ -179,6 +197,14 @@ export function onPinUpdate(callback) {
 
 export function onConversationCreated(callback) {
     conversationCreatedCallback = callback;
+}
+
+export function onRoleChange(callback) {
+    roleChangeCallback = callback;
+}
+
+export function onMemberRolesChange(callback) {
+    memberRolesChangeCallback = callback;
 }
 
 export function getSocket() {

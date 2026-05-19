@@ -10,7 +10,7 @@ import HasUserPopup from "../../components/user/HasUserPopup.jsx";
 import { useParticipantContextMenu } from "../../../hooks/useParticipantContextMenu.jsx";
 import { useMemberAvatars } from "../../../hooks/useMemberAvatars.js";
 
-function VoiceChannel({ channel, server, onSettings }) {
+function VoiceChannel({ channel, server, onSettings, canManage = true }) {
     const { joinVoice, channelId: activeChannelId, muted, deafened, participants: liveParticipants = [], connectionStatus, retryCount } = useVoice();
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -51,13 +51,15 @@ function VoiceChannel({ channel, server, onSettings }) {
                         </span>
                     )}
                 </button>
-                <button
-                    onClick={() => onSettings?.(channel)}
-                    className="absolute right-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded"
-                    title="Kanaleinstellungen"
-                >
-                    <FontAwesomeIcon icon={faGear} className="text-xs" />
-                </button>
+                {canManage && (
+                    <button
+                        onClick={() => onSettings?.(channel)}
+                        className="absolute right-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded"
+                        title="Kanaleinstellungen"
+                    >
+                        <FontAwesomeIcon icon={faGear} className="text-xs" />
+                    </button>
+                )}
             </div>
             {hasAnyPresence && (
                 <div className="pl-7">

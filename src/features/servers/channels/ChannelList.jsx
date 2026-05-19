@@ -9,8 +9,9 @@ import CreateChannelDialog from "../dialogs/CreateChannelDialog.jsx";
 import ChannelSettingsModal from "../settings/ChannelSettingsModal.jsx";
 import { useVoice } from "../../../hooks/useVoice.jsx";
 import { useChannelUnread } from "../../../hooks/useReadStates.js";
+import { hasPermission, PERMISSIONS } from "../../../services/permissions.js";
 
-function TextChannelItem({ server, channel, onSettings }) {
+function TextChannelItem({ server, channel, onSettings, canManage }) {
     const { unreadCount, mentionCount } = useChannelUnread(channel.id);
     const hasUnread = unreadCount > 0;
     const badge = mentionCount > 99 ? '99+' : mentionCount;
@@ -32,13 +33,15 @@ function TextChannelItem({ server, channel, onSettings }) {
                     </span>
                 )}
             </NavLink>
-            <button
-                onClick={() => onSettings(channel)}
-                className="absolute right-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded"
-                title="Kanaleinstellungen"
-            >
-                <FontAwesomeIcon icon={faGear} className="text-xs" />
-            </button>
+            {canManage && (
+                <button
+                    onClick={() => onSettings(channel)}
+                    className="absolute right-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded"
+                    title="Kanaleinstellungen"
+                >
+                    <FontAwesomeIcon icon={faGear} className="text-xs" />
+                </button>
+            )}
         </div>
     );
 }
@@ -47,6 +50,7 @@ function ChannelList({server}) {
     const [createDialog, setCreateDialog] = useState(null);
     const [settingsChannel, setSettingsChannel] = useState(null);
     const [collapsed, setCollapsed] = useState({ text: false, voice: false });
+    const canManageChannels = hasPermission(server, PERMISSIONS.MANAGE_CHANNELS);
 
     const { channelId: activeRouteChannelId } = useParams();
     const { channelId: activeVoiceChannelId } = useVoice();
@@ -89,17 +93,19 @@ function ChannelList({server}) {
                         />
                         Textkanäle
                     </button>
-                    <button
-                        onClick={() => setCreateDialog('text')}
-                        className="hover:text-foreground transition-colors cursor-pointer rounded p-0.5 hover:bg-muted/50"
-                        title="Textkanal erstellen"
-                    >
-                        <FontAwesomeIcon icon={faPlus} />
-                    </button>
+                    {canManageChannels && (
+                        <button
+                            onClick={() => setCreateDialog('text')}
+                            className="hover:text-foreground transition-colors cursor-pointer rounded p-0.5 hover:bg-muted/50"
+                            title="Textkanal erstellen"
+                        >
+                            <FontAwesomeIcon icon={faPlus} />
+                        </button>
+                    )}
                 </div>
                 <div className="flex flex-col gap-1">
                     {visibleText.map((channel) => (
-                        <TextChannelItem key={channel.id} server={server} channel={channel} onSettings={setSettingsChannel} />
+                        <TextChannelItem key={channel.id} server={server} channel={channel} onSettings={setSettingsChannel} canManage={canManageChannels} />
                     ))}
                 </div>
 
@@ -115,13 +121,15 @@ function ChannelList({server}) {
                         />
                         Sprachkanäle
                     </button>
-                    <button
-                        onClick={() => setCreateDialog('voice')}
-                        className="hover:text-foreground transition-colors cursor-pointer rounded p-0.5 hover:bg-muted/50"
-                        title="Sprachkanal erstellen"
-                    >
-                        <FontAwesomeIcon icon={faPlus} />
-                    </button>
+                    {canManageChannels && (
+                        <button
+                            onClick={() => setCreateDialog('voice')}
+                            className="hover:text-foreground transition-colors cursor-pointer rounded p-0.5 hover:bg-muted/50"
+                            title="Sprachkanal erstellen"
+                        >
+                            <FontAwesomeIcon icon={faPlus} />
+                        </button>
+                    )}
                 </div>
                 <div className="flex flex-col gap-1">
                     {visibleVoice.map((channel) =>
@@ -130,6 +138,7 @@ function ChannelList({server}) {
                             server={server}
                             channel={channel}
                             onSettings={setSettingsChannel}
+                            canManage={canManageChannels}
                         />
                     )}
                 </div>

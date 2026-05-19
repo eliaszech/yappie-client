@@ -7,8 +7,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUserXmark, faPlus, faCheck } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import Spinner from "../../../components/static/Spinner.jsx";
 import {getSocket} from "../../../../services/socket.js";
+import { hasPermission, PERMISSIONS, canActOnRole } from "../../../../services/permissions.js";
 
-function RoleAssignPopup({ serverId, member, onClose }) {
+function RoleAssignPopup({ server, member, onClose }) {
+    const serverId = server.id;
     const ref = useRef(null);
     const queryClient = useQueryClient();
 
@@ -57,10 +59,14 @@ function RoleAssignPopup({ serverId, member, onClose }) {
             <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider border-b border-border mb-1">
                 Rollen
             </div>
-            {allRoles.length === 0 && (
-                <p className="text-xs text-muted-foreground px-3 py-2">Keine Rollen vorhanden</p>
-            )}
-            {allRoles.map(role => {
+            {(() => {
+                const assignable = allRoles.filter(r => !r.isEveryone && canActOnRole(server, r));
+                if (assignable.length === 0) {
+                    return <p className="text-xs text-muted-foreground px-3 py-2">Keine zuweisbaren Rollen</p>;
+                }
+                return null;
+            })()}
+            {allRoles.filter(r => !r.isEveryone && canActOnRole(server, r)).map(role => {
                 const assigned = memberRoleIds.has(role.id);
                 return (
                     <button
@@ -107,6 +113,8 @@ function MembersSection({ server }) {
     const [confirmId, setConfirmId] = useState(null);
     const [kickingId, setKickingId] = useState(null);
     const [roleMenuId, setRoleMenuId] = useState(null);
+    const canManageRoles = hasPermission(server, PERMISSIONS.MANAGE_ROLES);
+    const canKick = hasPermission(server, PERMISSIONS.KICK_MEMBERS);
 
     const { data: members = [], isLoading } = useQuery({
         queryKey: ['members', server.id],
@@ -164,7 +172,7 @@ function MembersSection({ server }) {
                             const isConfirming = confirmId === member.user.id;
                             const isKicking = kickingId === member.user.id;
                             const memberRoles = member.roles || [];
-                            const topRoleColor = memberRoles[0]?.role.color ?? null;
+                            const topRoleColor = memberRoles.find(r => !r.role?.isEveryone)?.role?.color ?? null;
 
                             return (
                                 <div
@@ -195,28 +203,30 @@ function MembersSection({ server }) {
 
                                     {/* Roles */}
                                     <div className="flex-1 flex items-center gap-1.5 flex-wrap">
-                                        {memberRoles.map(role => (
+                                        {memberRoles.filter(r => !r.role?.isEveryone).map(role => (
                                             <RoleBadge key={role.roleId} role={role.role} />
                                         ))}
-                                        <div className="relative">
-                                            <button
-                                                onClick={() => setRoleMenuId(roleMenuId === member.user.id ? null : member.user.id)}
-                                                className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded-full border border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground hover:border-foreground hover:text-foreground transition-all cursor-pointer"
-                                            >
-                                                <FontAwesomeIcon icon={faPlus} className="text-[9px]" />
-                                            </button>
-                                            {roleMenuId === member.user.id && (
-                                                <RoleAssignPopup
-                                                    serverId={server.id}
-                                                    member={member}
-                                                    onClose={() => setRoleMenuId(null)}
-                                                />
-                                            )}
-                                        </div>
+                                        {canManageRoles && (
+                                            <div className="relative">
+                                                <button
+                                                    onClick={() => setRoleMenuId(roleMenuId === member.user.id ? null : member.user.id)}
+                                                    className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded-full border border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground hover:border-foreground hover:text-foreground transition-all cursor-pointer"
+                                                >
+                                                    <FontAwesomeIcon icon={faPlus} className="text-[9px]" />
+                                                </button>
+                                                {roleMenuId === member.user.id && (
+                                                    <RoleAssignPopup
+                                                        server={server}
+                                                        member={member}
+                                                        onClose={() => setRoleMenuId(null)}
+                                                    />
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Kick */}
-                                    {!isSelf && (
+                                    {!isSelf && canKick && (
                                         isConfirming ? (
                                             <div className="flex items-center gap-2 shrink-0">
                                                 <span className="text-xs text-muted-foreground">Wirklich?</span>

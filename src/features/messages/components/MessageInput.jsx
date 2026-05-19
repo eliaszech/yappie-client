@@ -19,7 +19,9 @@ import {createEditor, Editor, Range, Transforms} from "slate";
 import {withMentions} from "../../plugins/slate/withMentions.js";
 import MentionElement from "../../plugins/slate/MentionElement.jsx";
 import ChannelMentionElement from "../../plugins/slate/ChannelMentionElement.jsx";
-import {uploadMessageFiles} from "../../../services/api.js";
+import {fetchServer, uploadMessageFiles} from "../../../services/api.js";
+import {hasPermission, PERMISSIONS} from "../../../services/permissions.js";
+import {useQuery} from "@tanstack/react-query";
 
 const MENTION_SUGGESTIONS_REGEX = /(?<!\w)@(\w*)$/;
 const CHANNEL_SUGGESTIONS_REGEX = /(?<!\S)#([\w-]*)$/;
@@ -70,8 +72,20 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
     const { typingUsers, sendTyping, stopTyping } = useTyping(type, roomId);
     const inputContainerRef = useRef(null);
 
+    const { data: serverCtx } = useQuery({
+        queryKey: ['server', serverId],
+        queryFn: () => fetchServer(serverId),
+        enabled: type === 'channel' && !!serverId,
+        staleTime: 10 * 60 * 1000,
+    });
+    const canSend = type === 'conversation' || hasPermission(serverCtx, PERMISSIONS.SEND_MESSAGES);
+    const canAttach = type === 'conversation' || hasPermission(serverCtx, PERMISSIONS.ATTACH_FILES);
+
     useEffect(() => {
         const ref = inputContainerRef.current;
+        // When SEND_MESSAGES is missing we render the permission banner instead
+        // of the editor, so the ref never attaches. Bail out cleanly.
+        if (!ref) return;
 
         function handleFocusIn() {
             setShowSuggestions(true);
@@ -81,7 +95,7 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
         return () => {
             ref.removeEventListener('focusin', handleFocusIn);
         }
-    }, []);
+    }, [canSend]);
 
     useEffect(() => {
         return () => {
@@ -484,14 +498,24 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
         }
     }
 
+    if (!canSend) {
+        return (
+            <div className="relative h-max flex flex-col px-1.5 pb-2">
+                <div className="w-full rounded-lg border border-border bg-card/60 px-4 py-3 text-sm text-muted-foreground text-center">
+                    Du hast keine Berechtigung, in diesem Kanal zu schreiben.
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div
             ref={inputContainerRef}
             className="relative h-max flex flex-col px-1.5 pb-2 z-3"
-            onDragEnter={handleDragEnter}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
+            onDragEnter={canAttach ? handleDragEnter : undefined}
+            onDragOver={canAttach ? handleDragOver : undefined}
+            onDragLeave={canAttach ? handleDragLeave : undefined}
+            onDrop={canAttach ? handleDrop : undefined}
         >
             <input
                 ref={fileInputRef}
@@ -602,14 +626,16 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
                     <div className="w-full border-b border-border px-3 py-2 text-xs text-red-400">{attachmentError}</div>
                 )}
                 <div className="flex w-full h-max items-center relative">
-                    <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        title="Datei anhängen"
-                        className="absolute z-10 left-3 top-3 cursor-pointer text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg px-1 py-1"
-                    >
-                        <FontAwesomeIcon icon={faPlus} />
-                    </button>
+                    {canAttach && (
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            title="Datei anhängen"
+                            className="absolute z-10 left-3 top-3 cursor-pointer text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg px-1 py-1"
+                        >
+                            <FontAwesomeIcon icon={faPlus} />
+                        </button>
+                    )}
                     <Slate editor={editor} initialValue={initialValue} onValueChange={(newValue) => {
                         setInput(newValue);
                         handleInputChangeForSuggestions();

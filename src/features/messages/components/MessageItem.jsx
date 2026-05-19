@@ -1,6 +1,5 @@
 import UserAvatar from "../../components/UserAvatar.jsx";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faSpinnerThird} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import {faThumbtack} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import MessageActionPopup from "./MessageActionPopup.jsx";
 import HasUserPopup from "../../components/user/HasUserPopup.jsx";
@@ -11,66 +10,31 @@ import {useAuth} from "../../../hooks/useAuth.js";
 import {useUserStatus} from "../../../hooks/usePresence.js";
 import {editMessage} from "../../../hooks/messages/useEditMessage.js";
 import LinkEmbed, {extractFirstUrl} from "./LinkEmbed.jsx";
-import {faServer} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {useNavigate, useParams} from "react-router-dom";
-import {joinServer} from "../../../services/api.js";
 import {useQueryClient} from "@tanstack/react-query";
-import MessageInput from "./MessageInput.jsx";
 import MessageAttachments from "./MessageAttachments.jsx";
 import PollMessage from "./PollMessage.jsx";
-import {getSocket} from "../../../services/socket.js";
+import InviteCard from "./InviteCard.jsx";
+import {useMemberTopRoleColor} from "../../../hooks/useMemberTopRoleColor.js";
 
 const MENTION_REGEX = /@(\w+)/g;
 const SPECIAL_MENTION_REGEX = /(?<!\w)@(everyone|here)(?!\w)/g;
 const CHANNEL_REGEX = /#([\w-]+)/g;
 const LINK_REGEX = /https?:\/\/[^\s<>"[\]{}|\\^`]+/g;
+const INVITE_REGEX = /(?:https?:\/\/)?(?:www\.)?yappie\.ch\/invite\/([A-Za-z0-9]+)/g;
 
-function InviteMessage({invite}) {
-    const navigate = useNavigate();
-    const queryClient = useQueryClient();
-
-    async function join(inviteCode) {
-        const member = await joinServer(inviteCode);
-
-        if(!member.error) {
-            const socket = getSocket();
-
-            queryClient.setQueryData(['servers'], (old) => {
-                if (!old) return old;
-
-                return [...old, member.server];
-            });
-
-            socket.emit('server:user:update', 'join', member.userId, invite.server.id);
-
-            navigate(`/servers/${invite.server.id}`);
-        } else {
-            alert(member.error);
-        }
-    }
-
-    return (
-        <div className="rounded-lg bg-card w-[250px]">
-            <div className="h-12 bg-primary rounded-t-lg" />
-
-            {/* Avatar */}
-            <div className="px-4 -mt-8">
-                <UserAvatar size="w-14 h-14 text-2xl border-4 border-card"
-                    displayOnline={false} icon={<FontAwesomeIcon icon={faServer} />}
-                />
-            </div>
-
-            <div className="px-4 flex flex-col pt-2 pb-4">
-                <div className="font-bold text-lg">{invite ? invite?.server.name : 'Unbekannter Server'}</div>
-                {invite && (
-                    <div className="text-xs text-muted-foreground mb-4">{`Gegründet am ${new Date(invite.server.createdAt).toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})}`}</div>
-                )}
-                <button onClick={async () => await join(invite?.code)}
-                    className="cursor-pointer bg-primary text-sm text-primary-foreground hover:bg-primary/90 px-2 py-1 rounded-md">Beitreten</button>
-            </div>
-        </div>
-    )
+function parseInviteCode(href) {
+    const m = href.match(/yappie\.ch\/invite\/([A-Za-z0-9]+)/);
+    return m ? m[1] : null;
 }
+
+function getMessageInviteCode(message) {
+    if (message?.invite?.code) return message.invite.code;
+    if (!message?.text) return null;
+    const m = message.text.match(/yappie\.ch\/invite\/([A-Za-z0-9]+)/);
+    return m ? m[1] : null;
+}
+
 
 function MessageItem({message, color = '', isGrouped = false, disabled = false}) {
     const { user: messageUser } = message;
@@ -78,6 +42,7 @@ function MessageItem({message, color = '', isGrouped = false, disabled = false})
     const liveStatus = useUserStatus(user?.id);
     const myStatus = liveStatus ?? user?.status;
     const { serverId } = useParams();
+    const authorRoleColor = useMemberTopRoleColor(serverId, messageUser?.id);
     const [hovered, setHovered] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState('');
@@ -196,7 +161,8 @@ function MessageItem({message, color = '', isGrouped = false, disabled = false})
         || (message.replyTo && message.replyTo.user.id === user.id && message.userId !== user.id)
         || message.mentionEveryone
         || (message.mentionHere && myStatus !== 'invisible');
-    const embedUrl = !message.pending && message.type !== 'server_invite' ? extractFirstUrl(message.text) : null;
+    const inviteCode = getMessageInviteCode(message);
+    const embedUrl = !message.pending && !inviteCode ? extractFirstUrl(message.text) : null;
 
     return disabled || !isGrouped || message.replyTo || message.pinned ? (
         <div onMouseMove={() => !hovered && setHovered(true)}
@@ -230,7 +196,12 @@ function MessageItem({message, color = '', isGrouped = false, disabled = false})
                 <div className="flex flex-col w-full">
                     <div className="flex items-start gap-2">
                         <HasUserPopup user={messageUser} >
-                            <span className="text-lg mt-0.5 font-bold text-foreground hover:underline">{messageUser.displayName ?? messageUser.username}</span>
+                            <span
+                                className="text-lg mt-0.5 font-bold text-foreground hover:underline"
+                                style={authorRoleColor ? { color: authorRoleColor } : undefined}
+                            >
+                                {messageUser.displayName ?? messageUser.username}
+                            </span>
                         </HasUserPopup>
                         <span className="text-sm mt-1 text-muted-foreground">{dateTimeString}</span>
                     </div>
@@ -267,14 +238,18 @@ function MessageItem({message, color = '', isGrouped = false, disabled = false})
                                                 {part.content}
                                             </span>
                                         ) : part.type === 'link' ? (
-                                            <a key={index} href={part.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part.content}</a>
+                                            parseInviteCode(part.href) ? (
+                                                <span key={index} onClick={() => navigate(`/invite/${parseInviteCode(part.href)}`)} className="text-primary hover:underline break-all cursor-pointer">{part.content}</span>
+                                            ) : (
+                                                <a key={index} href={part.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part.content}</a>
+                                            )
                                         ) : (
                                             <span key={index}>{part.content}</span>
                                         )
                                     )}
                                 </div>
                             )}
-                            {message.type === 'server_invite' && <InviteMessage invite={message.invite} />}
+                            {inviteCode && <InviteCard code={inviteCode} />}
                             {message.type === 'poll' && message.poll && <PollMessage message={message} />}
                         </div>
                     )}
@@ -326,14 +301,18 @@ function MessageItem({message, color = '', isGrouped = false, disabled = false})
                                         {part.content}
                                     </span>
                                     ) : part.type === 'link' ? (
-                                        <a key={index} href={part.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part.content}</a>
+                                        parseInviteCode(part.href) ? (
+                                            <span key={index} onClick={() => navigate(`/invite/${parseInviteCode(part.href)}`)} className="text-primary hover:underline break-all cursor-pointer">{part.content}</span>
+                                        ) : (
+                                            <a key={index} href={part.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part.content}</a>
+                                        )
                                     ) : (
                                         <span key={index}>{part.content}</span>
                                     )
                                 )}
                             </div>
                         )}
-                        {message.type === 'server_invite' && <InviteMessage invite={message.invite} />}
+                        {inviteCode && <InviteCard code={inviteCode} />}
                         {message.type === 'poll' && message.poll && <PollMessage message={message} />}
                     </div>
                 )}

@@ -32,6 +32,7 @@ import {
 import {faUserPlus, faUserClock} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {useSettings} from "../../../context/SettingsContext.jsx";
 import {useQuery, useQueryClient} from "@tanstack/react-query";
+import {getActivityEnabled, subscribe as subscribeActivitySettings} from "../../../services/activitySettings.js";
 
 function UserPopup() {
     const { popup, closePopup } = useUserPopup();
@@ -49,7 +50,12 @@ function UserPopup() {
 
     const online = useIsOnline(popup.user.id) ?? popup.user.online;
     const status = useUserStatus(popup.user.id) ?? popup.user.status;
-    const activity = useUserActivity(popup.user.id);
+    const rawActivity = useUserActivity(popup.user.id);
+    const [selfActivityEnabled, setSelfActivityEnabled] = useState(getActivityEnabled);
+    useEffect(() => subscribeActivitySettings(() => setSelfActivityEnabled(getActivityEnabled())), []);
+    // For our own profile, gate on the local sharing toggle so toggling off
+    // hides the activity instantly, without waiting for the backend round-trip.
+    const activity = (isSelf && !selfActivityEnabled) ? null : rawActivity;
     const showActivity = online && activity?.name;
     const playtimeLabel = useActivityPlaytime(activity?.since);
 
@@ -405,13 +411,13 @@ function UserPopup() {
                         </div>
                     )}
 
-                    {popup.roles?.length > 0 && (
+                    {popup.roles?.filter(r => !(r.role ?? r)?.isEveryone)?.length > 0 && (
                         <div className="mt-2 px-3 py-2 rounded-xl bg-card/55 backdrop-blur-sm border border-border/60">
                             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                 Rollen
                             </span>
                             <div className="flex flex-wrap gap-1.5 mt-1">
-                                {popup.roles.map(r => {
+                                {popup.roles.filter(r => !(r.role ?? r)?.isEveryone).map(r => {
                                     const role = r.role ?? r;
                                     return (
                                         <span

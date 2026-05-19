@@ -30,6 +30,7 @@ import {
     deleteAllActivitySessions,
 } from '../../../services/api.js';
 import { getSocket } from '../../../services/socket.js';
+import { getActivityEnabled, subscribe as subscribeActivitySettings } from '../../../services/activitySettings.js';
 import UserAvatar from '../UserAvatar.jsx';
 
 function formatMs(ms) {
@@ -105,6 +106,7 @@ function ProfileModal({ userId }) {
         enabled: !isSelf,
     });
 
+
     const { data: friends = [] } = useQuery({
         queryKey: ['friends'],
         queryFn: fetchFriends,
@@ -115,7 +117,12 @@ function ProfileModal({ userId }) {
 
     const online = useIsOnline(userId) ?? profile?.online ?? false;
     const status = useUserStatus(userId) ?? profile?.status ?? 'online';
-    const activity = useUserActivity(userId);
+    const rawActivity = useUserActivity(userId);
+    const [selfActivityEnabled, setSelfActivityEnabled] = useState(getActivityEnabled);
+    useEffect(() => subscribeActivitySettings(() => setSelfActivityEnabled(getActivityEnabled())), []);
+    // For our own profile, gate on the local sharing toggle so toggling off
+    // hides the activity instantly, without waiting for the backend round-trip.
+    const activity = (isSelf && !selfActivityEnabled) ? null : rawActivity;
     const showActivity = online && activity?.name;
     const playtimeLabel = useActivityPlaytime(activity?.since);
 

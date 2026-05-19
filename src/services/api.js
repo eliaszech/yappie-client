@@ -87,8 +87,12 @@ export const fetchChannel = (channelId) => apiRequest('GET', `/channels/${channe
 export const fetchMessages = (type = 'conversation',channelId, cursor = '') => apiRequest('GET',
     type === 'channel' ? `/channels/${channelId}/messages?cursor=${cursor}` : `/conversations/${channelId}/messages?cursor=${cursor}`);
 
-export const createInvite = (serverId) => apiRequest('POST', `/servers/${serverId}/invites/create`);
+export const createInvite = (serverId, options = {}) => apiRequest('POST', `/servers/${serverId}/invites/create`, options);
 export const joinServer = (inviteCode) => apiRequest('POST', `/servers/join`, { inviteCode });
+export const leaveServer = (serverId) => apiRequest('POST', `/servers/${serverId}/leave`);
+export const resolveInvite = (code) => apiRequest('GET', `/servers/invites/${code}`);
+export const listServerInvites = (serverId) => apiRequest('GET', `/servers/${serverId}/invites`);
+export const deleteInvite = (code) => apiRequest('DELETE', `/servers/invites/${code}`);
 
 export const updateChannel = (serverId, channelId, data) => apiRequest('PATCH', `/servers/${serverId}/channels/${channelId}`, data);
 export const deleteChannel = (serverId, channelId) => apiRequest('DELETE', `/servers/${serverId}/channels/${channelId}`);
@@ -99,6 +103,7 @@ export const fetchChannelParticipants = (channelId) => apiRequest('GET', `/voice
 export const fetchConversations = (userId) => apiRequest('POST', `/conversations/list`, { userId: userId });
 export const fetchConversation = (conversationId) => apiRequest('GET', `/conversations/${conversationId}`);
 export const fetchOrCreateConversationWith = (receiverId) => apiRequest('POST', `/conversations/getOrCreate`, { targetUserId: receiverId });
+export const createGroupConversation = (participantIds) => apiRequest('POST', `/conversations/group`, { participantIds });
 
 export const fetchReadStates = () => apiRequest('GET', `/@me/read-states`);
 export const markChannelRead = (channelId) => apiRequest('POST', `/channels/${channelId}/read`);

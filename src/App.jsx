@@ -31,6 +31,8 @@ import {useNotifications} from "./hooks/useNotifications.js";
 import {useBadgeCount} from "./hooks/useBadgeCount.js";
 import {useUserServerUpdate} from "./hooks/server/useUserServerUpdate.js";
 import {useActivitySubscription, useGameActivityReporter} from "./hooks/useActivity.js";
+import {useCrashReporter} from "./hooks/useCrashReporter.js";
+import {useRoleSubscription} from "./hooks/useRoleSubscription.js";
 import KickedFromServerDialog from "./features/servers/dialogs/KickedFromServerDialog.jsx";
 import PageNotFound from "./errors/PageNotFound.jsx";
 import PageNotFoundSidebar from "./errors/PageNotFoundSidebar.jsx";
@@ -45,6 +47,7 @@ const VoiceChannelView = lazy(() => import("./features/servers/channels/VoiceCha
 const Conversation = lazy(() => import("./features/private/friends/Conversation.jsx"));
 const MemberList = lazy(() => import("./features/servers/members/MemberList.jsx"));
 const SettingsModal = lazy(() => import("./features/settings/SettingsModal.jsx"));
+const InviteJoin = lazy(() => import("./features/servers/InviteJoin.jsx"));
 
 function RouteFallback() {
     return (
@@ -71,7 +74,9 @@ function RouterEvents() {
 }
 
 function App() {
+    useCrashReporter();
     usePresence();
+    useRoleSubscription();
     useActivitySubscription();
     useGameActivityReporter();
     useVoiceEvents();
@@ -134,6 +139,7 @@ function App() {
                                         <Route path="voice/:channelId" element={<VoiceChannelView />} />
                                         <Route path="settings" element={<div>Settings</div>} />
                                     </Route>
+                                    <Route path="/invite/:code" element={<InviteJoin />} />
                                     <Route path="/error/404" element={<PageNotFound />} />
                                 </Routes>
                             </Suspense>

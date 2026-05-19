@@ -35,7 +35,11 @@ function MessageActionPopup({message, onEdit}) {
         staleTime: 10 * 60 * 1000,
     });
 
-    const canPin = roomType === 'channel' && hasPermission(server, PERMISSIONS.MANAGE_MESSAGES);
+    const canPin = roomType === 'channel' && hasPermission(server, PERMISSIONS.PIN_MESSAGES);
+    const isOwnMessage = message.user.id === user.id;
+    const canDelete = isOwnMessage
+        || (roomType === 'channel' && hasPermission(server, PERMISSIONS.MANAGE_MESSAGES))
+        || roomType === 'conversation'; // DMs: only own messages would be visible here anyway
 
     async function togglePin() {
         const channelId = message.channelId;
@@ -77,7 +81,7 @@ function MessageActionPopup({message, onEdit}) {
                     </button>
                 )}
                 <button className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50"><FontAwesomeIcon icon={faEllipsis} /></button>
-                {message.user.id === user.id && (
+                {canDelete && (isOwnMessage || roomType === 'channel') && (
                     <button className="cursor-pointer px-1.5 py-1.25 hover:bg-dnd/10 rounded-tr-lg rounded-br-lg  text-dnd"
                             onClick={(e) => e.shiftKey ? deleteMessage(roomType, message.id) : setShowDeleteConfirm(true)}>
                         <FontAwesomeIcon icon={faTrash} />
