@@ -170,7 +170,7 @@ function VoiceChannelView() {
         isConnected,
         channelId: activeChannelId,
         participants: liveParticipants = [],
-        screenShares = [],
+        screenShares: allScreenShares = [],
         muted,
         toggleMute,
         deafened,
@@ -212,6 +212,11 @@ function VoiceChannelView() {
     const polledParticipants = useChannelParticipants(isActive ? null : channelId);
     const participants = isActive ? liveParticipants : polledParticipants;
     const avatarByUserId = useMemberAvatars(serverId);
+
+    // screenShares from VoiceContext is global — it lives wherever the user is
+    // currently connected (could be a private call). Gate to this channel so a
+    // foreign-room share doesn't render here.
+    const screenShares = isActive ? allScreenShares : [];
 
     const localShare = useMemo(
         () => screenShares.find(s => s.isLocal),

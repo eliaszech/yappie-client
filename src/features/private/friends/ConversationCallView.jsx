@@ -120,7 +120,7 @@ export default function ConversationCallView({ conversationId, participants: con
     const {
         conversationId: activeId,
         participants: liveParticipants = [],
-        screenShares = [],
+        screenShares: allScreenShares = [],
         muted, toggleMute,
         deafened, toggleDeafen,
         leaveVoice,
@@ -136,6 +136,11 @@ export default function ConversationCallView({ conversationId, participants: con
 
     const inThisCall = activeId === conversationId;
     const isConnecting = inThisCall && (connectionStatus === 'connecting' || connectionStatus === 'reconnecting');
+
+    // VoiceContext.screenShares is global (single active room). If the user is
+    // streaming in a different room (e.g. a server voice channel) and opens
+    // this conversation, we must not render that foreign share here.
+    const screenShares = inThisCall ? allScreenShares : [];
 
     const userById = useMemo(() => {
         const map = new Map();

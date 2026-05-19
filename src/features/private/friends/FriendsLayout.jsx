@@ -13,6 +13,10 @@ function FriendsLayout() {
     const showActivityPanel = !location.pathname.endsWith('/add');
 
     useEffect(() => {
+        // Skip the bare layout path — it's only ever the transient index
+        // location before LastPathRedirect kicks in, so saving it would make a
+        // later visit redirect to itself (no-op).
+        if (location.pathname === '/@me/friends') return;
         savePath(location.pathname);
     }, [location.pathname]);
 

@@ -2,13 +2,20 @@ import { exec } from 'child_process';
 import { GAME_CATALOG } from './gameCatalog.js';
 
 const POLL_INTERVAL_MS = 12_000;
+// Re-attempt failed icon extractions only after this cooldown so we don't
+// hammer PowerShell every poll for protected games (Battlefield 6, Valorant,
+// …) whose running process Path is blocked by anti-cheat.
+const ICON_FAILURE_RETRY_MS = 5 * 60_000;
 
 let intervalHandle = null;
 let lastDetected = null; // { name, icon } | null
 let onChange = null;
 let enabled = true;
-// Cache extracted icons keyed by lowercased exe name → data URI (or '' if extraction failed).
+// Successful extractions only — keyed by lowercased exe name → data URI.
 const iconCache = new Map();
+// Last failure timestamp per exe name. Used to cooldown retries without
+// permanently marking anti-cheat-blocked games as iconless.
+const iconFailures = new Map();
 // User-defined games merged with the built-in catalog. Keys are lowercased exe names.
 const customGames = new Map();
 
@@ -35,16 +42,51 @@ function listProcessesWindows() {
 // resource (NOT the shell icon, which often resolves to the generic .exe icon
 // for signed/packaged games). Uses Get-Process for the path lookup because
 // wmic is no longer shipped by default on Windows 11 24H2+.
+//
+// Anti-cheat-protected games (BF6 / EA Javelin, Valorant / Vanguard, …) deny
+// $_.Path on the running process, so Get-Process returns no usable result.
+// In that case we fall back to scanning known game install roots for the exe
+// name — the on-disk file itself isn't protected, only the live process.
 function extractIconViaPowerShell(processName) {
     return new Promise((resolve) => {
         const baseName = processName.replace(/\.exe$/i, '').replace(/'/g, "''");
+        const exeName = processName.replace(/'/g, "''");
         const script = `
             $ErrorActionPreference='SilentlyContinue'
+            # Suppress progress events: when PS runs headless (no console host),
+            # module-autoload progress gets serialized to stdout as CLIXML and
+            # pollutes the marker line the JS side parses.
+            $ProgressPreference='SilentlyContinue'
             Add-Type -AssemblyName System.Drawing
+
+            $path = $null
             $proc = Get-Process -Name '${baseName}' | Where-Object {$_.Path} | Select-Object -First 1
-            if (!$proc) { Write-Output 'NOPATH'; exit }
+            if ($proc) { $path = $proc.Path }
+
+            if (!$path) {
+                $exe = '${exeName}'
+                $roots = @(
+                    "$env:ProgramFiles\\EA Games",
+                    "$env:ProgramFiles\\Epic Games",
+                    "$env:ProgramFiles\\Riot Games",
+                    "$env:ProgramFiles\\Rockstar Games",
+                    "$env:ProgramFiles\\WindowsApps",
+                    "\${env:ProgramFiles(x86)}\\Origin Games",
+                    "\${env:ProgramFiles(x86)}\\Steam\\steamapps\\common",
+                    "\${env:ProgramFiles(x86)}\\Battle.net",
+                    "\${env:ProgramFiles(x86)}\\Ubisoft\\Ubisoft Game Launcher\\games",
+                    "$env:LOCALAPPDATA\\Programs"
+                )
+                foreach ($root in $roots) {
+                    if (!(Test-Path -LiteralPath $root)) { continue }
+                    $found = Get-ChildItem -LiteralPath $root -Filter $exe -Recurse -Depth 4 -File -Force -ErrorAction SilentlyContinue | Select-Object -First 1
+                    if ($found) { $path = $found.FullName; break }
+                }
+            }
+
+            if (!$path) { Write-Output 'NOPATH'; exit }
             try {
-                $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($proc.Path)
+                $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($path)
                 if (!$icon) { Write-Output 'NOICON'; exit }
                 $bmp = $icon.ToBitmap()
                 $ms = New-Object System.IO.MemoryStream
@@ -61,26 +103,40 @@ function extractIconViaPowerShell(processName) {
                 resolve({ ok: false, reason: 'spawn:' + err.message });
                 return;
             }
+            // Defensive parser: even with $ProgressPreference suppressed, some
+            // PS hosts still emit a CLIXML preamble. Find the OK:/NO*/ERR:
+            // marker on its own line instead of relying on startsWith.
             const out = stdout.trim();
-            if (out.startsWith('OK:')) {
-                resolve({ ok: true, dataUri: 'data:image/png;base64,' + out.slice(3) });
+            const okMatch = out.match(/(?:^|\n)OK:([A-Za-z0-9+/=]+)\s*$/);
+            if (okMatch) {
+                resolve({ ok: true, dataUri: 'data:image/png;base64,' + okMatch[1] });
             } else {
-                resolve({ ok: false, reason: out || 'empty' });
+                const reasonMatch = out.match(/(?:^|\n)(NOPATH|NOICON|ERR:.*?)\s*$/);
+                resolve({ ok: false, reason: reasonMatch ? reasonMatch[1] : (out || 'empty') });
             }
         });
     });
 }
 
 async function extractIcon(processName) {
-    if (iconCache.has(processName)) return iconCache.get(processName) || null;
+    // Successful extractions are cached for the lifetime of the process —
+    // they don't change, and re-extraction costs a PowerShell spawn.
+    if (iconCache.has(processName)) return iconCache.get(processName);
+
+    // Failures get a cooldown rather than a permanent marker, so an
+    // anti-cheat-protected game can pick up its icon later (e.g. after the
+    // install-dir scan finds it) without needing an Electron restart.
+    const lastFail = iconFailures.get(processName);
+    if (lastFail && Date.now() - lastFail < ICON_FAILURE_RETRY_MS) return null;
 
     const result = await extractIconViaPowerShell(processName);
     if (!result.ok) {
         console.warn('[gameDetection] icon extraction failed for', processName, '→', result.reason);
-        iconCache.set(processName, '');
+        iconFailures.set(processName, Date.now());
         return null;
     }
     console.log('[gameDetection] extracted icon for', processName, '→', result.dataUri.length, 'bytes');
+    iconFailures.delete(processName);
     iconCache.set(processName, result.dataUri);
     return result.dataUri;
 }

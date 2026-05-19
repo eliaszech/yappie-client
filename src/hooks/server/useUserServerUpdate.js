@@ -55,12 +55,41 @@ export function useUserServerUpdate() {
         if (voiceServerIdRef.current === serverIdToEvict) {
             leaveVoiceRef.current?.();
         }
+        // Snapshot the server's channel ids before we wipe the channels cache —
+        // the channel-scoped member caches (['channelMembers', channelId]) are
+        // keyed by channelId only, so we need this lookup to target just the
+        // channels of the evicted server (and not blow away caches for other
+        // servers the user is still in).
+        const channels = queryClient.getQueryData(['channels', serverIdToEvict]) || [];
+        const channelIds = new Set(channels.map(c => c.id));
         queryClient.setQueryData(['servers'], (old) =>
             old ? old.filter(s => s.id !== serverIdToEvict) : old
         );
         queryClient.removeQueries({ queryKey: ['server', serverIdToEvict] });
         queryClient.removeQueries({ queryKey: ['channels', serverIdToEvict] });
         queryClient.removeQueries({ queryKey: ['members', serverIdToEvict] });
+        queryClient.removeQueries({
+            predicate: (q) => q.queryKey[0] === 'channelMembers' && channelIds.has(q.queryKey[1]),
+        });
+    }
+
+    // The sidebar member list switches to a channel-scoped fetch
+    // (['channelMembers', channelId]) whenever a channel is open, so socket
+    // events need to keep that cache in sync alongside the plain
+    // ['members', serverId] roster. We don't know which channels the joining
+    // member can see, so for joins we just invalidate channel-member caches
+    // for that server and let the backend re-apply visibility filtering.
+    function getServerChannelIds(serverIdToScope) {
+        const channels = queryClient.getQueryData(['channels', serverIdToScope]) || [];
+        return new Set(channels.map(c => c.id));
+    }
+
+    function removeFromChannelMemberCaches(serverIdToScope, userIdToRemove) {
+        const channelIds = getServerChannelIds(serverIdToScope);
+        queryClient.setQueriesData(
+            { predicate: (q) => q.queryKey[0] === 'channelMembers' && channelIds.has(q.queryKey[1]) },
+            (old) => old ? old.filter(m => m.user?.id !== userIdToRemove) : old,
+        );
     }
 
     useEffect(() => {
@@ -70,6 +99,12 @@ export function useUserServerUpdate() {
                     if (!old) return old;
                     if (old.some(m => m.user?.id === member.user?.id)) return old;
                     return [...old, member];
+                });
+                // Channel visibility depends on role/overwrites we don't have
+                // locally — let active channelMembers queries refetch.
+                const channelIds = getServerChannelIds(member.serverId);
+                queryClient.invalidateQueries({
+                    predicate: (q) => q.queryKey[0] === 'channelMembers' && channelIds.has(q.queryKey[1]),
                 });
             }
 
@@ -83,6 +118,7 @@ export function useUserServerUpdate() {
                     queryClient.setQueryData(['members', member.serverId], (old) =>
                         old ? old.filter(m => m.user?.id !== member.userId) : old
                     );
+                    removeFromChannelMemberCaches(member.serverId, member.userId);
                 }
             }
 
@@ -96,6 +132,7 @@ export function useUserServerUpdate() {
                     queryClient.setQueryData(['members', member.serverId], (old) =>
                         old ? old.filter(m => m.user?.id !== member.userId) : old
                     );
+                    removeFromChannelMemberCaches(member.serverId, member.userId);
                 }
             }
 
@@ -103,6 +140,13 @@ export function useUserServerUpdate() {
                 queryClient.setQueryData(['members', member.serverId], (old) => {
                     if (!old) return old;
                     return old.map(m => m.id === member.id ? {...member, roles: member.roles} : m);
+                });
+                // Role changes can affect channel visibility — refetch so the
+                // member appears/disappears from channel-scoped caches as their
+                // VIEW_CHANNEL access changes.
+                const channelIds = getServerChannelIds(member.serverId);
+                queryClient.invalidateQueries({
+                    predicate: (q) => q.queryKey[0] === 'channelMembers' && channelIds.has(q.queryKey[1]),
                 });
             }
         });
