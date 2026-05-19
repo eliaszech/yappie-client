@@ -89,7 +89,14 @@ function CreateChannelDialog({ serverId, serverName, initialType = 'text', onClo
             return;
         }
 
-        queryClient.setQueryData(['channels', serverId], (old = []) => [...old, res]);
+        // The backend also broadcasts `channel:created` to every server member
+        // — including us — and that handler patches the same cache. Dedup
+        // here so the creator doesn't briefly see the channel twice while
+        // both paths race.
+        queryClient.setQueryData(['channels', serverId], (old = []) => {
+            if (old.some(c => c.id === res.id)) return old;
+            return [...old, res];
+        });
         onClose();
     }
 

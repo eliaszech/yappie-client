@@ -25,31 +25,69 @@ function SaveBar({ visible, onReset, onSave, saving }) {
     );
 }
 
+// Whitelist matches the backend. Empty string means "use LiveKit default".
+const BITRATE_PRESETS = [
+    { value: '',       label: 'Standard (LiveKit-Default)' },
+    { value: 32000,    label: 'Sprache · 32 kbps' },
+    { value: 64000,    label: 'Hohe Sprachqualität · 64 kbps' },
+    { value: 96000,    label: 'Musik · 96 kbps' },
+    { value: 128000,   label: 'Musik HD · 128 kbps' },
+];
+
 function ChannelOverviewSection({ channel, server }) {
     const [name, setName] = useState(channel.name);
+    // Empty string means "no limit". Numeric input is clamped to 1-99 on save.
+    const [userLimit, setUserLimit] = useState(channel.userLimit ?? '');
+    const [bitrate, setBitrate] = useState(channel.bitrate ?? '');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const queryClient = useQueryClient();
 
-    const hasChanges = name.trim() !== channel.name;
+    const isVoice = channel.type === 'voice';
+    const limitOnServer = channel.userLimit ?? '';
+    const bitrateOnServer = channel.bitrate ?? '';
+    const hasChanges = name.trim() !== channel.name
+        || (isVoice && String(userLimit) !== String(limitOnServer))
+        || (isVoice && String(bitrate) !== String(bitrateOnServer));
 
     function handleReset() {
         setName(channel.name);
+        setUserLimit(channel.userLimit ?? '');
+        setBitrate(channel.bitrate ?? '');
         setError('');
     }
 
     async function handleSave() {
         const trimmed = name.trim();
         if (!trimmed) return;
+
+        const patch = {};
+        if (trimmed !== channel.name) patch.name = trimmed;
+        if (isVoice && String(userLimit) !== String(limitOnServer)) {
+            if (userLimit === '' || userLimit === null) {
+                patch.userLimit = null;
+            } else {
+                const n = Number(userLimit);
+                if (!Number.isFinite(n) || n < 1 || n > 99) {
+                    setError('Nutzerlimit muss zwischen 1 und 99 liegen.');
+                    return;
+                }
+                patch.userLimit = Math.floor(n);
+            }
+        }
+        if (isVoice && String(bitrate) !== String(bitrateOnServer)) {
+            patch.bitrate = bitrate === '' ? null : Number(bitrate);
+        }
+
         setSaving(true);
         setError('');
-        const res = await updateChannel(server.id, channel.id, { name: trimmed });
+        const res = await updateChannel(server.id, channel.id, patch);
         if (!res.error) {
             queryClient.setQueryData(['channels', server.id], (old) =>
-                old ? old.map(c => c.id === res.id ? { ...c, name: trimmed } : c) : old
+                old ? old.map(c => c.id === res.id ? { ...c, ...patch } : c) : old
             );
             queryClient.setQueryData(['channel', res.id], (old) =>
-                old ? { ...old, name: trimmed } : old
+                old ? { ...old, ...patch } : old
             );
         } else {
             setError(res.error);
@@ -84,6 +122,48 @@ function ChannelOverviewSection({ channel, server }) {
                         {channel.type === 'text' ? 'Textkanal' : 'Sprachkanal'}
                     </div>
                 </div>
+
+                {isVoice && (
+                    <div className="bg-card rounded-xl border border-border p-5">
+                        <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                            Nutzerlimit
+                        </label>
+                        <input
+                            type="number"
+                            min={1}
+                            max={99}
+                            placeholder="Kein Limit"
+                            value={userLimit}
+                            onChange={e => setUserLimit(e.target.value === '' ? '' : Number(e.target.value))}
+                            className="w-full bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring transition-all"
+                        />
+                        <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                            Maximale Anzahl Nutzer im Sprachkanal (1–99). Leer lassen für kein Limit.
+                            Moderatoren mit <span className="text-foreground font-medium">Kanäle verwalten</span> können das Limit umgehen.
+                        </p>
+                    </div>
+                )}
+
+                {isVoice && (
+                    <div className="bg-card rounded-xl border border-border p-5">
+                        <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                            Audio-Qualität
+                        </label>
+                        <select
+                            value={bitrate}
+                            onChange={e => setBitrate(e.target.value === '' ? '' : Number(e.target.value))}
+                            className="w-full bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring transition-all cursor-pointer"
+                        >
+                            {BITRATE_PRESETS.map(p => (
+                                <option key={String(p.value)} value={p.value}>{p.label}</option>
+                            ))}
+                        </select>
+                        <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                            Höhere Bitraten klingen besser, brauchen aber mehr Bandbreite. Nach Speichern
+                            müssen verbundene Nutzer den Kanal neu betreten, damit die neue Bitrate aktiv wird.
+                        </p>
+                    </div>
+                )}
 
                 <div className="bg-card rounded-xl border border-border p-5">
                     <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">

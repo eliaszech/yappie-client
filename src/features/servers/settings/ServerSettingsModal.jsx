@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faGear, faUsers, faShield, faXmark, faTrash, faMoon, faLink, faFaceSmile } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
+import { faGear, faUsers, faShield, faXmark, faTrash, faMoon, faLink, faFaceSmile, faMessage, faBan } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { deleteServer } from "../../../services/api.js";
@@ -11,6 +11,8 @@ import RolesSection from "./sections/RolesSection.jsx";
 import AfkSection from "./sections/AfkSection.jsx";
 import InvitesSection from "./sections/InvitesSection.jsx";
 import EmojisSection from "./sections/EmojisSection.jsx";
+import SystemMessagesSection from "./sections/SystemMessagesSection.jsx";
+import BansSection from "./sections/BansSection.jsx";
 import { hasPermission, PERMISSIONS } from "../../../services/permissions.js";
 
 function buildNav(server) {
@@ -34,14 +36,19 @@ function buildNav(server) {
         management.push({ id: 'invites', label: 'Einladungen', icon: faLink });
     }
     if (canManageEmojis) management.push({ id: 'emojis', label: 'Emojis', icon: faFaceSmile });
+    if (canBan) management.push({ id: 'bans', label: 'Gebannte Mitglieder', icon: faBan });
 
     const voice = [];
     if (canManageDetails) voice.push({ id: 'afk', label: 'AFK', icon: faMoon });
+
+    const system = [];
+    if (canManageDetails) system.push({ id: 'systemMessages', label: 'Systemnachrichten', icon: faMessage });
 
     const groups = [];
     if (general.length)    groups.push({ category: 'ALLGEMEIN',  items: general });
     if (management.length) groups.push({ category: 'VERWALTUNG', items: management });
     if (voice.length)      groups.push({ category: 'VOICE',      items: voice });
+    if (system.length)     groups.push({ category: 'SYSTEM',     items: system });
     return groups;
 }
 
@@ -52,7 +59,9 @@ function SectionContent({ section, server }) {
         case 'members':  return <MembersSection server={server} />;
         case 'invites':  return <InvitesSection server={server} />;
         case 'emojis':   return <EmojisSection server={server} />;
+        case 'bans':     return <BansSection server={server} />;
         case 'afk':      return <AfkSection server={server} />;
+        case 'systemMessages': return <SystemMessagesSection server={server} />;
         default:         return <OverviewSection server={server} />;
     }
 }

@@ -14,7 +14,10 @@ let friendRequestCallback = null;
 let userServerUpdateCallback = null;
 
 let voiceCallback = null;
+let voiceActionCallback = null;
+let channelChangeCallback = null;
 let afkMoveCallback = null;
+let callEventCallback = null;
 let pollUpdateCallback = null;
 let activityCallback = null;
 let activitySyncCallback = null;
@@ -82,6 +85,43 @@ function registerEvents() {
 
     socket.on('voice:afk', (data) => {
         if (afkMoveCallback) afkMoveCallback(data);
+    });
+
+    socket.on('voice:move', (data) => {
+        if (voiceActionCallback) voiceActionCallback('move', data);
+    });
+
+    socket.on('voice:disconnect', (data) => {
+        if (voiceActionCallback) voiceActionCallback('disconnect', data);
+    });
+
+    socket.on('call:incoming', (data) => {
+        if (callEventCallback) callEventCallback('incoming', data);
+    });
+    socket.on('call:accepted', (data) => {
+        if (callEventCallback) callEventCallback('accepted', data);
+    });
+    socket.on('call:ringTimeout', (data) => {
+        if (callEventCallback) callEventCallback('ringTimeout', data);
+    });
+    socket.on('call:ended', (data) => {
+        if (callEventCallback) callEventCallback('ended', data);
+    });
+
+    socket.on('channel:created', (data) => {
+        if (channelChangeCallback) channelChangeCallback('created', data);
+    });
+    socket.on('channel:updated', (data) => {
+        if (channelChangeCallback) channelChangeCallback('updated', data);
+    });
+    socket.on('channel:deleted', (data) => {
+        if (channelChangeCallback) channelChangeCallback('deleted', data);
+    });
+    socket.on('channel:positions', (data) => {
+        if (channelChangeCallback) channelChangeCallback('positions', data);
+    });
+    socket.on('channel:overwrites', (data) => {
+        if (channelChangeCallback) channelChangeCallback('overwrites', data);
     });
 
     socket.on('poll:update', (data) => {
@@ -177,6 +217,18 @@ export function onVoiceChange(callback) {
 
 export function onAfkMove(callback) {
     afkMoveCallback = callback;
+}
+
+export function onVoiceAction(callback) {
+    voiceActionCallback = callback;
+}
+
+export function onChannelChange(callback) {
+    channelChangeCallback = callback;
+}
+
+export function onCallEvent(callback) {
+    callEventCallback = callback;
 }
 
 export function onPollUpdate(callback) {

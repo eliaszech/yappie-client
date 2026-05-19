@@ -12,6 +12,7 @@ import Suggestions from "./Suggestions.jsx";
 import ChannelSuggestions from "./ChannelSuggestions.jsx";
 import SlashCommandSuggestions from "./SlashCommandSuggestions.jsx";
 import CreatePollDialog from "../dialogs/CreatePollDialog.jsx";
+import GiphyPicker from "./GiphyPicker.jsx";
 import { parseSlashInvocation } from "../slashCommands.js";
 import {DefaultElement, Editable, ReactEditor, Slate, withReact} from "slate-react";
 import {withHistory} from "slate-history";
@@ -19,8 +20,8 @@ import {createEditor, Editor, Range, Transforms} from "slate";
 import {withMentions} from "../../plugins/slate/withMentions.js";
 import MentionElement from "../../plugins/slate/MentionElement.jsx";
 import ChannelMentionElement from "../../plugins/slate/ChannelMentionElement.jsx";
-import {fetchServer, uploadMessageFiles} from "../../../services/api.js";
-import {hasPermission, PERMISSIONS} from "../../../services/permissions.js";
+import {fetchServer, fetchChannels, uploadMessageFiles} from "../../../services/api.js";
+import {hasPermission, hasChannelPermission, PERMISSIONS} from "../../../services/permissions.js";
 import {useQuery} from "@tanstack/react-query";
 
 const MENTION_SUGGESTIONS_REGEX = /(?<!\w)@(\w*)$/;
@@ -57,6 +58,7 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
     const [showSlashSuggestions, setShowSlashSuggestions] = useState(false);
     const [slashQuery, setSlashQuery] = useState('');
     const [pollDialogQuestion, setPollDialogQuestion] = useState(null);
+    const [giphyQuery, setGiphyQuery] = useState(null);
     const [suggestionsIndex, setSuggestionsIndex] = useState(0);
     const [attachments, setAttachments] = useState([]);
     const [isDragging, setIsDragging] = useState(false);
@@ -78,8 +80,18 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
         enabled: type === 'channel' && !!serverId,
         staleTime: 10 * 60 * 1000,
     });
-    const canSend = type === 'conversation' || hasPermission(serverCtx, PERMISSIONS.SEND_MESSAGES);
-    const canAttach = type === 'conversation' || hasPermission(serverCtx, PERMISSIONS.ATTACH_FILES);
+    const { data: serverChannels = [] } = useQuery({
+        queryKey: ['channels', serverId],
+        queryFn: () => fetchChannels(serverId),
+        enabled: type === 'channel' && !!serverId,
+        staleTime: 10 * 60 * 1000,
+    });
+    // Effective per-channel mask carries server-base + overwrites already
+    // (see backend getChannelPermissions), so a neutral overwrite still
+    // resolves to the server-role bit.
+    const channelObj = type === 'channel' ? serverChannels.find(c => c.id === roomId) : null;
+    const canSend = type === 'conversation' || hasChannelPermission(channelObj, serverCtx, PERMISSIONS.SEND_MESSAGES);
+    const canAttach = type === 'conversation' || hasChannelPermission(channelObj, serverCtx, PERMISSIONS.ATTACH_FILES);
 
     useEffect(() => {
         const ref = inputContainerRef.current;
@@ -381,6 +393,13 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
                 stopTyping();
                 return;
             }
+            if (result.kind === 'open-giphy') {
+                setGiphyQuery(result.query || '');
+                resetEditor();
+                clearReplyState();
+                stopTyping();
+                return;
+            }
             if (result.kind === 'send-text') {
                 plainText = result.text;
                 if (!plainText) return;
@@ -436,6 +455,10 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
             };
         });
 
+        // Stop typing BEFORE the message goes out — otherwise remote clients
+        // briefly see "X is typing…" right after the new message lands.
+        stopTyping();
+
         socket.emit('message:send', {
             type, roomId,
             text: plainText,
@@ -449,7 +472,6 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
         resetEditor();
         clearAttachments();
         clearReplyState();
-        stopTyping();
     }
 
     const typingUsersString = typingUsers.map((typingUser) => typingUser.username).join(', ');
@@ -579,6 +601,26 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
                     onClose={() => setPollDialogQuestion(null)}
                 />
             )}
+            { giphyQuery !== null && (
+                <GiphyPicker
+                    initialQuery={giphyQuery}
+                    onClose={() => setGiphyQuery(null)}
+                    onSelect={(gif) => {
+                        // Send the GIF URL as a plain message; ImageEmbed
+                        // picks up the .gif extension and renders it inline.
+                        const socket = getSocket();
+                        if (!socket || !gif?.url) return;
+                        socket.emit('message:send', {
+                            type, roomId,
+                            text: gif.url,
+                            mentionedUserIds: [],
+                            mentionEveryone: false,
+                            mentionHere: false,
+                            attachmentIds: [],
+                        });
+                    }}
+                />
+            )}
             <div className="flex flex-col items-center h-max relative bg-card rounded-lg border border-border">
                 { replyTo && (
                     <div className="flex w-full justify-between items-center rounded-t-lg border-b border-border px-4 py-2 bg-guild-bar">
@@ -643,7 +685,10 @@ function MessageInput({roomName, type = 'conversation', roomId, serverId = null}
                     }}>
                         <Editable
                             renderElement={renderElement}
-                            className="pt-4 min-h-[56px] pb-4 w-full pl-12 pr-12 outline-none text-foreground placeholder:text-muted-foreground! rounded-lg focus:ring-2 focus:ring-primary/80 transition-colors"
+                            // break-all + min-w-0 so a pasted multi-hundred-char
+                            // URL wraps inside the input instead of pushing the
+                            // whole composer off-screen.
+                            className="pt-4 min-h-[56px] pb-4 w-full min-w-0 pl-12 pr-12 outline-none text-foreground placeholder:text-muted-foreground! rounded-lg focus:ring-2 focus:ring-primary/80 transition-colors break-all whitespace-pre-wrap"
                             placeholder={isUploading ? 'Lade hoch...' : `Nachricht an ${roomNamePrefix}${roomName} schreiben...`}
                             onPaste={handlePaste}
                             onKeyDown={(e) => {

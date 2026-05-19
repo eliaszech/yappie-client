@@ -2,7 +2,7 @@ import {useQuery} from "@tanstack/react-query";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faThumbtack} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import {useState, useRef, useEffect} from "react";
-import {fetchChannelPins} from "../../../services/api.js";
+import {fetchChannelPins, fetchConversationPins} from "../../../services/api.js";
 import UserAvatar from "../../components/UserAvatar.jsx";
 import Spinner from "../../components/static/Spinner.jsx";
 
@@ -17,14 +17,18 @@ function scrollToMessage(messageId) {
     }, 1500);
 }
 
-function PinsPopover({channelId}) {
+// Works for both channels and conversations. Caller passes either `channelId`
+// or `conversationId` (legacy callers using `channelId` still work).
+function PinsPopover({channelId, conversationId}) {
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
+    const isConversation = !!conversationId;
+    const roomId = conversationId ?? channelId;
 
     const {data: pins = [], isLoading} = useQuery({
-        queryKey: ['channelPins', channelId],
-        queryFn: () => fetchChannelPins(channelId),
-        enabled: open,
+        queryKey: isConversation ? ['conversationPins', roomId] : ['channelPins', roomId],
+        queryFn: () => isConversation ? fetchConversationPins(roomId) : fetchChannelPins(roomId),
+        enabled: open && !!roomId,
         staleTime: 60 * 1000,
     });
 
@@ -61,7 +65,9 @@ function PinsPopover({channelId}) {
                         {isLoading && <div className="p-4 flex justify-center"><Spinner size="w-6 h-6" /></div>}
                         {!isLoading && pins.length === 0 && (
                             <div className="p-6 text-center text-sm text-muted-foreground">
-                                In diesem Kanal wurden noch keine Nachrichten angepinnt.
+                                {isConversation
+                                    ? 'In dieser Konversation wurden noch keine Nachrichten angepinnt.'
+                                    : 'In diesem Kanal wurden noch keine Nachrichten angepinnt.'}
                             </div>
                         )}
                         {!isLoading && pins.map((message) => (

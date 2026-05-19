@@ -29,6 +29,9 @@ const PERMISSIONS = {
     MANAGE_INVITES:  1 << 10,
     MANAGE_ROLES:    1 << 11,
     MANAGE_EMOJIS:   1 << 12,
+    CONNECT_VOICE:   1 << 13,
+    VIEW_CHANNEL:    1 << 14,
+    ADD_REACTIONS:   1 << 15,
 };
 
 const PERMISSION_GROUPS = [
@@ -43,8 +46,15 @@ const PERMISSION_GROUPS = [
         items: [
             { bit: PERMISSIONS.SEND_MESSAGES,   label: 'Nachrichten senden',    desc: 'Nachrichten in Textkanälen senden.' },
             { bit: PERMISSIONS.ATTACH_FILES,    label: 'Dateien anhängen',      desc: 'Bilder und Dateien in Nachrichten hochladen.' },
+            { bit: PERMISSIONS.ADD_REACTIONS,   label: 'Reaktionen hinzufügen', desc: 'Auf Nachrichten anderer Nutzer mit Emojis reagieren.' },
             { bit: PERMISSIONS.PIN_MESSAGES,    label: 'Nachrichten anpinnen',  desc: 'Nachrichten an Kanäle anpinnen und Pins entfernen.' },
             { bit: PERMISSIONS.MANAGE_MESSAGES, label: 'Nachrichten verwalten', desc: 'Nachrichten anderer Nutzer löschen.' },
+        ],
+    },
+    {
+        label: 'Sprache',
+        items: [
+            { bit: PERMISSIONS.CONNECT_VOICE, label: 'Sprachkanal beitreten', desc: 'Sprachkanälen auf diesem Server beitreten und darin mitsprechen.' },
         ],
     },
     {

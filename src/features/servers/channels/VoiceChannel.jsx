@@ -1,7 +1,8 @@
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {useVoice} from "../../../hooks/useVoice.jsx";
-import {faDisplay, faMicrophoneSlash, faVolumeHigh, faHeadphonesSlash, faMoon} from "@awesome.me/kit-95376d5d61/icons/classic/light";
+import {faDisplay, faMicrophoneSlash, faVolumeHigh, faHeadphonesSlash, faMoon, faLock} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {faArrowsRotate, faGear} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
+import {hasPermission, PERMISSIONS} from "../../../services/permissions.js";
 import {useChannelParticipants} from "../../../hooks/useChannelParticipants.js";
 import UserAvatar from "../../components/UserAvatar.jsx";
 import {useNavigate} from "react-router-dom";
@@ -9,16 +10,38 @@ import {useAuth} from "../../../hooks/useAuth.js";
 import HasUserPopup from "../../components/user/HasUserPopup.jsx";
 import { useParticipantContextMenu } from "../../../hooks/useParticipantContextMenu.jsx";
 import { useMemberAvatars } from "../../../hooks/useMemberAvatars.js";
+import { useQuery } from "@tanstack/react-query";
+import { fetchChannels } from "../../../services/api.js";
 
 function VoiceChannel({ channel, server, onSettings, canManage = true }) {
-    const { joinVoice, channelId: activeChannelId, muted, deafened, participants: liveParticipants = [], connectionStatus, retryCount } = useVoice();
+    const { joinVoice, channelId: activeChannelId, muted, deafened, participants: liveParticipants = [], connectionStatus, retryCount, setVoiceError } = useVoice();
     const { user } = useAuth();
     const navigate = useNavigate();
-    const handleParticipantContextMenu = useParticipantContextMenu();
+    const { data: serverChannels = [] } = useQuery({
+        queryKey: ['channels', server.id],
+        queryFn: () => fetchChannels(server.id),
+        staleTime: 10 * 60 * 1000,
+    });
+    const handleParticipantContextMenu = useParticipantContextMenu({
+        server,
+        channels: serverChannels,
+        currentChannelId: channel.id,
+    });
     const isActive = activeChannelId === channel.id;
     const isConnecting = isActive && (connectionStatus === 'connecting' || connectionStatus === 'reconnecting');
     const isConnected = isActive && connectionStatus === 'connected';
     const isAfkChannel = server.afkChannelId && channel.id === server.afkChannelId;
+    // Connect gate: AFK is publicly joinable; otherwise prefer the per-channel
+    // effective permission mask shipped with the channel object (so a deny
+    // overwrite locks the channel even if the role has server-level
+    // CONNECT_VOICE). Falls back to the server-level check if the field is
+    // absent — old cache entries, defensive default.
+    const hasChannelMask = typeof channel.permissions === 'number';
+    const canConnect = isAfkChannel || (
+        hasChannelMask
+            ? (channel.permissions & PERMISSIONS.CONNECT_VOICE) !== 0
+            : hasPermission(server, PERMISSIONS.CONNECT_VOICE)
+    );
 
     // While connecting, keep the polled list visible so the already-present
     // users don't blink out before LiveKit emits its first participant snapshot.
@@ -28,11 +51,26 @@ function VoiceChannel({ channel, server, onSettings, canManage = true }) {
     const avatarByUserId = useMemberAvatars(server.id);
 
     async function handleClick() {
-        if (!isActive) await joinVoice({ channel, server, attributes: {
-                muted,
-                deafened,
+        if (!isActive) {
+            if (!canConnect) {
+                // User can still inspect who's in the channel — the view itself
+                // surfaces the lock. We just don't attempt to join.
+                navigate(`/servers/${server.id}/voice/${channel.id}`);
+                return;
             }
-        });
+            // Pre-flight cap check against the already-cached participant list
+            // so we don't briefly render ourselves as "connecting" before the
+            // token endpoint rejects the join. Backend re-enforces this; the
+            // client check is just to avoid the flicker.
+            const limit = channel.userLimit;
+            const count = (participants || []).length;
+            if (limit && count >= limit && !canManage) {
+                setVoiceError?.('Dieser Sprachkanal ist voll.');
+                navigate(`/servers/${server.id}/voice/${channel.id}`);
+                return;
+            }
+            await joinVoice({ channel, server, attributes: { muted, deafened } });
+        }
         navigate(`/servers/${server.id}/voice/${channel.id}`);
     }
 
@@ -41,15 +79,26 @@ function VoiceChannel({ channel, server, onSettings, canManage = true }) {
             <div className="group relative flex items-center">
                 <button
                     onClick={handleClick}
-                    title={isAfkChannel ? 'AFK-Kanal – Mikro ist hier gesperrt' : undefined}
-                    className={`${isActive ? 'bg-muted/50 text-foreground' : 'text-muted-foreground'} cursor-pointer w-full flex items-center gap-2.5 px-2 py-1 pr-7 rounded-md font-medium transition-all hover:text-foreground hover:bg-muted/50`}>
-                    <FontAwesomeIcon className={`shrink-0 ${hasAnyPresence ? 'text-primary' : ''}`} icon={isAfkChannel ? faMoon : faVolumeHigh} />
+                    title={
+                        isAfkChannel ? 'AFK-Kanal – Mikro ist hier gesperrt'
+                        : !canConnect ? 'Keine Berechtigung, Sprachkanäle zu betreten'
+                        : undefined
+                    }
+                    className={`${isActive ? 'bg-muted/50 text-foreground' : 'text-muted-foreground'} ${!canConnect ? 'opacity-60' : ''} cursor-pointer w-full flex items-center gap-2.5 px-2 py-1 pr-7 rounded-md font-medium transition-all hover:text-foreground hover:bg-muted/50`}>
+                    <FontAwesomeIcon className={`shrink-0 ${hasAnyPresence ? 'text-primary' : ''}`} icon={!canConnect ? faLock : isAfkChannel ? faMoon : faVolumeHigh} />
                     <span className="truncate">{channel.name}</span>
-                    {isAfkChannel && (
+                    {isAfkChannel ? (
                         <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold mr-1">
                             AFK
                         </span>
-                    )}
+                    ) : channel.userLimit ? (
+                        <span
+                            className="ml-auto text-[10px] tabular-nums text-muted-foreground/70 font-medium mr-1 shrink-0"
+                            title={`${(participants || []).length} von ${channel.userLimit} Plätzen belegt`}
+                        >
+                            {(participants || []).length}/{channel.userLimit}
+                        </span>
+                    ) : null}
                 </button>
                 {canManage && (
                     <button

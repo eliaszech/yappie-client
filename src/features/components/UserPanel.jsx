@@ -21,7 +21,10 @@ import {faGamepad} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 function UserPanel() {
     const { user } = useAuth();
     const { openSettings } = useSettings();
-    const { isConnected, channelName, serverName, krisp, leaveVoice, muted, toggleMute, deafened, toggleDeafen, connectionStatus, retryCount, isAfk } = useVoice();
+    const { isConnected, channelName, serverName, conversationName, conversationId, krisp, leaveVoice, muted, toggleMute, deafened, toggleDeafen, connectionStatus, retryCount, isAfk } = useVoice();
+    const callLabel = conversationId
+        ? (conversationName ? `Anruf · ${conversationName}` : 'Anruf')
+        : `${channelName} / ${serverName}`;
 
     const online = useIsOnline(user.id) ?? user.online;
     const status = useUserStatus(user.id) ?? user.status;
@@ -80,7 +83,7 @@ function UserPanel() {
                                     <FontAwesomeIcon className="mr-1" icon={faWireless} /> Sprachchat verbunden
                                 </span>
                             )}
-                            <span className="text-xs text-foreground">{channelName} / {serverName}</span>
+                            <span className="text-xs text-foreground">{callLabel}</span>
                         </div>
                         <div className="flex items-center gap-1">
                             {krisp && (

@@ -15,9 +15,11 @@ import {
 import {
     faDisplay,
     faPhone,
-    faPlay
+    faPlay,
+    faUsers,
 } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
-import { fetchChannel } from "../../../services/api.js";
+import { fetchChannel, fetchChannels, fetchServer } from "../../../services/api.js";
+import { hasPermission, PERMISSIONS } from "../../../services/permissions.js";
 import { useVoice } from "../../../hooks/useVoice.jsx";
 import { useAuth } from "../../../hooks/useAuth.js";
 import { useChannelParticipants } from "../../../hooks/useChannelParticipants.js";
@@ -158,6 +160,7 @@ function ScreenShareTile({ share, onClick, onClose, focused = false }) {
 function VoiceChannelView() {
     const { channelId, serverId } = useParams();
     const { user } = useAuth();
+    const [showMemberSidebar, setShowMemberSidebar] = useState(true);
 
     const {
         isConnected,
@@ -175,8 +178,23 @@ function VoiceChannelView() {
         retryCount,
         voiceError,
         clearVoiceError,
+        setVoiceError,
     } = useVoice();
-    const handleParticipantContextMenu = useParticipantContextMenu();
+    const { data: serverData } = useQuery({
+        queryKey: ['server', serverId],
+        queryFn: () => fetchServer(serverId),
+        staleTime: 5 * 60 * 1000,
+    });
+    const { data: serverChannels = [] } = useQuery({
+        queryKey: ['channels', serverId],
+        queryFn: () => fetchChannels(serverId),
+        staleTime: 10 * 60 * 1000,
+    });
+    const handleParticipantContextMenu = useParticipantContextMenu({
+        server: serverData,
+        channels: serverChannels,
+        currentChannelId: channelId,
+    });
 
     const isActive = isConnected && activeChannelId === channelId;
     const isConnectingHere = activeChannelId === channelId && (connectionStatus === 'connecting' || connectionStatus === 'reconnecting');
@@ -248,6 +266,19 @@ function VoiceChannelView() {
     async function handleJoin() {
         if (!channel || connectionStatus === 'connecting') return;
         clearVoiceError?.();
+
+        const isAfkChannel = serverData?.afkChannelId === channelId;
+        if (!isAfkChannel && !hasPermission(serverData, PERMISSIONS.CONNECT_VOICE)) {
+            setVoiceError?.('Du hast keine Berechtigung, Sprachkanäle zu betreten.');
+            return;
+        }
+
+        const canManage = hasPermission(serverData, PERMISSIONS.MANAGE_CHANNELS);
+        if (channel.userLimit && participants.length >= channel.userLimit && !canManage) {
+            setVoiceError?.('Dieser Sprachkanal ist voll.');
+            return;
+        }
+
         await joinVoice({
             channel,
             server: { id: serverId, name: channel.serverName ?? '' },
@@ -321,6 +352,17 @@ function VoiceChannelView() {
                             {retryCount > 0 ? `Verbinde... (${retryCount}/5)` : 'Verbinde...'}
                         </span>
                     )}
+                </div>
+                <div className="ml-auto flex items-center gap-2">
+                    <button
+                        onClick={() => setShowMemberSidebar(v => !v)}
+                        title={showMemberSidebar ? 'Mitgliederliste ausblenden' : 'Mitgliederliste anzeigen'}
+                        className={`flex items-center justify-center w-8 h-8 rounded-md cursor-pointer transition-colors ${
+                            showMemberSidebar ? 'text-foreground bg-muted/50' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                        }`}
+                    >
+                        <FontAwesomeIcon icon={faUsers} />
+                    </button>
                 </div>
             </ContentHeader>
 
@@ -491,30 +533,42 @@ function VoiceChannelView() {
                                     </button>
                                 </div>
                             </div>
-                        ) : (
-                            <button
-                                onClick={handleJoin}
-                                disabled={connectionStatus === 'connecting'}
-                                className="cursor-pointer rounded-2xl px-6 h-12 flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/80 transition-colors font-medium disabled:opacity-60 disabled:cursor-not-allowed shadow-xl"
-                            >
-                                {connectionStatus === 'connecting' ? (
-                                    <>
-                                        <FontAwesomeIcon icon={faArrowsRotate} className="animate-spin" />
-                                        Verbinde...
-                                    </>
-                                ) : (
-                                    <>
-                                        <FontAwesomeIcon icon={faVolumeHigh} />
-                                        Sprachkanal beitreten
-                                    </>
-                                )}
-                            </button>
-                        )}
+                        ) : (() => {
+                            const isAfkChannel = serverData?.afkChannelId === channelId;
+                            const canConnect = isAfkChannel || hasPermission(serverData, PERMISSIONS.CONNECT_VOICE);
+                            return (
+                                <button
+                                    onClick={handleJoin}
+                                    disabled={connectionStatus === 'connecting' || !canConnect}
+                                    title={!canConnect ? 'Keine Berechtigung, Sprachkanäle zu betreten' : undefined}
+                                    className="cursor-pointer rounded-2xl px-6 h-12 flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/80 transition-colors font-medium disabled:opacity-60 disabled:cursor-not-allowed shadow-xl"
+                                >
+                                    {connectionStatus === 'connecting' ? (
+                                        <>
+                                            <FontAwesomeIcon icon={faArrowsRotate} className="animate-spin" />
+                                            Verbinde...
+                                        </>
+                                    ) : !canConnect ? (
+                                        <>
+                                            <FontAwesomeIcon icon={faTriangleExclamation} />
+                                            Keine Berechtigung
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FontAwesomeIcon icon={faVolumeHigh} />
+                                            Sprachkanal beitreten
+                                        </>
+                                    )}
+                                </button>
+                            );
+                        })()}
                     </div>
                 </div>
-                <div className="max-w-xs w-full bg-card/70 h-full border-l border-border">
-                    <MemberSidebarList serverId={channel.serverId} />
-                </div>
+                {showMemberSidebar && (
+                    <div className="max-w-xs w-full bg-card/70 h-full border-l border-border">
+                        <MemberSidebarList serverId={channel.serverId} />
+                    </div>
+                )}
             </div>
         </>
     );

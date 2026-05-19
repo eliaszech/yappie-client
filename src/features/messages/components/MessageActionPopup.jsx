@@ -16,8 +16,8 @@ import ConfirmDeleteMessageDialog from "../dialogs/ConfirmDeleteMessageDialog.js
 import {deleteMessage} from "../../../hooks/messages/useDeleteMessage.js";
 import HasEmojiPicker from "./HasEmojiPicker.jsx";
 import {toggleReaction} from "../../../hooks/messages/useReactMessage.js";
-import {fetchServer, pinMessage, unpinMessage} from "../../../services/api.js";
-import {hasPermission, PERMISSIONS} from "../../../services/permissions.js";
+import {fetchServer, fetchChannels, pinMessage, unpinMessage, pinConversationMessage, unpinConversationMessage} from "../../../services/api.js";
+import {hasPermission, hasChannelPermission, PERMISSIONS} from "../../../services/permissions.js";
 
 
 function MessageActionPopup({message, onEdit}) {
@@ -34,19 +34,29 @@ function MessageActionPopup({message, onEdit}) {
         enabled: roomType === 'channel' && !!serverId,
         staleTime: 10 * 60 * 1000,
     });
+    const { data: serverChannels = [] } = useQuery({
+        queryKey: ['channels', serverId],
+        queryFn: () => fetchChannels(serverId),
+        enabled: roomType === 'channel' && !!serverId,
+        staleTime: 10 * 60 * 1000,
+    });
+    const channelObj = roomType === 'channel'
+        ? serverChannels.find(c => c.id === message.channelId)
+        : null;
 
-    const canPin = roomType === 'channel' && hasPermission(server, PERMISSIONS.PIN_MESSAGES);
+    const canPin = roomType === 'conversation' || hasChannelPermission(channelObj, server, PERMISSIONS.PIN_MESSAGES);
+    const canReact = roomType === 'conversation' || hasChannelPermission(channelObj, server, PERMISSIONS.ADD_REACTIONS);
     const isOwnMessage = message.user.id === user.id;
     const canDelete = isOwnMessage
-        || (roomType === 'channel' && hasPermission(server, PERMISSIONS.MANAGE_MESSAGES))
+        || (roomType === 'channel' && hasChannelPermission(channelObj, server, PERMISSIONS.MANAGE_MESSAGES))
         || roomType === 'conversation'; // DMs: only own messages would be visible here anyway
 
     async function togglePin() {
-        const channelId = message.channelId;
+        const roomId = message.channelId ?? message.conversationId;
         const messageId = message.id;
         const willPin = !message.pinned;
 
-        queryClient.setQueryData(['messages', channelId], (old) => {
+        queryClient.setQueryData(['messages', roomId], (old) => {
             if (!old) return old;
             return {
                 ...old,
@@ -56,19 +66,28 @@ function MessageActionPopup({message, onEdit}) {
             };
         });
 
-        if (willPin) await pinMessage(channelId, messageId);
-        else await unpinMessage(channelId, messageId);
+        if (roomType === 'conversation') {
+            if (willPin) await pinConversationMessage(message.conversationId, messageId);
+            else await unpinConversationMessage(message.conversationId, messageId);
+        } else {
+            if (willPin) await pinMessage(message.channelId, messageId);
+            else await unpinMessage(message.channelId, messageId);
+        }
     }
 
     return (
         <>
             <div className="absolute text-foreground hidden group-hover:flex right-0 border border-border -top-4 right-4 w-max rounded-lg bg-guild-bar shadow-lg z-10">
-                <button onClick={() => toggleReaction(message.id, '👍')} className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50 rounded-tl-lg rounded-bl-lg">👍</button>
-                <button onClick={() => toggleReaction(message.id, '🔥')} className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50">🔥</button>
-                <button onClick={() => toggleReaction(message.id, '😂')} className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50 border-r border-border">😂</button>
-                <HasEmojiPicker onSelect={(emoji) => toggleReaction(message.id, emoji)} position="top" orientation="right">
-                    <button className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50"><FontAwesomeIcon icon={faFaceSmile} /></button>
-                </HasEmojiPicker>
+                {canReact && (
+                    <>
+                        <button onClick={() => toggleReaction(message.id, '👍')} className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50 rounded-tl-lg rounded-bl-lg">👍</button>
+                        <button onClick={() => toggleReaction(message.id, '🔥')} className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50">🔥</button>
+                        <button onClick={() => toggleReaction(message.id, '😂')} className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50 border-r border-border">😂</button>
+                        <HasEmojiPicker onSelect={(emoji) => toggleReaction(message.id, emoji)} position="top" orientation="right">
+                            <button className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50"><FontAwesomeIcon icon={faFaceSmile} /></button>
+                        </HasEmojiPicker>
+                    </>
+                )}
                 {message.user.id === user.id && (
                     <button className="cursor-pointer px-1.5 py-1.25 hover:bg-muted/50" onClick={onEdit}><FontAwesomeIcon icon={faPen} /></button>
                 )}

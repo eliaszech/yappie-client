@@ -329,7 +329,7 @@ const DISCONNECT_MESSAGES = {
 };
 
 function VoiceRoomConnection() {
-    const { token, serverUrl, setVoiceError, leaveVoice, setConnectionStatus, setRetryCount, refreshToken, connectionStatus } = useVoice();
+    const { token, serverUrl, bitrate, setVoiceError, leaveVoice, setConnectionStatus, setRetryCount, refreshToken, connectionStatus } = useVoice();
     const retryCountRef = useRef(0);
     const hasConnectedRef = useRef(false);
     const connectionStatusRef = useRef(connectionStatus);
@@ -372,6 +372,10 @@ function VoiceRoomConnection() {
     const micId = getMicDeviceId();
     const speakerId = getSpeakerDeviceId();
 
+    // Server-side bitrate override (per voice channel). When unset, LiveKit
+    // uses its own default. Plain object is accepted as AudioPreset.
+    const audioPreset = bitrate ? { maxBitrate: bitrate } : undefined;
+
     return (
         <LiveKitRoom
             key={token}
@@ -384,6 +388,7 @@ function VoiceRoomConnection() {
                 reconnectPolicy: NO_RECONNECT_POLICY,
                 webAudioMix: true,
                 audioOutput: { deviceId: speakerId },
+                publishDefaults: audioPreset ? { audioPreset } : undefined,
             }}
             onConnected={handleConnected}
             onDisconnected={handleDisconnected}

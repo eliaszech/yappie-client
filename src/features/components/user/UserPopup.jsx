@@ -14,6 +14,8 @@ import {
     fetchFriends,
     fetchServers,
     fetchUserProfile,
+    fetchMembers,
+    fetchRoles,
     sendFriendRequest,
     denyFriendRequest,
     acceptFriendRequest,
@@ -85,6 +87,27 @@ function UserPopup() {
     });
 
     const friendship = friends.find(f => f.id === popup.user.id);
+
+    // Server-context roles: if the caller didn't pass roles explicitly but
+    // gave us a serverId, derive the roles from the cached members + roles
+    // queries. Both queries are shared via React Query's cache, so we don't
+    // fire extra requests if the sidebar already populated them.
+    const needsRoleLookup = !popup.roles && !!popup.serverId;
+    const { data: serverMembers = [] } = useQuery({
+        queryKey: ['members', popup.serverId],
+        queryFn: () => fetchMembers('members', popup.serverId),
+        enabled: needsRoleLookup,
+        staleTime: 5 * 60 * 1000,
+    });
+    useQuery({
+        queryKey: ['roles', popup.serverId],
+        queryFn: () => fetchRoles(popup.serverId),
+        enabled: needsRoleLookup,
+        staleTime: 5 * 60 * 1000,
+    });
+    const derivedRoles = popup.roles ?? (needsRoleLookup
+        ? (serverMembers.find(m => m.user?.id === popup.user.id)?.roles ?? null)
+        : null);
 
     useEffect(() => {
         function handleClick(e) {
@@ -411,13 +434,13 @@ function UserPopup() {
                         </div>
                     )}
 
-                    {popup.roles?.filter(r => !(r.role ?? r)?.isEveryone)?.length > 0 && (
+                    {derivedRoles?.filter(r => !(r.role ?? r)?.isEveryone)?.length > 0 && (
                         <div className="mt-2 px-3 py-2 rounded-xl bg-card/55 backdrop-blur-sm border border-border/60">
                             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                 Rollen
                             </span>
                             <div className="flex flex-wrap gap-1.5 mt-1">
-                                {popup.roles.filter(r => !(r.role ?? r)?.isEveryone).map(r => {
+                                {derivedRoles.filter(r => !(r.role ?? r)?.isEveryone).map(r => {
                                     const role = r.role ?? r;
                                     return (
                                         <span

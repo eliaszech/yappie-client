@@ -104,6 +104,36 @@ export function playMuteOffSound() {
     blip(ctx, 660, t + 0.05, 0.10, 0.16);  // E5
 }
 
+// Ringtone for incoming calls. Sanftes Doppel-Klingeln im klassischen
+// "ring-ring" Rhythmus: zwei warme Akkord-Schwünge mit kurzem Abstand, dann
+// längere Pause. Klingt nach Anruf, aber weich genug für lange Klingelphasen.
+let ringtoneInterval = null;
+function playOneRing() {
+    const ctx = getCtx();
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    const t = ctx.currentTime;
+
+    // Erster Trill: warmer Quint-Akkord D5 + A5 (mit Sub-Oktav durch softTone)
+    softTone(ctx, 587.33, t,        0.45, 0.10);  // D5
+    softTone(ctx, 880,    t + 0.04, 0.45, 0.08);  // A5
+
+    // Zweiter Trill: leicht höher (E5 + B5) für „Frage"-artige Auflösung
+    softTone(ctx, 659.25, t + 0.65, 0.45, 0.10);  // E5
+    softTone(ctx, 987.77, t + 0.69, 0.45, 0.08);  // B5
+}
+export function startRingtone() {
+    if (ringtoneInterval) return;
+    playOneRing();
+    // Loop alle 2.6s: erlaubt die ~1.2s langen Töne komplett auszuklingen
+    // plus eine ruhige Pause dazwischen.
+    ringtoneInterval = setInterval(playOneRing, 2600);
+}
+export function stopRingtone() {
+    if (!ringtoneInterval) return;
+    clearInterval(ringtoneInterval);
+    ringtoneInterval = null;
+}
+
 // Deafen klingt fülliger und tiefer (Kopfhörer-aus-Gefühl) — gleicher
 // Richtungs-Code wie Mute (runter = aus, hoch = an).
 export function playDeafenOnSound() {

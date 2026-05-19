@@ -4,7 +4,10 @@ import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faFaceSmilePlus} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import HasEmojiPicker from "./HasEmojiPicker.jsx";
 
-function Reactions({message, disabled = false}) {
+// `canReact` defaults true so legacy callers (DMs etc.) still get the +picker.
+// Removing an own existing reaction stays allowed regardless — clicking an
+// emoji you previously reacted with is a toggle-off, not an add.
+function Reactions({message, disabled = false, canReact = true}) {
     const { user } = useAuth();
 
     const groupedReactions = (message.reactions || []).reduce((acc, r) => {
@@ -30,7 +33,7 @@ function Reactions({message, disabled = false}) {
                         <span className="text-foreground">{userIds.length}</span>
                     </button>
                 ))}
-                {!disabled && Object.entries(groupedReactions).length > 0 && (
+                {!disabled && canReact && Object.entries(groupedReactions).length > 0 && (
                     <HasEmojiPicker onSelect={(emoji) => toggleReaction(message.id, emoji)} position="top" orientation="left">
                         <button className={`flex cursor-pointer items-center w-max text-muted-foreground gap-1 px-2 py-1.5 rounded-lg text-base bg-card hover:bg-muted`}>
                             <FontAwesomeIcon icon={faFaceSmilePlus} />

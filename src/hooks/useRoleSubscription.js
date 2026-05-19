@@ -23,15 +23,18 @@ export function useRoleSubscription() {
                 queryClient.setQueryData(['roles', serverId], (old) =>
                     Array.isArray(old) ? old.map(r => r.id === data.role.id ? data.role : r) : old
                 );
-                // Permission bits may have changed for a role I hold — refetch server
-                // context so canDo() updates and member badges recolor.
+                // Permission bits may have changed for a role I hold — refetch
+                // server context (canDo) + channel list (per-channel effective
+                // permissions mask) + members (badges/colors).
                 queryClient.invalidateQueries({ queryKey: ['server', serverId] });
+                queryClient.invalidateQueries({ queryKey: ['channels', serverId] });
                 queryClient.invalidateQueries({ queryKey: ['members', serverId] });
             } else if (kind === 'deleted') {
                 queryClient.setQueryData(['roles', serverId], (old) =>
                     Array.isArray(old) ? old.filter(r => r.id !== data.roleId) : old
                 );
                 queryClient.invalidateQueries({ queryKey: ['server', serverId] });
+                queryClient.invalidateQueries({ queryKey: ['channels', serverId] });
                 queryClient.invalidateQueries({ queryKey: ['members', serverId] });
             } else if (kind === 'positions') {
                 if (Array.isArray(data.roles)) {
@@ -44,10 +47,14 @@ export function useRoleSubscription() {
         onMemberRolesChange(({ serverId, userId }) => {
             if (!serverId) return;
             queryClient.invalidateQueries({ queryKey: ['members', serverId] });
-            // Only refresh my own server context when the change touches me —
-            // others' role swaps don't alter my permissions.
+            // My own role swap → server permissions + channel-level effective
+            // permissions both change. Channels carry a `permissions` mask
+            // resolved per user on the backend, so we must refetch the list
+            // (otherwise a newly granted CONNECT_VOICE etc. still renders as
+            // locked until reload).
             if (user && userId === user.id) {
                 queryClient.invalidateQueries({ queryKey: ['server', serverId] });
+                queryClient.invalidateQueries({ queryKey: ['channels', serverId] });
             }
         });
 

@@ -26,8 +26,14 @@ export function useMessages() {
             queryClient.setQueryData(['messages', roomId], (old) => {
                 if (!old) return old;
 
+                // Defensive de-dup: drop any existing entry with the same id
+                // so a duplicated `message:new` (e.g. system messages emitted
+                // alongside call lifecycle events) can never produce two
+                // children with the same React key.
+                const withoutDup = old.messages.filter(m => m.id !== message.id);
+
                 if (message.userId === user.id) {
-                    const withoutTemp = old.messages.filter(m =>
+                    const withoutTemp = withoutDup.filter(m =>
                         !(m.pending && m.userId === user.id && m.text === message.text)
                     );
 
@@ -39,7 +45,7 @@ export function useMessages() {
 
                 return {
                     ...old,
-                    messages: [...old.messages, message],
+                    messages: [...withoutDup, message],
                 };
             });
 

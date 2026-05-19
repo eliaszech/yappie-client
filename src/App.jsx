@@ -33,7 +33,11 @@ import {useUserServerUpdate} from "./hooks/server/useUserServerUpdate.js";
 import {useActivitySubscription, useGameActivityReporter} from "./hooks/useActivity.js";
 import {useCrashReporter} from "./hooks/useCrashReporter.js";
 import {useRoleSubscription} from "./hooks/useRoleSubscription.js";
+import {useChannelSubscription} from "./hooks/useChannelSubscription.js";
+import {useCallEventsSync} from "./hooks/useConversationCall.js";
 import KickedFromServerDialog from "./features/servers/dialogs/KickedFromServerDialog.jsx";
+import BannedFromServerDialog from "./features/servers/dialogs/BannedFromServerDialog.jsx";
+import IncomingCallModal from "./features/private/friends/IncomingCallModal.jsx";
 import PageNotFound from "./errors/PageNotFound.jsx";
 import PageNotFoundSidebar from "./errors/PageNotFoundSidebar.jsx";
 import {SettingsProvider, useSettings} from "./context/SettingsContext.jsx";
@@ -68,15 +72,37 @@ function LazySettingsModal() {
 }
 
 function RouterEvents() {
-    const { kicked, dismissKicked } = useUserServerUpdate();
-    if (!kicked) return null;
-    return <KickedFromServerDialog serverName={kicked.serverName} onClose={dismissKicked} />;
+    const { kicked, dismissKicked, banned, dismissBanned } = useUserServerUpdate();
+    // Ban takes precedence (more severe) if both somehow fire together.
+    if (banned) {
+        return <BannedFromServerDialog
+            serverName={banned.serverName}
+            reason={banned.reason}
+            onClose={dismissBanned}
+        />;
+    }
+    if (kicked) {
+        return <KickedFromServerDialog serverName={kicked.serverName} onClose={dismissKicked} />;
+    }
+    return null;
+}
+
+function ProtectedShell({ children }) {
+    return (
+        <ProtectedRoute>
+            <RouterEvents />
+            <IncomingCallModal />
+            {children}
+        </ProtectedRoute>
+    );
 }
 
 function App() {
     useCrashReporter();
     usePresence();
     useRoleSubscription();
+    useChannelSubscription();
+    useCallEventsSync();
     useActivitySubscription();
     useGameActivityReporter();
     useVoiceEvents();
@@ -96,12 +122,11 @@ function App() {
         <ContextMenuProvider>
         <SettingsProvider>
         <HashRouter>
-            <RouterEvents />
             <Routes>
                 <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
                 <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
                 <Route path="/*" element={
-                    <ProtectedRoute>
+                    <ProtectedShell>
                         <GlobalVoiceComponent />
                         <div className="h-screen flex antialiased overflow-hidden bg-guild-bar">
                             <div className="flex flex-col h-screen shrink-0 border-r border-border">
@@ -144,7 +169,7 @@ function App() {
                                 </Routes>
                             </Suspense>
                         </div>
-                    </ProtectedRoute>
+                    </ProtectedShell>
                 } />
             </Routes>
             <LazySettingsModal />

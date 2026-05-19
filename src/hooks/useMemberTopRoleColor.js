@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchMembers, fetchRoles } from '../services/api.js';
 
-// Returns the color of the highest hoistable role that the given user holds
-// on the given server, or null. Used by the message renderer to tint the
-// username with the user's "visible group" color.
+// Returns the color of the highest coloured role that the given user holds
+// on the given server, or null. Used by the message renderer (username tint)
+// and the mention tag. The `hoist` flag only affects member-sidebar grouping
+// and is intentionally ignored here.
 export function useMemberTopRoleColor(serverId, userId) {
     const { data: members = [] } = useQuery({
         queryKey: ['members', serverId],
@@ -25,10 +26,9 @@ export function useMemberTopRoleColor(serverId, userId) {
     const memberRoleIds = new Set((member.roles || []).map(r => r.role?.id ?? r.id));
 
     // roles is ordered [isOwnerRole desc, position desc] → index 0 = top of
-    // hierarchy. Walk down and return the first hoisted+colored role.
+    // hierarchy. Walk down and return the first coloured role the user holds.
     for (const role of roles) {
         if (role.isEveryone) continue;
-        if (!role.hoist) continue;
         if (!role.color) continue;
         if (memberRoleIds.has(role.id)) return role.color;
     }

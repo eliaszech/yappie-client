@@ -14,7 +14,9 @@ export function useReactMessage() {
                     if (msg.id !== reaction.messageId) return msg;
                     const reactions = [...(msg.reactions || [])];
                     if (action === 'added') {
-                        reactions.push({ emoji: reaction.emoji, userId: reaction.userId });
+                        // Keep the joined `user` from the backend so the
+                        // reaction viewer modal can show name + avatar.
+                        reactions.push({ emoji: reaction.emoji, userId: reaction.userId, user: reaction.user });
                     } else {
                         const index = reactions.findIndex(r => r.emoji === reaction.emoji && r.userId === reaction.userId);
                         if (index !== -1) reactions.splice(index, 1);

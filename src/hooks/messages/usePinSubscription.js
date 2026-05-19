@@ -7,11 +7,17 @@ export function usePinSubscription() {
 
     useEffect(() => {
         onPinUpdate((action, data) => {
-            const { channelId } = data;
+            // Pin events come for both channels and conversations; pick the
+            // right roomId + pins cache key based on which one is present.
+            const roomId = data.channelId ?? data.conversationId;
+            const pinsKey = data.channelId
+                ? ['channelPins', data.channelId]
+                : ['conversationPins', data.conversationId];
+            if (!roomId) return;
 
             if (action === 'pinned') {
                 const { message } = data;
-                queryClient.setQueryData(['messages', channelId], (old) => {
+                queryClient.setQueryData(['messages', roomId], (old) => {
                     if (!old) return old;
                     return {
                         ...old,
@@ -22,14 +28,14 @@ export function usePinSubscription() {
                         ),
                     };
                 });
-                queryClient.setQueryData(['channelPins', channelId], (old) => {
+                queryClient.setQueryData(pinsKey, (old) => {
                     if (!Array.isArray(old)) return old;
                     if (old.some((m) => m.id === message.id)) return old;
                     return [message, ...old];
                 });
             } else if (action === 'unpinned') {
                 const { messageId } = data;
-                queryClient.setQueryData(['messages', channelId], (old) => {
+                queryClient.setQueryData(['messages', roomId], (old) => {
                     if (!old) return old;
                     return {
                         ...old,
@@ -38,7 +44,7 @@ export function usePinSubscription() {
                         ),
                     };
                 });
-                queryClient.setQueryData(['channelPins', channelId], (old) => {
+                queryClient.setQueryData(pinsKey, (old) => {
                     if (!Array.isArray(old)) return old;
                     return old.filter((m) => m.id !== messageId);
                 });

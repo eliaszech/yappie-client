@@ -4,6 +4,8 @@ import {
     fetchReadStates,
     markChannelRead as markChannelReadApi,
     markConversationRead as markConversationReadApi,
+    markChannelUnread as markChannelUnreadApi,
+    markConversationUnread as markConversationUnreadApi,
 } from '../services/api.js';
 import { getSocket } from '../services/socket.js';
 import { useAuth } from './useAuth.js';
@@ -144,6 +146,47 @@ export async function markConversationAsRead(queryClient, conversationId, userId
     }
 
     await markConversationReadApi(conversationId);
+}
+
+// Push lastReadAt back so the target message (and everything after) counts as
+// unread. Backend recomputes and returns the new counts; we just patch them in.
+export async function markChannelAsUnread(queryClient, channelId, messageId) {
+    const res = await markChannelUnreadApi(channelId, messageId);
+    if (res?.error) return;
+    queryClient.setQueryData(READ_STATES_KEY, (old) => {
+        const cur = normalize(old);
+        const idx = cur.channels.findIndex((c) => c.channelId === channelId);
+        if (idx === -1) return cur;
+        const next = cur.channels.slice();
+        next[idx] = {
+            ...next[idx],
+            unreadCount: res.unreadCount,
+            mentionCount: res.mentionCount,
+            lastReadAt: res.lastReadAt,
+        };
+        return { ...cur, channels: next };
+    });
+}
+
+export async function markConversationAsUnread(queryClient, conversationId, messageId, userId) {
+    const res = await markConversationUnreadApi(conversationId, messageId);
+    if (res?.error) return;
+    queryClient.setQueryData(READ_STATES_KEY, (old) => {
+        const cur = normalize(old);
+        const idx = cur.conversations.findIndex((c) => c.conversationId === conversationId);
+        if (idx === -1) return cur;
+        const next = cur.conversations.slice();
+        next[idx] = { ...next[idx], unreadCount: res.unreadCount, lastReadAt: res.lastReadAt };
+        return { ...cur, conversations: next };
+    });
+    if (userId) {
+        queryClient.setQueryData(['conversations', userId], (old) => {
+            if (!Array.isArray(old)) return old;
+            return old.map((conv) =>
+                conv.id === conversationId ? { ...conv, unreadCount: res.unreadCount } : conv,
+            );
+        });
+    }
 }
 
 export function useChannelUnread(channelId) {

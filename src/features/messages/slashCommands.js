@@ -54,6 +54,15 @@ export const SLASH_COMMANDS = [
             question: args,
         }),
     },
+    {
+        name: 'giphy',
+        usage: '/giphy [Suchbegriff]',
+        description: 'Sucht und sendet ein GIF',
+        run: ({ args }) => ({
+            kind: 'open-giphy',
+            query: args,
+        }),
+    },
 ];
 
 export function findSlashCommands(query) {

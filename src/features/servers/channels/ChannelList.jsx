@@ -1,15 +1,15 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHashtag, faPlus, faGear, faChevronDown } from "@awesome.me/kit-95376d5d61/icons/classic/regular";
-import { useQuery } from "@tanstack/react-query";
-import { fetchChannels } from "../../../services/api.js";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchChannels, updateChannelPositions } from "../../../services/api.js";
 import { NavLink, useParams } from "react-router-dom";
 import VoiceChannel from "./VoiceChannel.jsx";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import CreateChannelDialog from "../dialogs/CreateChannelDialog.jsx";
 import ChannelSettingsModal from "../settings/ChannelSettingsModal.jsx";
 import { useVoice } from "../../../hooks/useVoice.jsx";
 import { useChannelUnread } from "../../../hooks/useReadStates.js";
-import { hasPermission, PERMISSIONS } from "../../../services/permissions.js";
+import { hasPermission, hasChannelPermission, PERMISSIONS } from "../../../services/permissions.js";
 
 function TextChannelItem({ server, channel, onSettings, canManage }) {
     const { unreadCount, mentionCount } = useChannelUnread(channel.id);
@@ -20,6 +20,7 @@ function TextChannelItem({ server, channel, onSettings, canManage }) {
         <div className="group relative flex items-center">
             <NavLink
                 to={`/servers/${server.id}/channels/${channel.id}`}
+                draggable={false}
                 className={({isActive}) => `${isActive ? 'bg-muted/50 text-foreground' : hasUnread ? 'text-foreground' : 'text-muted-foreground'} w-full flex items-center gap-2.5 px-2 py-1 pr-7 rounded-md font-medium transition-all hover:text-foreground hover:bg-muted/50`}
             >
                 {hasUnread && (
@@ -46,11 +47,72 @@ function TextChannelItem({ server, channel, onSettings, canManage }) {
     );
 }
 
+// Drop-zone wrapper around a channel row. Renders a top/bottom border when the
+// row is the active drop target so users can predict where the dragged channel
+// will land. Drag/drop is scoped per type bucket (text/voice) via `bucket`.
+function DraggableChannelRow({ children, channelId, bucket, draggable, dragState, setDragState, onDropReorder }) {
+    const isDragging = dragState.id === channelId;
+    const showIndicator =
+        dragState.bucket === bucket &&
+        dragState.dropId === channelId &&
+        dragState.id !== null &&
+        dragState.id !== channelId;
+    const indicatorClass = showIndicator
+        ? (dragState.dropPosition === 'before' ? 'border-t-2 border-primary' : 'border-b-2 border-primary')
+        : '';
+
+    function handleDragStart(e) {
+        if (!draggable) return;
+        setDragState({ id: channelId, bucket, dropId: null, dropPosition: null });
+        e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragOver(e) {
+        if (!draggable || dragState.bucket !== bucket || dragState.id === null) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const rect = e.currentTarget.getBoundingClientRect();
+        const before = (e.clientY - rect.top) < rect.height / 2;
+        setDragState(s => ({ ...s, dropId: channelId, dropPosition: before ? 'before' : 'after' }));
+    }
+
+    function handleDragEnd() {
+        setDragState({ id: null, bucket: null, dropId: null, dropPosition: null });
+    }
+
+    function handleDrop(e) {
+        if (!draggable || dragState.bucket !== bucket || dragState.id === null) return;
+        e.preventDefault();
+        const sourceId = dragState.id;
+        const targetId = channelId;
+        const position = dragState.dropPosition;
+        setDragState({ id: null, bucket: null, dropId: null, dropPosition: null });
+        if (sourceId === targetId) return;
+        onDropReorder(sourceId, targetId, position);
+    }
+
+    return (
+        <div
+            draggable={draggable}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+            onDrop={handleDrop}
+            className={`${indicatorClass} ${isDragging ? 'opacity-50' : ''}`}
+        >
+            {children}
+        </div>
+    );
+}
+
 function ChannelList({server}) {
     const [createDialog, setCreateDialog] = useState(null);
     const [settingsChannel, setSettingsChannel] = useState(null);
     const [collapsed, setCollapsed] = useState({ text: false, voice: false });
+    const [dragState, setDragState] = useState({ id: null, bucket: null, dropId: null, dropPosition: null });
+    const previousChannelsRef = useRef(null);
     const canManageChannels = hasPermission(server, PERMISSIONS.MANAGE_CHANNELS);
+    const queryClient = useQueryClient();
 
     const { channelId: activeRouteChannelId } = useParams();
     const { channelId: activeVoiceChannelId } = useVoice();
@@ -73,6 +135,34 @@ function ChannelList({server}) {
 
     function toggle(type) {
         setCollapsed(prev => ({ ...prev, [type]: !prev[type] }));
+    }
+
+    async function handleReorder(bucket, sourceId, targetId, position) {
+        const bucketList = bucket === 'text' ? textChannels : voiceChannels;
+        const fromIdx = bucketList.findIndex(c => c.id === sourceId);
+        const toIdx = bucketList.findIndex(c => c.id === targetId);
+        if (fromIdx === -1 || toIdx === -1) return;
+
+        const next = [...bucketList];
+        const [moved] = next.splice(fromIdx, 1);
+        // After removing the dragged item the target's index may shift left by
+        // one — re-derive the insert position against the mutated array.
+        const adjustedTo = next.findIndex(c => c.id === targetId);
+        const insertAt = position === 'before' ? adjustedTo : adjustedTo + 1;
+        next.splice(insertAt, 0, moved);
+
+        if (next.every((c, i) => c.id === bucketList[i].id)) return;
+
+        previousChannelsRef.current = channels;
+        const otherBucket = bucket === 'text' ? voiceChannels : textChannels;
+        queryClient.setQueryData(['channels', server.id], [...otherBucket, ...next]);
+
+        const res = await updateChannelPositions(server.id, next.map(c => c.id));
+        if (res?.error) {
+            queryClient.setQueryData(['channels', server.id], previousChannelsRef.current);
+        } else if (Array.isArray(res)) {
+            queryClient.setQueryData(['channels', server.id], res);
+        }
     }
 
     const visibleText  = collapsed.text  ? textChannels.filter(isActive)  : textChannels;
@@ -105,7 +195,17 @@ function ChannelList({server}) {
                 </div>
                 <div className="flex flex-col gap-1">
                     {visibleText.map((channel) => (
-                        <TextChannelItem key={channel.id} server={server} channel={channel} onSettings={setSettingsChannel} canManage={canManageChannels} />
+                        <DraggableChannelRow
+                            key={channel.id}
+                            channelId={channel.id}
+                            bucket="text"
+                            draggable={canManageChannels && !collapsed.text}
+                            dragState={dragState}
+                            setDragState={setDragState}
+                            onDropReorder={(s, t, p) => handleReorder('text', s, t, p)}
+                        >
+                            <TextChannelItem server={server} channel={channel} onSettings={setSettingsChannel} canManage={hasChannelPermission(channel, server, PERMISSIONS.MANAGE_CHANNELS)} />
+                        </DraggableChannelRow>
                     ))}
                 </div>
 
@@ -133,13 +233,22 @@ function ChannelList({server}) {
                 </div>
                 <div className="flex flex-col gap-1">
                     {visibleVoice.map((channel) =>
-                        <VoiceChannel
+                        <DraggableChannelRow
                             key={channel.id}
-                            server={server}
-                            channel={channel}
-                            onSettings={setSettingsChannel}
-                            canManage={canManageChannels}
-                        />
+                            channelId={channel.id}
+                            bucket="voice"
+                            draggable={canManageChannels && !collapsed.voice}
+                            dragState={dragState}
+                            setDragState={setDragState}
+                            onDropReorder={(s, t, p) => handleReorder('voice', s, t, p)}
+                        >
+                            <VoiceChannel
+                                server={server}
+                                channel={channel}
+                                onSettings={setSettingsChannel}
+                                canManage={hasChannelPermission(channel, server, PERMISSIONS.MANAGE_CHANNELS)}
+                            />
+                        </DraggableChannelRow>
                     )}
                 </div>
             </div>

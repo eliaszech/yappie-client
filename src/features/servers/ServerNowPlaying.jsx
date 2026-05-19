@@ -51,7 +51,7 @@ function ServerNowPlaying({ serverId }) {
                     <div
                         key={c.name}
                         title={`${c.count} ${c.count === 1 ? 'Mitglied spielt' : 'Mitglieder spielen'} ${c.name}`}
-                        className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/15 text-primary rounded-full text-xs border border-primary/25"
+                        className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/15 text-primary rounded-md text-xs border border-primary/25"
                     >
                         {c.icon ? (
                             <img src={c.icon} alt="" className="w-3.5 h-3.5 rounded-sm object-cover" />

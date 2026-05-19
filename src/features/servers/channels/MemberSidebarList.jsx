@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchMembers, fetchRoles, fetchServer, kickMember, fetchOrCreateConversationWith } from '../../../services/api.js';
+import { fetchMembers, fetchRoles, fetchServer, kickMember, banMember, fetchOrCreateConversationWith } from '../../../services/api.js';
 import Spinner from '../../components/static/Spinner.jsx';
 import ErrorMessage from '../../components/static/ErrorMessage.jsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -14,6 +14,7 @@ import { useContextMenu } from '../../../hooks/useContextMenu.js';
 import { useAuth } from '../../../hooks/useAuth.js';
 import { useNavigate } from 'react-router-dom';
 import RolePickerDialog from '../members/RolePickerDialog.jsx';
+import BanConfirmDialog from '../members/BanConfirmDialog.jsx';
 import {getSocket} from "../../../services/socket.js";
 import { hasPermission, PERMISSIONS } from "../../../services/permissions.js";
 function KickConfirmDialog({ member, onConfirm, onClose }) {
@@ -54,6 +55,7 @@ function MemberSidebarList({ serverId }) {
     const { openContextMenu } = useContextMenu();
 
     const [confirmKick, setConfirmKick] = useState(null);
+    const [confirmBan, setConfirmBan] = useState(null);
     const [rolePicker, setRolePicker] = useState(null);
 
     const { users: members, isLoading, isError } = useUsersWithPresence({
@@ -111,6 +113,24 @@ function MemberSidebarList({ serverId }) {
         }
     }
 
+    // Ban shares the kick-broadcast path: the existing live-sync already
+    // removes the member from every cache + boots them from voice. The ban
+    // entry lives in its own table and is read by the BansSection.
+    async function handleBan(member, reason) {
+        const res = await banMember(serverId, member.id, reason);
+        if (res?.error) return res.error;
+        const socket = getSocket();
+        // 'ban' type carries the reason in the payload so the banned user's
+        // BannedFromServerDialog can show it. Other members still get a kick-
+        // style removal from their caches via the same handler.
+        socket.emit('server:user:update', 'ban', member.userId, serverId, { reason: reason ?? null });
+        // Invalidate the bans list so the Sperren-Section refetches on next
+        // open — POST /ban only returns the bare row (no user/banner joins),
+        // so a direct cache push would render without a name/avatar.
+        queryClient.invalidateQueries({ queryKey: ['bans', serverId] });
+        return null;
+    }
+
     async function handleOpenDm(member) {
         const conversation = await fetchOrCreateConversationWith(member.user.id);
         if (!conversation.error) {
@@ -151,9 +171,7 @@ function MemberSidebarList({ serverId }) {
                     label: 'Sperren',
                     icon: faBan,
                     danger: true,
-                    disabled: true,
-                    disabledLabel: 'Bald',
-                    onClick: () => {},
+                    onClick: () => setConfirmBan(member),
                 });
             }
             if (modItems.length > 0) {
@@ -188,7 +206,7 @@ function MemberSidebarList({ serverId }) {
                 onContextMenu={(e) => openContextMenu(e, buildContextItems(member))}
             >
                 <HasUserPopup user={member.user} orientation="left" roles={member.roles}>
-                    <UserItem serverMember={member} color={colorRole?.color} />
+                    <UserItem serverMember={member} color={colorRole?.color} dimOffline />
                 </HasUserPopup>
             </div>
         );
@@ -232,6 +250,14 @@ function MemberSidebarList({ serverId }) {
                     member={confirmKick}
                     onConfirm={handleKick}
                     onClose={() => setConfirmKick(null)}
+                />
+            )}
+
+            {confirmBan && (
+                <BanConfirmDialog
+                    user={confirmBan.user}
+                    onConfirm={(reason) => handleBan(confirmBan, reason)}
+                    onClose={() => setConfirmBan(null)}
                 />
             )}
 

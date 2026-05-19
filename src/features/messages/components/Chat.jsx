@@ -171,6 +171,12 @@ function Chat({children, type = 'conversation', roomId}) {
     function shouldGroupMessage(current, previous) {
         if (!previous) return false;
         if (current.userId !== previous.userId) return false;
+        // System rows (call_missed / call_ended / user_joined) render as
+        // centered cards with no avatar — they shouldn't anchor a group,
+        // otherwise the next real message from the same user would be drawn
+        // without its own avatar/header.
+        const SYSTEM_TYPES = new Set(['call_missed', 'call_ended', 'user_joined']);
+        if (SYSTEM_TYPES.has(previous.type) || SYSTEM_TYPES.has(current.type)) return false;
 
         const timeDiff = new Date(current.createdAt) - new Date(previous.createdAt);
         const oneHour = 60 * 60 * 1000;

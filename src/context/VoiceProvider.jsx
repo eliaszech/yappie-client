@@ -24,15 +24,18 @@ export function VoiceProvider({ children }) {
     const [voiceState, setVoiceState] = useState({
         token: null,
         channelId: null,
+        conversationId: null,
         serverUrl: null,
         channelName: null,
         serverId: null,
         serverName: null,
+        conversationName: null,
         participants: [],
         muted: false,
         deafened: false,
         mutedByDeafen: false,
         isAfk: false,
+        bitrate: null,
     });
 
     function setKrisp(krisp) {
@@ -70,31 +73,43 @@ export function VoiceProvider({ children }) {
         setRetryCountState(0);
     }
 
-    async function joinVoice({ channel, server, attributes = {} }) {
-        if (voiceState.channelId === channel.id && connectionStatus === 'connected') return;
+    // joinVoice supports two shapes:
+    //   - server voice channel: { channel, server, attributes }
+    //   - direct/group call:    { conversation: { id, name }, attributes }
+    async function joinVoice({ channel, server, conversation, attributes = {} }) {
+        const isConversation = !!conversation;
+        const roomName = isConversation ? `conversation-${conversation.id}` : `channel-${channel.id}`;
+        const newRoomId = isConversation ? conversation.id : channel.id;
+        const currentRoomId = voiceState.conversationId ?? voiceState.channelId;
+        if (currentRoomId === newRoomId && connectionStatus === 'connected') return;
 
         setVoiceErrorState(null);
         setConnectionStatusState('connecting');
 
-        // Set channel info immediately so UI can show name during connecting phase
+        // Set room info immediately so UI can show name during connecting phase.
         setVoiceState(prev => ({
             ...prev,
-            channelId: channel.id,
-            channelName: channel.name,
-            serverId: server.id,
-            serverName: server.name,
+            channelId: isConversation ? null : channel.id,
+            channelName: isConversation ? null : channel.name,
+            serverId: isConversation ? null : server.id,
+            serverName: isConversation ? null : server.name,
+            conversationId: isConversation ? conversation.id : null,
+            conversationName: isConversation ? (conversation.name ?? null) : null,
         }));
 
         const socket = getSocket();
 
         if (voiceState.token && socket) {
-            socket.emit('voice:leave', { channelId: voiceState.channelId });
+            const leavePayload = voiceState.conversationId
+                ? { conversationId: voiceState.conversationId }
+                : { channelId: voiceState.channelId };
+            socket.emit('voice:leave', leavePayload);
             setVoiceState(prev => ({ ...prev, token: null }));
             await new Promise(resolve => setTimeout(resolve, 100));
         }
 
         const res = await fetchVoiceToken({
-            roomName: `channel-${channel.id}`,
+            roomName,
             userId: user.id,
             username: user.displayName ?? user.username,
             attributes
@@ -103,6 +118,19 @@ export function VoiceProvider({ children }) {
         if (res.error) {
             setVoiceErrorState(res.error);
             setConnectionStatusState('error');
+            setVoiceState(prev => ({
+                ...prev,
+                token: null,
+                channelId: null,
+                conversationId: null,
+                serverUrl: null,
+                channelName: null,
+                serverId: null,
+                serverName: null,
+                conversationName: null,
+                participants: [],
+                isAfk: false,
+            }));
             return;
         }
 
@@ -111,6 +139,7 @@ export function VoiceProvider({ children }) {
             token: res.token,
             serverUrl: res.url,
             isAfk: !!res.afk,
+            bitrate: res.bitrate ?? null,
             muted: res.afk ? true : prev.muted,
             participants: [],
         }));
@@ -119,17 +148,19 @@ export function VoiceProvider({ children }) {
     }
 
     async function refreshToken() {
-        const channelId = voiceState.channelId;
-        if (!channelId) return false;
+        const roomName = voiceState.conversationId
+            ? `conversation-${voiceState.conversationId}`
+            : voiceState.channelId ? `channel-${voiceState.channelId}` : null;
+        if (!roomName) return false;
         const res = await fetchVoiceToken({
-            roomName: `channel-${channelId}`,
+            roomName,
             userId: user.id,
             username: user.displayName ?? user.username,
         });
         if (res.error) return false;
         setVoiceState(prev => {
-            if (!prev.channelId) return prev;
-            return { ...prev, token: res.token, serverUrl: res.url, isAfk: !!res.afk };
+            if (!prev.channelId && !prev.conversationId) return prev;
+            return { ...prev, token: res.token, serverUrl: res.url, isAfk: !!res.afk, bitrate: res.bitrate ?? null };
         });
         return true;
     }
@@ -138,18 +169,24 @@ export function VoiceProvider({ children }) {
         playLeaveSound();
 
         const socket = getSocket();
-        if (socket && voiceState.channelId) {
-            socket.emit('voice:leave', { channelId: voiceState.channelId });
+        if (socket) {
+            if (voiceState.conversationId) {
+                socket.emit('voice:leave', { conversationId: voiceState.conversationId });
+            } else if (voiceState.channelId) {
+                socket.emit('voice:leave', { channelId: voiceState.channelId });
+            }
         }
 
         setVoiceState(prev => ({
             ...prev,
             token: null,
             channelId: null,
+            conversationId: null,
             serverUrl: null,
             channelName: null,
             serverId: null,
             serverName: null,
+            conversationName: null,
             participants: [],
             isAfk: false,
         }));

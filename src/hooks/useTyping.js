@@ -8,29 +8,38 @@ export function useTyping(type = 'conversation', roomId) {
     const timeoutRef = useRef(null);
 
     useEffect(() => {
+        // Reset whenever we switch rooms — otherwise the previous channel's
+        // typing users stay in state forever (we'd only ever drop them if a
+        // typing:stop happens to arrive, which doesn't if the user already
+        // hit send before we left).
+        setTypingUsers([]);
+
         const socket = getSocket();
         if (!socket) return;
 
-        socket.on('typing:start', (data) => {
+        function handleStart(data) {
             if (data.roomId !== roomId) return;
+            if (data.userId === user?.id) return;
             setTypingUsers(prev =>
                 prev.some(typingUser => typingUser.id === data.userId) ? prev : [...prev, {
                     id: data.userId,
                     username: data.username,
                 }]
             );
-        });
-
-        socket.on('typing:stop', (data) => {
+        }
+        function handleStop(data) {
             if (data.roomId !== roomId) return;
             setTypingUsers((prev) => prev.filter(typingUser => typingUser.id !== data.userId));
-        });
+        }
+
+        socket.on('typing:start', handleStart);
+        socket.on('typing:stop', handleStop);
 
         return () => {
-            socket.off('typing:start');
-            socket.off('typing:stop');
+            socket.off('typing:start', handleStart);
+            socket.off('typing:stop', handleStop);
         };
-    }, [roomId]);
+    }, [roomId, user?.id]);
 
     function sendTyping() {
         const socket = getSocket();

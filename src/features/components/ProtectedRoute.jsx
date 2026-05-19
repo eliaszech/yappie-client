@@ -6,11 +6,13 @@ import { ProfileModalProvider } from "../../context/user/ProfileModalProvider.js
 import SplashScreen from "./SplashScreen.jsx";
 import { useIdleReporter } from "../../hooks/useIdleReporter.js";
 import { useAfkMove } from "../../hooks/useAfkMove.js";
+import { useVoiceActions } from "../../hooks/useVoiceActions.js";
 
 function VoiceEffects() {
     // Mounted inside VoiceProvider so the hooks can actually read voice state.
     useIdleReporter();
     useAfkMove();
+    useVoiceActions();
     return null;
 }
 

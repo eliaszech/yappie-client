@@ -1,13 +1,14 @@
 import ContentHeader from "../../components/ContentHeader.jsx";
 import {useQuery} from "@tanstack/react-query";
-import {useParams} from "react-router-dom";
+import {useNavigate, useParams} from "react-router-dom";
 import Spinner from "../../components/static/Spinner.jsx";
-import {fetchChannel} from "../../../services/api.js";
+import {fetchChannel, fetchChannels} from "../../../services/api.js";
 import ErrorMessage from "../../components/static/ErrorMessage.jsx";
 import {faMessage} from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faHashtag} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
-import {useEffect} from "react";
+import {faUsers} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
+import {useEffect, useRef, useState} from "react";
 import MemberSidebarList from "./MemberSidebarList.jsx";
 import {getSocket} from "../../../services/socket.js";
 import MessageInput from "../../messages/components/MessageInput.jsx";
@@ -17,6 +18,8 @@ import SearchPopover from "../../messages/components/SearchPopover.jsx";
 
 function Channel() {
     const {channelId} = useParams();
+    const navigate = useNavigate();
+    const [showMemberSidebar, setShowMemberSidebar] = useState(true);
 
     const {data: channel = {}, isLoading, isError} = useQuery({
         queryKey: ['channel', channelId],
@@ -24,6 +27,32 @@ function Channel() {
         staleTime: 10 * 60 * 1000,
         retry: 1,
     })
+
+    // Watch the (visibility-filtered) channels list. If this channel disappears
+    // — because a moderator just denied VIEW_CHANNEL on a role we hold — kick
+    // the user out to the members list. Voice channels intentionally keep the
+    // active route so mods can still drag a user into a "hidden" voice room.
+    const { data: serverChannels } = useQuery({
+        queryKey: ['channels', channel?.serverId],
+        queryFn: () => fetchChannels(channel.serverId),
+        enabled: !!channel?.serverId,
+        staleTime: 10 * 60 * 1000,
+    });
+    // Ref guard: invalidation can briefly retrigger this effect; without it
+    // we'd fire navigate twice before the location change settled, which read
+    // as flicker (loop with ServerRedirect's lastPath cache).
+    const navigatedAwayRef = useRef(false);
+    useEffect(() => {
+        if (navigatedAwayRef.current) return;
+        if (!channel?.id || !channel.serverId) return;
+        if (!Array.isArray(serverChannels)) return;
+        const stillVisible = serverChannels.some(c => c.id === channel.id);
+        if (stillVisible) return;
+        navigatedAwayRef.current = true;
+        // Members page — neutral, always accessible, sidesteps ServerRedirect's
+        // lastPath cache which would otherwise bounce us right back here.
+        navigate(`/servers/${channel.serverId}/members`, { replace: true });
+    }, [serverChannels, channel?.id, channel?.serverId, navigate]);
 
     useEffect(() => {
         const socket = getSocket();
@@ -49,6 +78,15 @@ function Channel() {
                 <div className="ml-auto flex items-center gap-2">
                     <PinsPopover channelId={channel.id} />
                     <SearchPopover type="channel" roomId={channel.id} />
+                    <button
+                        onClick={() => setShowMemberSidebar(v => !v)}
+                        title={showMemberSidebar ? 'Mitgliederliste ausblenden' : 'Mitgliederliste anzeigen'}
+                        className={`flex items-center justify-center w-8 h-8 rounded-md cursor-pointer transition-colors ${
+                            showMemberSidebar ? 'text-foreground bg-muted/50' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                        }`}
+                    >
+                        <FontAwesomeIcon icon={faUsers} />
+                    </button>
                 </div>
             </ContentHeader>
             <div className="flex h-full w-full overflow-hidden">
@@ -62,9 +100,11 @@ function Channel() {
                     </Chat>
                     <MessageInput type="channel" serverId={channel.serverId} roomId={channel.id} roomName={channel.name} />
                 </div>
-                <div className="max-w-xs w-full bg-card/70 h-full border-l border-border">
-                    <MemberSidebarList serverId={channel.serverId} />
-                </div>
+                {showMemberSidebar && (
+                    <div className="max-w-xs w-full bg-card/70 h-full border-l border-border">
+                        <MemberSidebarList serverId={channel.serverId} />
+                    </div>
+                )}
             </div>
 
         </>

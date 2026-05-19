@@ -75,6 +75,9 @@ export const createChannel = (serverId, name, type) => apiRequest('POST', `/serv
 export const fetchMembers = (type, id) => apiRequest('GET', type === 'members' ? `/servers/${id}/members` : `/conversations/${id}/participants`);
 export const updateServer = (serverId, data) => apiRequest('PATCH', `/servers/${serverId}`, data);
 export const kickMember = (serverId, memberId) => apiRequest('POST', `/servers/${serverId}/members/${memberId}/kick`);
+export const banMember = (serverId, memberId, reason) => apiRequest('POST', `/servers/${serverId}/members/${memberId}/ban`, { reason: reason ?? null });
+export const fetchBans = (serverId) => apiRequest('GET', `/servers/${serverId}/bans`);
+export const unbanUser = (serverId, bannedUserId) => apiRequest('DELETE', `/servers/${serverId}/bans/${bannedUserId}`);
 
 export const fetchRoles = (serverId) => apiRequest('GET', `/servers/${serverId}/roles`);
 export const createRole = (serverId, data) => apiRequest('POST', `/servers/${serverId}/roles`, data);
@@ -96,9 +99,19 @@ export const deleteInvite = (code) => apiRequest('DELETE', `/servers/invites/${c
 
 export const updateChannel = (serverId, channelId, data) => apiRequest('PATCH', `/servers/${serverId}/channels/${channelId}`, data);
 export const deleteChannel = (serverId, channelId) => apiRequest('DELETE', `/servers/${serverId}/channels/${channelId}`);
+export const updateChannelPositions = (serverId, channelIds) => apiRequest('PUT', `/servers/${serverId}/channels/positions`, { channelIds });
 
 export const fetchVoiceToken = (data) => apiRequest('POST', `/voice/token`, data);
 export const fetchChannelParticipants = (channelId) => apiRequest('GET', `/voice/participants/${channelId}`);
+export const fetchActiveCall = (conversationId) => apiRequest('GET', `/voice/call/${conversationId}`);
+export const fetchOgMeta = (url) => apiRequest('GET', `/og?url=${encodeURIComponent(url)}`);
+export const searchGifs = (query, limit = 20) => apiRequest('GET', `/gifs/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+
+export const fetchChannelOverwrites = (channelId) => apiRequest('GET', `/channels/${channelId}/overwrites`);
+export const setChannelOverwrite = (channelId, roleId, allow, deny) => apiRequest('PUT', `/channels/${channelId}/overwrites/${roleId}`, { allow, deny });
+export const deleteChannelOverwrite = (channelId, roleId) => apiRequest('DELETE', `/channels/${channelId}/overwrites/${roleId}`);
+export const moveVoiceUser = (targetUserId, channelId) => apiRequest('POST', `/voice/move`, { targetUserId, channelId });
+export const disconnectVoiceUser = (targetUserId) => apiRequest('POST', `/voice/disconnect`, { targetUserId });
 
 export const fetchConversations = (userId) => apiRequest('POST', `/conversations/list`, { userId: userId });
 export const fetchConversation = (conversationId) => apiRequest('GET', `/conversations/${conversationId}`);
@@ -108,11 +121,16 @@ export const createGroupConversation = (participantIds) => apiRequest('POST', `/
 export const fetchReadStates = () => apiRequest('GET', `/@me/read-states`);
 export const markChannelRead = (channelId) => apiRequest('POST', `/channels/${channelId}/read`);
 export const markConversationRead = (conversationId) => apiRequest('POST', `/conversations/${conversationId}/read`);
+export const markChannelUnread = (channelId, messageId) => apiRequest('POST', `/channels/${channelId}/unread`, { messageId });
+export const markConversationUnread = (conversationId, messageId) => apiRequest('POST', `/conversations/${conversationId}/unread`, { messageId });
 export const hideConversation = (conversationId) => apiRequest('POST', `/conversations/${conversationId}/hide`);
 
 export const fetchChannelPins = (channelId) => apiRequest('GET', `/channels/${channelId}/pins`);
 export const pinMessage = (channelId, messageId) => apiRequest('POST', `/channels/${channelId}/messages/${messageId}/pin`);
 export const unpinMessage = (channelId, messageId) => apiRequest('DELETE', `/channels/${channelId}/messages/${messageId}/pin`);
+export const fetchConversationPins = (conversationId) => apiRequest('GET', `/conversations/${conversationId}/pins`);
+export const pinConversationMessage = (conversationId, messageId) => apiRequest('POST', `/conversations/${conversationId}/messages/${messageId}/pin`);
+export const unpinConversationMessage = (conversationId, messageId) => apiRequest('DELETE', `/conversations/${conversationId}/messages/${messageId}/pin`);
 
 export const searchMessages = (type, id, query) => apiRequest('GET',
     type === 'channel'

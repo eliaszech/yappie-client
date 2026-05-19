@@ -12,6 +12,9 @@ export const PERMISSIONS = {
     MANAGE_INVITES:  1 << 10,
     MANAGE_ROLES:    1 << 11,
     MANAGE_EMOJIS:   1 << 12,
+    CONNECT_VOICE:   1 << 13,
+    VIEW_CHANNEL:    1 << 14,
+    ADD_REACTIONS:   1 << 15,
 };
 
 // True if I can act on (edit, assign, delete) a role given my server context.
@@ -34,4 +37,21 @@ export function hasPermission(server, flag) {
     const perm = server.permissions ?? 0;
     if ((perm & PERMISSIONS.ADMINISTRATOR) !== 0) return true;
     return (perm & flag) !== 0;
+}
+
+// Channel-aware permission check. The channel object carries an effective
+// `permissions` mask from the backend which already incorporates server-role
+// permissions, the @everyone overwrite and all role-overwrites for this user.
+// Neutral (= no overwrite) bits fall through to the server permission, so a
+// caller can rely on a single check. Owner / ADMINISTRATOR always pass.
+export function hasChannelPermission(channel, server, flag) {
+    if (!server) return false;
+    if (server.isOwner) return true;
+    const serverPerms = server.permissions ?? 0;
+    if ((serverPerms & PERMISSIONS.ADMINISTRATOR) !== 0) return true;
+    if (channel && typeof channel.permissions === 'number') {
+        return (channel.permissions & flag) !== 0;
+    }
+    // Fallback: channel mask missing (old cache, DMs, …) → use server perms.
+    return (serverPerms & flag) !== 0;
 }

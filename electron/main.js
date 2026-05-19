@@ -12,6 +12,11 @@ const isDev = process.env.NODE_ENV === 'development';
 const isWin = process.platform === 'win32';
 
 app.setName('Yappie');
+// AppUserModelID muss zur electron-builder appId (com.yappie.client) passen,
+// damit Windows die Toast-Notifications korrekt der installierten App
+// zuordnet: ohne das taucht "Electron" als Absender auf und ein Klick auf
+// den Toast aktiviert nicht die App, sondern fällt auf den OS-Default zurück.
+app.setAppUserModelId('com.yappie.client');
 
 function resolveIconPath() {
     const isPackaged = app.isPackaged;

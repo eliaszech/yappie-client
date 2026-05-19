@@ -19,8 +19,12 @@ import SearchPopover from "../../messages/components/SearchPopover.jsx";
 import {useIsOnline, useUserStatus} from "../../../hooks/usePresence.js";
 import {useUserActivity, useActivityPlaytime} from "../../../hooks/useActivity.js";
 import {faChevronRight} from "@awesome.me/kit-95376d5d61/icons/classic/regular";
-import {faGamepad, faGamepadModern} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
+import {faGamepad, faGamepadModern, faPhone, faPhoneSlash} from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import {AnimatePresence, motion} from "framer-motion";
+import {useVoice} from "../../../hooks/useVoice.jsx";
+import {useConversationCall} from "../../../hooks/useConversationCall.js";
+import ConversationCallView from "./ConversationCallView.jsx";
+import PinsPopover from "../../messages/components/PinsPopover.jsx";
 
 function UserSidebar({user}) {
     const online = useIsOnline(user.id) || user.online;
@@ -121,11 +125,122 @@ function UserSidebar({user}) {
     )
 }
 
+// Phone button in the conversation header. Doubles as "leave" when the
+// current voice session is already this conversation.
+function CallButton({ conversationId, conversationTitle }) {
+    const { conversationId: activeId, joinVoice, leaveVoice, muted, deafened } = useVoice();
+    const inCall = activeId === conversationId;
+
+    function handleClick() {
+        if (inCall) {
+            leaveVoice();
+        } else {
+            joinVoice({
+                conversation: { id: conversationId, name: conversationTitle },
+                attributes: { muted, deafened },
+            });
+        }
+    }
+
+    return (
+        <button
+            onClick={handleClick}
+            title={inCall ? 'Anruf beenden' : 'Anrufen'}
+            className={`cursor-pointer w-8 h-8 flex items-center justify-center rounded-md transition-colors ${
+                inCall
+                    ? 'bg-dnd/15 text-dnd hover:bg-dnd/25'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+        >
+            <FontAwesomeIcon icon={inCall ? faPhoneSlash : faPhone} />
+        </button>
+    );
+}
+
+// Decides between the normal chat layout and the full call view inside the
+// chat column. Call view takes the whole column when we're connected to this
+// conversation's call and the stage isn't collapsed; the chat is offered as a
+// togglable drawer inside the call view via the `chatPanel` slot.
+function CallOrChatBody({ conversationId, conversation, conversationTitle, callViewHidden, onHideCall, children: chatChildren }) {
+    const { conversationId: activeId } = useVoice();
+    const inCall = activeId === conversationId;
+
+    const chatBody = (
+        <>
+            <Chat type="conversation" roomId={conversationId}>
+                {chatChildren}
+            </Chat>
+            <MessageInput type="conversation" roomId={conversationId} roomName={conversationTitle} />
+        </>
+    );
+
+    if (inCall && !callViewHidden) {
+        return (
+            <ConversationCallView
+                conversationId={conversationId}
+                participants={conversation.participants}
+                onClose={onHideCall}
+                chatPanel={chatBody}
+            />
+        );
+    }
+    return chatBody;
+}
+
+// Slim banner shown when we're connected to this call but have collapsed the
+// stage. Single tap brings the stage back.
+function HiddenCallBanner({ conversationId, hidden, onShow }) {
+    const { conversationId: activeId } = useVoice();
+    if (activeId !== conversationId || !hidden) return null;
+    return (
+        <div className="flex items-center gap-3 px-4 py-2 bg-primary/10 border-b border-primary/30">
+            <FontAwesomeIcon icon={faPhone} className="text-primary" />
+            <span className="text-sm text-foreground flex-1">Im Anruf</span>
+            <button
+                onClick={onShow}
+                className="cursor-pointer text-xs font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+                Anzeigen
+            </button>
+        </div>
+    );
+}
+
+// "Call läuft, Beitreten"-Banner. Only renders when there's an active call we
+// aren't in. Suppressed for ringing phase since the ring modal handles that.
+function CallBanner({ conversationId, conversationTitle }) {
+    const call = useConversationCall(conversationId);
+    const { conversationId: activeId, joinVoice, muted, deafened } = useVoice();
+    if (!call) return null;
+    if (activeId === conversationId) return null;
+    if (call.ringing) return null;
+
+    return (
+        <div className="flex items-center gap-3 px-4 py-2 bg-primary/10 border-b border-primary/30">
+            <FontAwesomeIcon icon={faPhone} className="text-primary" />
+            <span className="text-sm text-foreground flex-1">
+                Anruf läuft · {call.participants.length} {call.participants.length === 1 ? 'Teilnehmer' : 'Teilnehmer'}
+            </span>
+            <button
+                onClick={() => joinVoice({
+                    conversation: { id: conversationId, name: conversationTitle },
+                    attributes: { muted, deafened },
+                })}
+                className="cursor-pointer text-xs font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+                Beitreten
+            </button>
+        </div>
+    );
+}
+
 function Conversation() {
     const {user} = useAuth();
     const { conversationId } = useParams();
     const queryClient = useQueryClient();
     const messagesEndRef = useRef(null);
+    const [callViewHidden, setCallViewHidden] = useState(false);
+    const [showUserSidebar, setShowUserSidebar] = useState(true);
 
     const { data: conversation = null, isLoading, isError } = useQuery( {
         queryKey: ['conversation', conversationId],
@@ -133,6 +248,8 @@ function Conversation() {
         staleTime: 10 * 60 * 1000,
         retry: 1,
     })
+
+    useEffect(() => { setCallViewHidden(false); }, [conversationId]);
 
     useEffect(() => {
         const socket = getSocket();
@@ -189,12 +306,35 @@ function Conversation() {
                     <span className="font-medium">{conversationTitle}</span>
                 </div>
                 <div className="ml-auto flex items-center gap-2">
+                    <CallButton conversationId={conversationId} conversationTitle={conversationTitle} />
+                    <PinsPopover conversationId={conversationId} />
                     <SearchPopover type="conversation" roomId={conversationId} />
+                    <button
+                        onClick={() => setShowUserSidebar(v => !v)}
+                        title={showUserSidebar ? 'Seitenleiste ausblenden' : 'Seitenleiste anzeigen'}
+                        className={`flex items-center justify-center w-8 h-8 rounded-md cursor-pointer transition-colors ${
+                            showUserSidebar ? 'text-foreground bg-muted/50' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                        }`}
+                    >
+                        <FontAwesomeIcon icon={faUsers} />
+                    </button>
                 </div>
             </ContentHeader>
+            <CallBanner conversationId={conversationId} conversationTitle={conversationTitle} />
+            <HiddenCallBanner
+                conversationId={conversationId}
+                hidden={callViewHidden}
+                onShow={() => setCallViewHidden(false)}
+            />
             <div className="flex h-full w-full overflow-hidden">
-                <div className="flex flex-col w-full h-full relative">
-                    <Chat type="conversation" roomId={conversationId} >
+                <div className="flex flex-col w-full h-full relative min-w-0">
+                    <CallOrChatBody
+                        conversationId={conversationId}
+                        conversation={conversation}
+                        conversationTitle={conversationTitle}
+                        callViewHidden={callViewHidden}
+                        onHideCall={() => setCallViewHidden(true)}
+                    >
                         <div className="flex flex-col px-8 text-foreground gap-2.5 pb-8">
                             <div className="mb-2">
                                 {isSingle ? <UserAvatar displayOnline={false} size="w-[100px] h-[100px] text-5xl" avatar={otherUsers[0].user.avatar} icon={icons[0]}/> : <UserAvatar size="w-[100px] h-[100px]" displayOnline={false} icon={<FontAwesomeIcon className="text-5xl" icon={faUsers} />} />}
@@ -204,11 +344,10 @@ function Conversation() {
                                 { isSingle ? `Die ist der Anfang des Direktnachrichtenchannels mit ${conversationTitle}` : `Willkomen am Anfang der ${conversationTitle}-Gruppe` }
                             </div>
                         </div>
-                    </Chat>
-                    <MessageInput type="conversation" roomId={conversationId} roomName={conversationTitle} />
+                    </CallOrChatBody>
                 </div>
-                { isSingle && <UserSidebar user={otherUsers[0].user} />}
-                { !isSingle && (
+                { showUserSidebar && isSingle && <UserSidebar user={otherUsers[0].user} />}
+                { showUserSidebar && !isSingle && (
                     <div className="max-w-xs flex flex-col border-l border-border px-2 py-4 w-full h-full bg-card/70">
                         <span className="text-sm px-2 text-foreground mb-2">Teilnehmer - {conversation.participants.length}</span>
                         { conversation.participants.map((participant) => (

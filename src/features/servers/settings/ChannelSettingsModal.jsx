@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGear, faShield, faXmark, faTrash } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { deleteChannel } from "../../../services/api.js";
+import { deleteChannel, fetchChannels } from "../../../services/api.js";
 import ChannelOverviewSection from "./sections/ChannelOverviewSection.jsx";
 import ChannelPermissionsSection from "./sections/ChannelPermissionsSection.jsx";
 
@@ -21,23 +21,40 @@ const NAV = [
 function SectionContent({ section, channel, server }) {
     switch (section) {
         case 'overview':    return <ChannelOverviewSection channel={channel} server={server} />;
-        case 'permissions': return <ChannelPermissionsSection channel={channel} />;
+        case 'permissions': return <ChannelPermissionsSection channel={channel} server={server} />;
         default:            return <ChannelOverviewSection channel={channel} server={server} />;
     }
 }
 
-function ChannelSettingsModal({ channel, server, onClose }) {
+function ChannelSettingsModal({ channel: initialChannel, server, onClose }) {
     const [section, setSection] = useState('overview');
     const [confirmDelete, setConfirmDelete] = useState(false);
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     const { channelId: activeChannelId } = useParams();
 
+    // Read the live channel from the cached list so updates (own saves AND
+    // socket-pushed changes from other moderators) flow into the modal — the
+    // initial prop is just a fallback while the query is hydrating.
+    const { data: channels = [] } = useQuery({
+        queryKey: ['channels', server.id],
+        queryFn: () => fetchChannels(server.id),
+        staleTime: 10 * 60 * 1000,
+    });
+    const channel = channels.find(c => c.id === initialChannel.id) ?? initialChannel;
+
     useEffect(() => {
         const handle = (e) => { if (e.key === 'Escape') onClose(); };
         document.addEventListener('keydown', handle);
         return () => document.removeEventListener('keydown', handle);
     }, [onClose]);
+
+    // Channel was deleted (by us or another moderator) while the modal was open.
+    useEffect(() => {
+        if (channels.length > 0 && !channels.some(c => c.id === initialChannel.id)) {
+            onClose();
+        }
+    }, [channels, initialChannel.id, onClose]);
 
     async function handleDelete() {
         const res = await deleteChannel(server.id, channel.id);
