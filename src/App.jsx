@@ -102,6 +102,13 @@ function ProtectedShell({ children }) {
 
 function AppShell() {
     const { leftOpen, closeLeft } = useMobileLayout();
+    // Close the drawer when the user clicks a NavLink inside it. Bound on the
+    // drawer (not via a router effect) so the close runs strictly *after* the
+    // user-driven navigation, not in the same effect batch as internal
+    // <Navigate replace /> redirects (which would otherwise race ServerRedirect).
+    function handleDrawerClick(e) {
+        if (e.target.closest('a[href]')) closeLeft();
+    }
     return (
         <div className="h-screen flex antialiased overflow-hidden bg-guild-bar relative">
             {/* Backdrop — only used on mobile when the drawer is open. */}
@@ -112,6 +119,7 @@ function AppShell() {
                 />
             )}
             <div
+                onClick={handleDrawerClick}
                 className={`
                     flex flex-col h-screen shrink-0 border-r border-border bg-guild-bar
                     fixed md:static inset-y-0 left-0 z-40

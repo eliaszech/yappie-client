@@ -1,5 +1,4 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
 
 const MobileLayoutContext = createContext(null);
 
@@ -11,20 +10,12 @@ export function MobileLayoutProvider({ children }) {
     );
     const [leftOpen, setLeftOpen] = useState(false);
     const [rightOpen, setRightOpen] = useState(false);
-    const location = useLocation();
 
     useEffect(() => {
         const onResize = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
         window.addEventListener('resize', onResize);
         return () => window.removeEventListener('resize', onResize);
     }, []);
-
-    // Route change auto-closes the drawers so the user lands on the content
-    // they just picked instead of staring at the still-open menu.
-    useEffect(() => {
-        setLeftOpen(false);
-        setRightOpen(false);
-    }, [location.pathname]);
 
     const openLeft = useCallback(() => setLeftOpen(true), []);
     const closeLeft = useCallback(() => setLeftOpen(false), []);
