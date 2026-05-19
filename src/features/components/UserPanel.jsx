@@ -41,7 +41,7 @@ function UserPanel() {
     }
 
     return(
-        <div className="absolute bottom-2 left-2 w-[385px] z-10 bg-muted  backdrop-blur-md rounded-lg  justify-between flex flex-col">
+        <div className="absolute bottom-2 left-2 right-2 md:right-auto md:w-[375px] z-10 bg-muted backdrop-blur-md rounded-lg justify-between flex flex-col">
             {showActivity && (
                 <div className="px-3 py-2 border-b border-border">
                     <div className="flex items-center gap-3">

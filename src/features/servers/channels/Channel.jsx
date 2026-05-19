@@ -19,7 +19,10 @@ import SearchPopover from "../../messages/components/SearchPopover.jsx";
 function Channel() {
     const {channelId} = useParams();
     const navigate = useNavigate();
-    const [showMemberSidebar, setShowMemberSidebar] = useState(true);
+    // Default-collapsed on mobile so the chat occupies the full width on first paint.
+    const [showMemberSidebar, setShowMemberSidebar] = useState(
+        () => typeof window === 'undefined' || window.innerWidth >= 768
+    );
 
     const {data: channel = {}, isLoading, isError} = useQuery({
         queryKey: ['channel', channelId],
@@ -89,27 +92,33 @@ function Channel() {
                     </button>
                 </div>
             </ContentHeader>
-            <div className="flex h-full w-full overflow-hidden">
-                <div className="flex flex-col w-full h-full relative">
+            <div className="flex h-full w-full overflow-hidden relative">
+                <div className="flex flex-col w-full h-full relative min-w-0">
                     <Chat type="channel" roomId={channel.id}>
-                        <div className="flex flex-col px-8 text-foreground gap-2.5 pb-8">
+                        <div className="flex flex-col px-4 md:px-8 text-foreground gap-2.5 pb-8">
                             <div className="text-5xl flex items-center justify-center rounded-full bg-muted w-[100px] h-[100px] mb-2"><FontAwesomeIcon icon={faHashtag} /></div>
-                            <div className="text-4xl font-bold">Willkommen in #{channel.name}</div>
-                            <div className="text-xl">Am anfang war nichts. Dann gab es #{channel.name}. Und es war gut</div>
+                            <div className="text-3xl md:text-4xl font-bold">Willkommen in #{channel.name}</div>
+                            <div className="text-base md:text-xl">Am anfang war nichts. Dann gab es #{channel.name}. Und es war gut</div>
                         </div>
                     </Chat>
                     <MessageInput type="channel" serverId={channel.serverId} roomId={channel.id} roomName={channel.name} />
                 </div>
                 {showMemberSidebar && (
-                    <div className="max-w-xs w-full bg-card/70 h-full border-l border-border">
-                        {/* Suppress the channel-scoped fetch if we've already
-                            lost VIEW_CHANNEL (race between the lock and the
-                            navigate-away effect). Backend would return 403. */}
-                        <MemberSidebarList
-                            serverId={channel.serverId}
-                            channelId={Array.isArray(serverChannels) && serverChannels.some(c => c.id === channel.id) ? channel.id : undefined}
+                    <>
+                        <div
+                            onClick={() => setShowMemberSidebar(false)}
+                            className="md:hidden fixed inset-0 bg-black/40 z-30"
                         />
-                    </div>
+                        <div className="fixed md:relative inset-y-0 right-0 md:inset-auto z-40 md:z-auto w-72 max-w-[85vw] md:w-full md:max-w-xs bg-card md:bg-card/70 h-full border-l border-border">
+                            {/* Suppress the channel-scoped fetch if we've already
+                                lost VIEW_CHANNEL (race between the lock and the
+                                navigate-away effect). Backend would return 403. */}
+                            <MemberSidebarList
+                                serverId={channel.serverId}
+                                channelId={Array.isArray(serverChannels) && serverChannels.some(c => c.id === channel.id) ? channel.id : undefined}
+                            />
+                        </div>
+                    </>
                 )}
             </div>
 

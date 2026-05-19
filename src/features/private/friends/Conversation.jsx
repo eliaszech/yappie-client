@@ -43,7 +43,7 @@ function UserSidebar({user}) {
     })
 
     return (
-        <div className="max-w-xs border-l border-border w-full bg-card/70 h-full">
+        <div className="border-l border-border w-full bg-card md:bg-card/70 h-full overflow-y-auto">
             <div className="h-16 bg-primary rounded-b-lg" />
             {/* Avatar */}
             <div className="px-4 -mt-8">
@@ -240,7 +240,9 @@ function Conversation() {
     const queryClient = useQueryClient();
     const messagesEndRef = useRef(null);
     const [callViewHidden, setCallViewHidden] = useState(false);
-    const [showUserSidebar, setShowUserSidebar] = useState(true);
+    const [showUserSidebar, setShowUserSidebar] = useState(
+        () => typeof window === 'undefined' || window.innerWidth >= 768
+    );
 
     const { data: conversation = null, isLoading, isError } = useQuery( {
         queryKey: ['conversation', conversationId],
@@ -326,7 +328,7 @@ function Conversation() {
                 hidden={callViewHidden}
                 onShow={() => setCallViewHidden(false)}
             />
-            <div className="flex h-full w-full overflow-hidden">
+            <div className="flex h-full w-full overflow-hidden relative">
                 <div className="flex flex-col w-full h-full relative min-w-0">
                     <CallOrChatBody
                         conversationId={conversationId}
@@ -335,27 +337,38 @@ function Conversation() {
                         callViewHidden={callViewHidden}
                         onHideCall={() => setCallViewHidden(true)}
                     >
-                        <div className="flex flex-col px-8 text-foreground gap-2.5 pb-8">
+                        <div className="flex flex-col px-4 md:px-8 text-foreground gap-2.5 pb-8">
                             <div className="mb-2">
                                 {isSingle ? <UserAvatar displayOnline={false} size="w-[100px] h-[100px] text-5xl" avatar={otherUsers[0].user.avatar} icon={icons[0]}/> : <UserAvatar size="w-[100px] h-[100px]" displayOnline={false} icon={<FontAwesomeIcon className="text-5xl" icon={faUsers} />} />}
                             </div>
-                            <div className="text-4xl font-bold">{conversationTitle}</div>
-                            <div className="text-xl">
+                            <div className="text-3xl md:text-4xl font-bold">{conversationTitle}</div>
+                            <div className="text-base md:text-xl">
                                 { isSingle ? `Die ist der Anfang des Direktnachrichtenchannels mit ${conversationTitle}` : `Willkomen am Anfang der ${conversationTitle}-Gruppe` }
                             </div>
                         </div>
                     </CallOrChatBody>
                 </div>
-                { showUserSidebar && isSingle && <UserSidebar user={otherUsers[0].user} />}
-                { showUserSidebar && !isSingle && (
-                    <div className="max-w-xs flex flex-col border-l border-border px-2 py-4 w-full h-full bg-card/70">
-                        <span className="text-sm px-2 text-foreground mb-2">Teilnehmer - {conversation.participants.length}</span>
-                        { conversation.participants.map((participant) => (
-                            <HasUserPopup user={participant.user} orientation="left" key={participant.user.id}>
-                                <UserItem user={participant.user} />
-                            </HasUserPopup>
-                        ))}
-                    </div>
+                {showUserSidebar && (
+                    <>
+                        <div
+                            onClick={() => setShowUserSidebar(false)}
+                            className="md:hidden fixed inset-0 bg-black/40 z-30"
+                        />
+                        <div className="fixed md:relative inset-y-0 right-0 md:inset-auto z-40 md:z-auto w-72 max-w-[85vw] md:w-full md:max-w-xs h-full">
+                            {isSingle ? (
+                                <UserSidebar user={otherUsers[0].user} />
+                            ) : (
+                                <div className="flex flex-col border-l border-border px-2 py-4 w-full h-full bg-card md:bg-card/70">
+                                    <span className="text-sm px-2 text-foreground mb-2">Teilnehmer - {conversation.participants.length}</span>
+                                    {conversation.participants.map((participant) => (
+                                        <HasUserPopup user={participant.user} orientation="left" key={participant.user.id}>
+                                            <UserItem user={participant.user} />
+                                        </HasUserPopup>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </>
                 )}
             </div>
 

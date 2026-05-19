@@ -88,7 +88,7 @@ function ServerSelector() {
     const unreadConversations = conversations.filter(c => c.unreadCount > 0);
 
     return (
-        <div className="flex flex-col h-full shrink-0 grow w-20 pt-4 gap-2 items-center bg-guild-bar text-foreground pb-[65px]">
+        <div className="flex flex-col h-full shrink-0 w-18 pt-4 gap-2 items-center bg-guild-bar text-foreground pb-[65px]">
             <NavLink to="/@me" title="Yappie"
                      className={({isActive}) => `${isActive ? 'ring-2 ring-primary' : ''} group w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden bg-card hover:bg-primary/10 text-primary transition-all duration-200`}>
                 <YappieLogo className="w-7 h-7 transition-transform duration-200 group-hover:scale-110" />

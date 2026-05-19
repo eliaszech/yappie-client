@@ -162,7 +162,9 @@ function ScreenShareTile({ share, onClick, onClose, focused = false }) {
 function VoiceChannelView() {
     const { channelId, serverId } = useParams();
     const { user } = useAuth();
-    const [showMemberSidebar, setShowMemberSidebar] = useState(true);
+    const [showMemberSidebar, setShowMemberSidebar] = useState(
+        () => typeof window === 'undefined' || window.innerWidth >= 768
+    );
 
     const {
         isConnected,
@@ -598,16 +600,22 @@ function VoiceChannelView() {
                     </div>
                 </div>
                 {showMemberSidebar && (
-                    <div className="max-w-xs w-full bg-card/70 h-full border-l border-border">
-                        {/* If the channel was filtered out of our list (we got
-                            mod-moved into a private room we don't have access
-                            to), the channel-scoped members endpoint would
-                            403. Drop back to the server-wide roster instead. */}
-                        <MemberSidebarList
-                            serverId={channel.serverId}
-                            channelId={channelFilteredOut ? undefined : channelId}
+                    <>
+                        <div
+                            onClick={() => setShowMemberSidebar(false)}
+                            className="md:hidden fixed inset-0 bg-black/40 z-30"
                         />
-                    </div>
+                        <div className="fixed md:relative inset-y-0 right-0 md:inset-auto z-40 md:z-auto w-72 max-w-[85vw] md:w-full md:max-w-xs bg-card md:bg-card/70 h-full border-l border-border">
+                            {/* If the channel was filtered out of our list (we got
+                                mod-moved into a private room we don't have access
+                                to), the channel-scoped members endpoint would
+                                403. Drop back to the server-wide roster instead. */}
+                            <MemberSidebarList
+                                serverId={channel.serverId}
+                                channelId={channelFilteredOut ? undefined : channelId}
+                            />
+                        </div>
+                    </>
                 )}
             </div>
         </>

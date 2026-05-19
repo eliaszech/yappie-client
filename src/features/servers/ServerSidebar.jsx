@@ -38,7 +38,7 @@ function ServerSidebar() {
     if (isError || server.status === 404) return <Navigate to="/error/404" replace={true} />
 
     return(
-        <div className="w-full h-full bg-card/85 rounded-tl-2xl border-l border-border flex flex-col grow overflow-y-auto pb-[65px]">
+        <div className="w-full h-full w-full bg-card/85 rounded-tl-2xl border-l border-border flex flex-col grow overflow-y-auto pb-[65px]">
             <div className="relative z-10 px-2 h-12 flex justify-between items-center border-b-2 border-border shrink-0 text-foreground bg-guild-bar/85">
                 <button
                     onClick={() => setServerDropdownOpen(true)}

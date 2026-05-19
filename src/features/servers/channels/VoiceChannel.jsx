@@ -98,8 +98,8 @@ function VoiceChannel({ channel, server, onSettings, canManage = true }) {
                     {!canConnect ? (
                         <FontAwesomeIcon className={`shrink-0 ${hasAnyPresence ? 'text-primary' : ''}`} icon={faLock} />
                     ) : channel.isPrivate && !isAfkChannel ? (
-                        <span className="relative shrink-0 inline-flex items-center justify-center w-[1em] h-[1em]">
-                            <FontAwesomeIcon className={`${hasAnyPresence ? 'text-primary' : ''}`} icon={faVolumeHigh} />
+                        <span className="relative shrink-0 inline-flex items-center leading-none">
+                            <FontAwesomeIcon className={hasAnyPresence ? 'text-primary' : ''} icon={faVolumeHigh} />
                             <FontAwesomeIcon
                                 icon={faLock}
                                 className="absolute -bottom-1 -right-1 text-[8px] text-muted-foreground/90 bg-guild-bar rounded-sm px-[1px]"

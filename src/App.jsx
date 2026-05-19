@@ -42,6 +42,7 @@ import PageNotFound from "./errors/PageNotFound.jsx";
 import PageNotFoundSidebar from "./errors/PageNotFoundSidebar.jsx";
 import {SettingsProvider, useSettings} from "./context/SettingsContext.jsx";
 import {ContextMenuProvider} from "./context/ContextMenuProvider.jsx";
+import {MobileLayoutProvider, useMobileLayout} from "./context/MobileLayoutContext.jsx";
 import ScreenPickerModal from "./features/components/ScreenPickerModal.jsx";
 import UpdateBanner from "./features/components/UpdateBanner.jsx";
 import Spinner from "./features/components/static/Spinner.jsx";
@@ -90,10 +91,75 @@ function RouterEvents() {
 function ProtectedShell({ children }) {
     return (
         <ProtectedRoute>
-            <RouterEvents />
-            <IncomingCallModal />
-            {children}
+            <MobileLayoutProvider>
+                <RouterEvents />
+                <IncomingCallModal />
+                {children}
+            </MobileLayoutProvider>
         </ProtectedRoute>
+    );
+}
+
+function AppShell() {
+    const { leftOpen, closeLeft } = useMobileLayout();
+    return (
+        <div className="h-screen flex antialiased overflow-hidden bg-guild-bar relative">
+            {/* Backdrop — only used on mobile when the drawer is open. */}
+            {leftOpen && (
+                <div
+                    onClick={closeLeft}
+                    className="md:hidden fixed inset-0 bg-black/50 z-30 transition-opacity"
+                />
+            )}
+            <div
+                className={`
+                    flex flex-col h-screen shrink-0 border-r border-border bg-guild-bar
+                    fixed md:static inset-y-0 left-0 z-40
+                    w-screen md:w-auto
+                    transition-transform duration-200 will-change-transform
+                    ${leftOpen ? 'translate-x-0' : '-translate-x-full'}
+                    md:translate-x-0
+                `}
+            >
+                <div className="flex h-full min-w-0">
+                    <ServerSelector />
+                    <div className="flex-1 md:flex-none md:max-w-xs md:min-w-xs md:w-full min-w-0 h-full">
+                        <Routes>
+                            <Route path="/@me/*" element={<MessagesSidebar />} />
+                            <Route path="/servers/:serverId/*" element={<ServerSidebar />} />
+                            <Route path="/error/404" element={<PageNotFoundSidebar />} />
+                        </Routes>
+                    </div>
+                </div>
+                <UserPanel />
+            </div>
+            <Suspense fallback={<RouteFallback />}>
+                <Routes>
+                    <Route path="/" element={<Navigate to="/@me/friends" replace />} />
+                    <Route path="/@me" element={<SidebarLayout />} >
+                        <Route index element={<LastPathRedirect pathKey="messages" defaultPath="/@me/friends" />} />
+                        <Route path="friends" element={<FriendsLayout />} >
+                            <Route index element={<LastPathRedirect pathKey="friends" defaultPath="/@me/friends/online" />} />
+                            <Route path="online" element={<FriendsList filter="online" />} />
+                            <Route path="all" element={<FriendsList filter="all" />} />
+                            <Route path="pending" element={<FriendsListPending filter="pending" />} />
+                            <Route path="add" element={<AddFriend />} />
+                        </Route>
+                        <Route path="messages/:conversationId" element={<Conversation />} />
+                        <Route path="quests" element={<div>Quests</div>} />
+                    </Route>
+                    <Route path="/servers/:serverId" element={<SidebarLayout />}>
+                        <Route index element={<ServerRedirect />} />
+                        <Route path="members" element={<MemberList />} />
+                        <Route path="channels/:channelId" element={<Channel />} />
+                        <Route path="voice/:channelId" element={<VoiceChannelView />} />
+                        <Route path="settings" element={<div>Settings</div>} />
+                    </Route>
+                    <Route path="/invite/:code" element={<InviteJoin />} />
+                    <Route path="/error/404" element={<PageNotFound />} />
+                </Routes>
+            </Suspense>
+        </div>
     );
 }
 
@@ -128,47 +194,7 @@ function App() {
                 <Route path="/*" element={
                     <ProtectedShell>
                         <GlobalVoiceComponent />
-                        <div className="h-screen flex antialiased overflow-hidden bg-guild-bar">
-                            <div className="flex flex-col h-screen shrink-0 border-r border-border">
-                                <div className="flex h-full">
-                                    <ServerSelector />
-                                    <div className="max-w-xs min-w-xs w-full h-full">
-                                        <Routes>
-                                            <Route path="/@me/*" element={<MessagesSidebar />} />
-                                            <Route path="/servers/:serverId/*" element={<ServerSidebar />} />
-                                            <Route path="/error/404" element={<PageNotFoundSidebar />} />
-                                        </Routes>
-                                    </div>
-                                </div>
-                                <UserPanel />
-                            </div>
-                            <Suspense fallback={<RouteFallback />}>
-                                <Routes>
-                                    <Route path="/" element={<Navigate to="/@me/friends" replace />} />
-                                    <Route path="/@me" element={<SidebarLayout />} >
-                                        <Route index element={<LastPathRedirect pathKey="messages" defaultPath="/@me/friends" />} />
-                                        <Route path="friends" element={<FriendsLayout />} >
-                                            <Route index element={<LastPathRedirect pathKey="friends" defaultPath="/@me/friends/online" />} />
-                                            <Route path="online" element={<FriendsList filter="online" />} />
-                                            <Route path="all" element={<FriendsList filter="all" />} />
-                                            <Route path="pending" element={<FriendsListPending filter="pending" />} />
-                                            <Route path="add" element={<AddFriend />} />
-                                        </Route>
-                                        <Route path="messages/:conversationId" element={<Conversation />} />
-                                        <Route path="quests" element={<div>Quests</div>} />
-                                    </Route>
-                                    <Route path="/servers/:serverId" element={<SidebarLayout />}>
-                                        <Route index element={<ServerRedirect />} />
-                                        <Route path="members" element={<MemberList />} />
-                                        <Route path="channels/:channelId" element={<Channel />} />
-                                        <Route path="voice/:channelId" element={<VoiceChannelView />} />
-                                        <Route path="settings" element={<div>Settings</div>} />
-                                    </Route>
-                                    <Route path="/invite/:code" element={<InviteJoin />} />
-                                    <Route path="/error/404" element={<PageNotFound />} />
-                                </Routes>
-                            </Suspense>
-                        </div>
+                        <AppShell />
                     </ProtectedShell>
                 } />
             </Routes>
