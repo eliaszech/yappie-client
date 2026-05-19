@@ -59,6 +59,7 @@ async function apiRequestWithCursor(method, path, body = null, cursor = null, li
 
 export const fetchFriends = () => apiRequest('GET', `/@me/friends`);
 export const fetchServers = () => apiRequest('GET', `/@me/servers`);
+export const fetchSubscription = () => apiRequest('GET', `/@me/subscription`);
 
 export const fetchSearchUsers = (query) => apiRequest('GET', `/users/search?query=${query}`);
 export const fetchCommonServersWith = (userId) => apiRequest('POST', `/users/servers/common`, { userId });
@@ -73,6 +74,7 @@ export const deleteServer = (serverId) => apiRequest('POST', `/servers/delete`, 
 export const fetchChannels = (serverId) => apiRequest('GET', `/servers/${serverId}/channels`);
 export const createChannel = (serverId, name, type) => apiRequest('POST', `/servers/${serverId}/channels`, { name, type });
 export const fetchMembers = (type, id) => apiRequest('GET', type === 'members' ? `/servers/${id}/members` : `/conversations/${id}/participants`);
+export const fetchChannelMembers = (channelId) => apiRequest('GET', `/channels/${channelId}/members`);
 export const updateServer = (serverId, data) => apiRequest('PATCH', `/servers/${serverId}`, data);
 export const kickMember = (serverId, memberId) => apiRequest('POST', `/servers/${serverId}/members/${memberId}/kick`);
 export const banMember = (serverId, memberId, reason) => apiRequest('POST', `/servers/${serverId}/members/${memberId}/ban`, { reason: reason ?? null });
@@ -110,6 +112,12 @@ export const searchGifs = (query, limit = 20) => apiRequest('GET', `/gifs/search
 export const fetchChannelOverwrites = (channelId) => apiRequest('GET', `/channels/${channelId}/overwrites`);
 export const setChannelOverwrite = (channelId, roleId, allow, deny) => apiRequest('PUT', `/channels/${channelId}/overwrites/${roleId}`, { allow, deny });
 export const deleteChannelOverwrite = (channelId, roleId) => apiRequest('DELETE', `/channels/${channelId}/overwrites/${roleId}`);
+
+export const fetchChannelAccess = (channelId) => apiRequest('GET', `/channels/${channelId}/access`);
+export const addChannelAccessRole = (channelId, roleId) => apiRequest('PUT', `/channels/${channelId}/access/role/${roleId}`);
+export const removeChannelAccessRole = (channelId, roleId) => apiRequest('DELETE', `/channels/${channelId}/access/role/${roleId}`);
+export const addChannelAccessUser = (channelId, userId) => apiRequest('PUT', `/channels/${channelId}/access/user/${userId}`);
+export const removeChannelAccessUser = (channelId, userId) => apiRequest('DELETE', `/channels/${channelId}/access/user/${userId}`);
 export const moveVoiceUser = (targetUserId, channelId) => apiRequest('POST', `/voice/move`, { targetUserId, channelId });
 export const disconnectVoiceUser = (targetUserId) => apiRequest('POST', `/voice/disconnect`, { targetUserId });
 

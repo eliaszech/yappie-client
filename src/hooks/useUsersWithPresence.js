@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 
-export function useUsersWithPresence({queryKey = ['users'], fetchFunction, getUserId = (item) => item.id}) {
-    const { data: users = [], isLoading, isError, refetch } = useQuery({
+export function useUsersWithPresence({queryKey = ['users'], fetchFunction, getUserId = (item) => item.id, enabled = true}) {
+    const { data, isLoading, isError, refetch } = useQuery({
         queryKey: queryKey,
         queryFn: fetchFunction,
         staleTime: 10 * 60 * 1000,
         retry: 1,
+        enabled,
     });
 
     const { data: presence = {} } = useQuery({
@@ -13,6 +14,11 @@ export function useUsersWithPresence({queryKey = ['users'], fetchFunction, getUs
         queryFn: () => ({}),
         staleTime: Infinity,
     });
+
+    // apiRequest returns an error object ({status, error}) on non-2xx — most
+    // commonly when the user just lost VIEW_CHANNEL on the active channel
+    // and the redirect hasn't fired yet. Guard so .map doesn't crash.
+    const users = Array.isArray(data) ? data : [];
 
     const usersWithPresence = users.map(item => {
         const userId = getUserId(item);

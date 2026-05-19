@@ -82,10 +82,32 @@ function VoiceChannel({ channel, server, onSettings, canManage = true }) {
                     title={
                         isAfkChannel ? 'AFK-Kanal – Mikro ist hier gesperrt'
                         : !canConnect ? 'Keine Berechtigung, Sprachkanäle zu betreten'
+                        : channel.isPrivate ? 'Privater Sprachkanal – nur freigegebene Mitglieder können beitreten'
                         : undefined
                     }
-                    className={`${isActive ? 'bg-muted/50 text-foreground' : 'text-muted-foreground'} ${!canConnect ? 'opacity-60' : ''} cursor-pointer w-full flex items-center gap-2.5 px-2 py-1 pr-7 rounded-md font-medium transition-all hover:text-foreground hover:bg-muted/50`}>
-                    <FontAwesomeIcon className={`shrink-0 ${hasAnyPresence ? 'text-primary' : ''}`} icon={!canConnect ? faLock : isAfkChannel ? faMoon : faVolumeHigh} />
+                    className={`${isActive ? 'bg-muted/50 text-foreground' : 'text-muted-foreground'} ${!canConnect && !isActive ? 'opacity-60' : ''} cursor-pointer w-full flex items-center gap-2.5 px-2 py-1 pr-7 rounded-md font-medium transition-all hover:text-foreground hover:bg-muted/50`}>
+                    {/* Icon choice — always reflects the user's real access
+                        status, even while connected (e.g. after a mod-move
+                        into a locked room). The connected highlight comes
+                        from the bg-muted/50 + primary tint, the icon itself
+                        keeps its "as if disconnected" look:
+                        - no access at all → lock
+                        - private + access → volume + tiny lock overlay
+                        - AFK              → moon
+                        - otherwise        → plain volume */}
+                    {!canConnect ? (
+                        <FontAwesomeIcon className={`shrink-0 ${hasAnyPresence ? 'text-primary' : ''}`} icon={faLock} />
+                    ) : channel.isPrivate && !isAfkChannel ? (
+                        <span className="relative shrink-0 inline-flex items-center justify-center w-[1em] h-[1em]">
+                            <FontAwesomeIcon className={`${hasAnyPresence ? 'text-primary' : ''}`} icon={faVolumeHigh} />
+                            <FontAwesomeIcon
+                                icon={faLock}
+                                className="absolute -bottom-1 -right-1 text-[8px] text-muted-foreground/90 bg-guild-bar rounded-sm px-[1px]"
+                            />
+                        </span>
+                    ) : (
+                        <FontAwesomeIcon className={`shrink-0 ${hasAnyPresence ? 'text-primary' : ''}`} icon={isAfkChannel ? faMoon : faVolumeHigh} />
+                    )}
                     <span className="truncate">{channel.name}</span>
                     {isAfkChannel ? (
                         <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold mr-1">

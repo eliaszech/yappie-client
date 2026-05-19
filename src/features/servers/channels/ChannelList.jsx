@@ -1,7 +1,7 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHashtag, faPlus, faGear, faChevronDown } from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchChannels, updateChannelPositions } from "../../../services/api.js";
+import { fetchChannels, fetchChannel, updateChannelPositions } from "../../../services/api.js";
 import { NavLink, useParams } from "react-router-dom";
 import VoiceChannel from "./VoiceChannel.jsx";
 import { useRef, useState } from "react";
@@ -115,7 +115,7 @@ function ChannelList({server}) {
     const queryClient = useQueryClient();
 
     const { channelId: activeRouteChannelId } = useParams();
-    const { channelId: activeVoiceChannelId } = useVoice();
+    const { channelId: activeVoiceChannelId, channelName: activeVoiceChannelName, serverId: activeVoiceServerId } = useVoice();
 
     const {data: channels = [], isLoading} = useQuery({
         queryKey: ['channels', server.id],
@@ -124,10 +124,53 @@ function ChannelList({server}) {
         retry: 1,
     });
 
+    // If the user is currently connected to a voice channel on THIS server
+    // but the backend's filtered list doesn't include it (e.g. they were
+    // moved into a private/locked channel by a moderator), we need to splice
+    // it back in. fetchChannel() bypasses the visibility filter so we get
+    // the real position + isPrivate flag — which means the synthetic entry
+    // slots into the right place in the voice bucket and renders with the
+    // same icon the user would see without the override.
+    const isOnThisServer = activeVoiceServerId === server.id;
+    const needsSyntheticChannel = isOnThisServer && !!activeVoiceChannelId
+        && !channels.some(c => c.id === activeVoiceChannelId);
+    const { data: missingChannel } = useQuery({
+        queryKey: ['channel', activeVoiceChannelId],
+        queryFn: () => fetchChannel(activeVoiceChannelId),
+        enabled: needsSyntheticChannel,
+        staleTime: 10 * 60 * 1000,
+    });
+
     if (isLoading) return <div>Loading...</div>
 
-    const textChannels = channels.filter(c => c.type === 'text');
-    const voiceChannels = channels.filter(c => c.type === 'voice');
+    const augmentedChannels = (() => {
+        if (!needsSyntheticChannel) return channels;
+        if (!missingChannel || missingChannel.error) {
+            // Fall back to a synthetic stub at the bottom while the standalone
+            // fetch hasn't returned — better than the channel disappearing.
+            const stub = {
+                id: activeVoiceChannelId,
+                name: activeVoiceChannelName ?? 'Sprachkanal',
+                type: 'voice',
+                serverId: server.id,
+                position: Number.MAX_SAFE_INTEGER,
+                permissions: 0,
+                isPrivate: false,
+                __synthetic: true,
+            };
+            return [...channels, stub];
+        }
+        // Use the real channel record but force permissions=0 so the UI keeps
+        // showing the "no access" state (lock icon, can't rejoin after leaving).
+        return [...channels, { ...missingChannel, permissions: 0, __synthetic: true }];
+    })();
+
+    // Sort voice channels by position so the spliced-in entry sits at its real
+    // slot. Text channels are unaffected.
+    const textChannels = augmentedChannels.filter(c => c.type === 'text');
+    const voiceChannels = augmentedChannels
+        .filter(c => c.type === 'voice')
+        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
     function isActive(channel) {
         return activeRouteChannelId === channel.id || activeVoiceChannelId === channel.id;
@@ -138,7 +181,9 @@ function ChannelList({server}) {
     }
 
     async function handleReorder(bucket, sourceId, targetId, position) {
-        const bucketList = bucket === 'text' ? textChannels : voiceChannels;
+        // Strip the synthetic "currently-connected" entry — it has no real
+        // position and the backend doesn't know about it.
+        const bucketList = (bucket === 'text' ? textChannels : voiceChannels).filter(c => !c.__synthetic);
         const fromIdx = bucketList.findIndex(c => c.id === sourceId);
         const toIdx = bucketList.findIndex(c => c.id === targetId);
         if (fromIdx === -1 || toIdx === -1) return;
@@ -237,7 +282,7 @@ function ChannelList({server}) {
                             key={channel.id}
                             channelId={channel.id}
                             bucket="voice"
-                            draggable={canManageChannels && !collapsed.voice}
+                            draggable={canManageChannels && !collapsed.voice && !channel.__synthetic}
                             dragState={dragState}
                             setDragState={setDragState}
                             onDropReorder={(s, t, p) => handleReorder('voice', s, t, p)}

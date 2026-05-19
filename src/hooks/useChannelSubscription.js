@@ -44,6 +44,9 @@ export function useChannelSubscription() {
                 // backend filters the list, so just refetch.
                 queryClient.invalidateQueries({ queryKey: ['channels', serverId] });
                 queryClient.invalidateQueries({ queryKey: ['channelOverwrites', data.channelId] });
+                // The channel-scoped member sidebar's roster also shifts —
+                // any member who lost/gained VIEW_CHANNEL drops in or out.
+                queryClient.invalidateQueries({ queryKey: ['channelMembers', data.channelId] });
             }
         });
 

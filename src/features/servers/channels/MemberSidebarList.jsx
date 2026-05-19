@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchMembers, fetchRoles, fetchServer, kickMember, banMember, fetchOrCreateConversationWith } from '../../../services/api.js';
+import { fetchChannels, fetchMembers, fetchChannelMembers, fetchRoles, fetchServer, kickMember, banMember, fetchOrCreateConversationWith } from '../../../services/api.js';
 import Spinner from '../../components/static/Spinner.jsx';
 import ErrorMessage from '../../components/static/ErrorMessage.jsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -17,6 +17,7 @@ import RolePickerDialog from '../members/RolePickerDialog.jsx';
 import BanConfirmDialog from '../members/BanConfirmDialog.jsx';
 import {getSocket} from "../../../services/socket.js";
 import { hasPermission, PERMISSIONS } from "../../../services/permissions.js";
+import { AnimatePresence, motion } from "framer-motion";
 function KickConfirmDialog({ member, onConfirm, onClose }) {
     const [kicking, setKicking] = useState(false);
 
@@ -48,7 +49,7 @@ function KickConfirmDialog({ member, onConfirm, onClose }) {
     );
 }
 
-function MemberSidebarList({ serverId }) {
+function MemberSidebarList({ serverId, channelId }) {
     const { user: currentUser } = useAuth();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
@@ -58,11 +59,34 @@ function MemberSidebarList({ serverId }) {
     const [confirmBan, setConfirmBan] = useState(null);
     const [rolePicker, setRolePicker] = useState(null);
 
-    const { users: members, isLoading, isError } = useUsersWithPresence({
-        queryKey: ['members', serverId],
-        fetchFunction: () => fetchMembers('members', serverId),
-        getUserId: (member) => member.user.id,
+    // Resolve which fetch to use. If the active channel is no longer in our
+    // visibility-filtered list (we just lost VIEW_CHANNEL but the redirect
+    // hasn't completed), suppress the channel-scoped fetch — the backend
+    // would 403 and the response wouldn't be an array.
+    const { data: serverChannels = [] } = useQuery({
+        queryKey: ['channels', serverId],
+        queryFn: () => fetchChannels(serverId),
+        enabled: !!serverId,
+        staleTime: 10 * 60 * 1000,
     });
+    const channelStillVisible = !!channelId && serverChannels.some(c => c.id === channelId);
+    const useChannelScope = !!channelId && channelStillVisible;
+
+    // Channel context narrows the list to members who can actually see the
+    // channel (i.e. VIEW_CHANNEL via role permissions / channel overwrites /
+    // private allow list). Falls back to the full server roster when no
+    // channelId is provided or while access is being revoked.
+    const { users: members, isLoading, isError } = useUsersWithPresence(useChannelScope
+        ? {
+            queryKey: ['channelMembers', channelId],
+            fetchFunction: () => fetchChannelMembers(channelId),
+            getUserId: (member) => member.user.id,
+        }
+        : {
+            queryKey: ['members', serverId],
+            fetchFunction: () => fetchMembers('members', serverId),
+            getUserId: (member) => member.user.id,
+        });
 
     const { data: roles = [] } = useQuery({
         queryKey: ['roles', serverId],
@@ -201,14 +225,19 @@ function MemberSidebarList({ serverId }) {
     function renderMember(member) {
         const colorRole = getTopColoredRole(member);
         return (
-            <div
+            <motion.div
                 key={member.userId ?? member.user.id}
+                layout
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -50 }}
+                transition={{ duration: 0.25 }}
                 onContextMenu={(e) => openContextMenu(e, buildContextItems(member))}
             >
                 <HasUserPopup user={member.user} orientation="left" roles={member.roles}>
                     <UserItem serverMember={member} color={colorRole?.color} dimOffline />
                 </HasUserPopup>
-            </div>
+            </motion.div>
         );
     }
 
@@ -222,7 +251,9 @@ function MemberSidebarList({ serverId }) {
                                 {role.name} — {roleMembers.length}
                             </span>
                         </div>
-                        {roleMembers.map(member => renderMember(member))}
+                        <AnimatePresence mode="popLayout">
+                            {roleMembers.map(member => renderMember(member))}
+                        </AnimatePresence>
                     </div>
                 ))}
 
@@ -231,7 +262,9 @@ function MemberSidebarList({ serverId }) {
                         <span className="text-[11px] font-semibold uppercase tracking-wider px-2 py-1 text-muted-foreground block">
                             Online — {ungroupedOnline.length}
                         </span>
-                        {ungroupedOnline.map(member => renderMember(member))}
+                        <AnimatePresence mode="popLayout">
+                            {ungroupedOnline.map(member => renderMember(member))}
+                        </AnimatePresence>
                     </div>
                 )}
 
@@ -240,7 +273,9 @@ function MemberSidebarList({ serverId }) {
                         <span className="text-[11px] font-semibold uppercase tracking-wider px-2 py-1 text-muted-foreground block">
                             Offline — {offlineMembers.length}
                         </span>
-                        {offlineMembers.map(member => renderMember(member))}
+                        <AnimatePresence mode="popLayout">
+                            {offlineMembers.map(member => renderMember(member))}
+                        </AnimatePresence>
                     </div>
                 )}
             </div>

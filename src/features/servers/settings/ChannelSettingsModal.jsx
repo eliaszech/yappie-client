@@ -1,27 +1,32 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faGear, faShield, faXmark, faTrash } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
+import { faGear, faShield, faXmark, faTrash, faLock } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { deleteChannel, fetchChannels } from "../../../services/api.js";
 import ChannelOverviewSection from "./sections/ChannelOverviewSection.jsx";
 import ChannelPermissionsSection from "./sections/ChannelPermissionsSection.jsx";
+import PrivateChannelSection from "./sections/PrivateChannelSection.jsx";
 
-const NAV = [
-    {
-        category: 'KANALEINSTELLUNGEN',
-        items: [
-            { id: 'overview',     label: 'Übersicht',      icon: faGear },
-            { id: 'permissions',  label: 'Berechtigungen', icon: faShield },
-        ],
-    },
-];
+function buildNav(channel) {
+    const items = [
+        { id: 'overview',     label: 'Übersicht',      icon: faGear },
+        { id: 'permissions',  label: 'Berechtigungen', icon: faShield },
+    ];
+    // Privacy tab is voice-only — it's about who can connect, no equivalent
+    // concept on text channels (those use the regular VIEW_CHANNEL overwrite).
+    if (channel.type === 'voice') {
+        items.push({ id: 'privacy', label: 'Privatsphäre', icon: faLock });
+    }
+    return [{ category: 'KANALEINSTELLUNGEN', items }];
+}
 
 function SectionContent({ section, channel, server }) {
     switch (section) {
         case 'overview':    return <ChannelOverviewSection channel={channel} server={server} />;
         case 'permissions': return <ChannelPermissionsSection channel={channel} server={server} />;
+        case 'privacy':     return <PrivateChannelSection channel={channel} server={server} />;
         default:            return <ChannelOverviewSection channel={channel} server={server} />;
     }
 }
@@ -88,7 +93,7 @@ function ChannelSettingsModal({ channel: initialChannel, server, onClose }) {
                             </span>
                         </div>
 
-                        {NAV.map((group, gi) => (
+                        {buildNav(channel).map((group, gi) => (
                             <div key={gi} className={`flex flex-col gap-1 ${gi > 0 ? 'mt-4' : 'mt-2'}`}>
                                 <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1.5 mb-0.5">
                                     {group.category}

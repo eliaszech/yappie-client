@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faUser, faLock, faPalette, faBell, faXmark, faMicrophone, faGamepad,
+    faUser, faLock, faPalette, faBell, faXmark, faMicrophone, faGamepad, faCrown,
 } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import { faSignOut } from "@awesome.me/kit-95376d5d61/icons/classic/regular";
 import { useSettings } from "../../context/SettingsContext.jsx";
@@ -13,6 +13,7 @@ import AccountSection from "./sections/AccountSection.jsx";
 import AppearanceSection from "./sections/AppearanceSection.jsx";
 import VoiceSection from "./sections/VoiceSection.jsx";
 import ActivitySection from "./sections/ActivitySection.jsx";
+import SubscriptionSection from "./sections/SubscriptionSection.jsx";
 
 const NAV = [
     {
@@ -20,6 +21,7 @@ const NAV = [
         items: [
             { id: 'profile', label: 'Mein Profil', icon: faUser },
             { id: 'account', label: 'Konto', icon: faLock },
+            { id: 'subscription', label: 'Yappie Plus', icon: faCrown },
         ],
     },
     {
@@ -53,6 +55,7 @@ function SectionContent({ section }) {
     switch (section) {
         case 'profile': return <ProfileSection />;
         case 'account': return <AccountSection />;
+        case 'subscription': return <SubscriptionSection />;
         case 'voice': return <VoiceSection />;
         case 'activity': return <ActivitySection />;
         case 'appearance': return <AppearanceSection />;
@@ -93,7 +96,7 @@ function SettingsModal() {
                     <div className="w-[300px] flex-shrink-0 bg-guild-bar overflow-y-auto flex flex-col">
                         <nav className="flex flex-col flex-1 py-4 px-4 gap-1">
                             {NAV.map((group, gi) => (
-                                <div key={gi} className={gi > 0 ? 'mt-4' : '' + 'flex flex-col gap-1'}>
+                                <div key={gi} className={gi > 0 ? 'mt-4' : '' + 'flex flex-col'}>
                                     <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1.5 mb-0.5">
                                         {group.category}
                                     </div>

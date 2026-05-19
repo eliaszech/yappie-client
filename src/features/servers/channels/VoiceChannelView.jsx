@@ -11,15 +11,17 @@ import {
     faArrowsRotate, faDisplaySlash,
     faHeadphones,
     faHeadphonesSlash,
+    faMoon,
 } from "@awesome.me/kit-95376d5d61/icons/classic/light";
 import {
     faDisplay,
     faPhone,
     faPlay,
     faUsers,
+    faLock,
 } from "@awesome.me/kit-95376d5d61/icons/classic/solid";
 import { fetchChannel, fetchChannels, fetchServer } from "../../../services/api.js";
-import { hasPermission, PERMISSIONS } from "../../../services/permissions.js";
+import { hasPermission, hasChannelPermission, PERMISSIONS } from "../../../services/permissions.js";
 import { useVoice } from "../../../hooks/useVoice.jsx";
 import { useAuth } from "../../../hooks/useAuth.js";
 import { useChannelParticipants } from "../../../hooks/useChannelParticipants.js";
@@ -185,7 +187,7 @@ function VoiceChannelView() {
         queryFn: () => fetchServer(serverId),
         staleTime: 5 * 60 * 1000,
     });
-    const { data: serverChannels = [] } = useQuery({
+    const { data: serverChannels = [], isSuccess: channelsLoaded } = useQuery({
         queryKey: ['channels', serverId],
         queryFn: () => fetchChannels(serverId),
         staleTime: 10 * 60 * 1000,
@@ -263,17 +265,33 @@ function VoiceChannelView() {
         await setScreenShareEnabled(true);
     }
 
+    // Channel object from the server's list carries the effective permissions
+    // mask (server perms + overwrites + private-access). If the list has
+    // loaded and this channel isn't in it, the backend filtered us out — i.e.
+    // we have no VIEW_CHANNEL here, which collapses CONNECT_VOICE too.
+    const channelInList = serverChannels.find(c => c.id === channelId);
+    const channelFilteredOut = channelsLoaded && !channelInList;
+    const channelWithPerms = channelInList ?? channel;
+    const isAfkChannel = serverData?.afkChannelId === channelId;
+    // canConnect resolution: AFK is always joinable, owners/admins bypass
+    // inside hasChannelPermission; otherwise honour the channel mask. If the
+    // channel was filtered out of the list, we know we can't connect.
+    const canConnect = isAfkChannel || (!channelFilteredOut
+        && hasChannelPermission(channelWithPerms, serverData, PERMISSIONS.CONNECT_VOICE));
+    const isPrivateLocked = !canConnect && (channelWithPerms?.isPrivate || channelFilteredOut);
+
     async function handleJoin() {
         if (!channel || connectionStatus === 'connecting') return;
         clearVoiceError?.();
 
-        const isAfkChannel = serverData?.afkChannelId === channelId;
-        if (!isAfkChannel && !hasPermission(serverData, PERMISSIONS.CONNECT_VOICE)) {
-            setVoiceError?.('Du hast keine Berechtigung, Sprachkanäle zu betreten.');
+        if (!canConnect) {
+            setVoiceError?.(isPrivateLocked
+                ? 'Dieser Sprachkanal ist privat — du wurdest nicht freigegeben.'
+                : 'Du hast keine Berechtigung, Sprachkanäle zu betreten.');
             return;
         }
 
-        const canManage = hasPermission(serverData, PERMISSIONS.MANAGE_CHANNELS);
+        const canManage = hasChannelPermission(channelWithPerms, serverData, PERMISSIONS.MANAGE_CHANNELS);
         if (channel.userLimit && participants.length >= channel.userLimit && !canManage) {
             setVoiceError?.('Dieser Sprachkanal ist voll.');
             return;
@@ -335,7 +353,22 @@ function VoiceChannelView() {
         <>
             <ContentHeader>
                 <div className="flex items-center text-foreground gap-3">
-                    <FontAwesomeIcon icon={faVolumeHigh} />
+                    {/* Mirror the sidebar icon logic: lock when locked, lock-
+                        overlay when private+accessible, moon for AFK, plain
+                        volume otherwise. */}
+                    {!canConnect ? (
+                        <FontAwesomeIcon icon={faLock} />
+                    ) : channelWithPerms?.isPrivate && !isAfkChannel ? (
+                        <span className="relative inline-flex items-center justify-center w-[1em] h-[1em]">
+                            <FontAwesomeIcon icon={faVolumeHigh} />
+                            <FontAwesomeIcon
+                                icon={faLock}
+                                className="absolute -bottom-1 -right-1 text-[8px] text-muted-foreground/90 bg-background rounded-sm px-[1px]"
+                            />
+                        </span>
+                    ) : (
+                        <FontAwesomeIcon icon={isAfkChannel ? faMoon : faVolumeHigh} />
+                    )}
                     <span className="font-medium">{channel.name}</span>
                     {isActive && connectionStatus === 'connected' && (
                         <span className="text-xs text-primary ml-2">Verbunden</span>
@@ -533,40 +566,47 @@ function VoiceChannelView() {
                                     </button>
                                 </div>
                             </div>
-                        ) : (() => {
-                            const isAfkChannel = serverData?.afkChannelId === channelId;
-                            const canConnect = isAfkChannel || hasPermission(serverData, PERMISSIONS.CONNECT_VOICE);
-                            return (
-                                <button
-                                    onClick={handleJoin}
-                                    disabled={connectionStatus === 'connecting' || !canConnect}
-                                    title={!canConnect ? 'Keine Berechtigung, Sprachkanäle zu betreten' : undefined}
-                                    className="cursor-pointer rounded-2xl px-6 h-12 flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/80 transition-colors font-medium disabled:opacity-60 disabled:cursor-not-allowed shadow-xl"
-                                >
-                                    {connectionStatus === 'connecting' ? (
-                                        <>
-                                            <FontAwesomeIcon icon={faArrowsRotate} className="animate-spin" />
-                                            Verbinde...
-                                        </>
-                                    ) : !canConnect ? (
-                                        <>
-                                            <FontAwesomeIcon icon={faTriangleExclamation} />
-                                            Keine Berechtigung
-                                        </>
-                                    ) : (
-                                        <>
-                                            <FontAwesomeIcon icon={faVolumeHigh} />
-                                            Sprachkanal beitreten
-                                        </>
-                                    )}
-                                </button>
-                            );
-                        })()}
+                        ) : (
+                            <button
+                                onClick={handleJoin}
+                                disabled={connectionStatus === 'connecting' || !canConnect}
+                                title={!canConnect
+                                    ? (isPrivateLocked
+                                        ? 'Dieser Sprachkanal ist privat — du wurdest nicht freigegeben'
+                                        : 'Keine Berechtigung, Sprachkanäle zu betreten')
+                                    : undefined}
+                                className="cursor-pointer rounded-2xl px-6 h-12 flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/80 transition-colors font-medium disabled:opacity-60 disabled:cursor-not-allowed shadow-xl"
+                            >
+                                {connectionStatus === 'connecting' ? (
+                                    <>
+                                        <FontAwesomeIcon icon={faArrowsRotate} className="animate-spin" />
+                                        Verbinde...
+                                    </>
+                                ) : !canConnect ? (
+                                    <>
+                                        <FontAwesomeIcon icon={faTriangleExclamation} />
+                                        {isPrivateLocked ? 'Privater Kanal' : 'Keine Berechtigung'}
+                                    </>
+                                ) : (
+                                    <>
+                                        <FontAwesomeIcon icon={faVolumeHigh} />
+                                        Sprachkanal beitreten
+                                    </>
+                                )}
+                            </button>
+                        )}
                     </div>
                 </div>
                 {showMemberSidebar && (
                     <div className="max-w-xs w-full bg-card/70 h-full border-l border-border">
-                        <MemberSidebarList serverId={channel.serverId} />
+                        {/* If the channel was filtered out of our list (we got
+                            mod-moved into a private room we don't have access
+                            to), the channel-scoped members endpoint would
+                            403. Drop back to the server-wide roster instead. */}
+                        <MemberSidebarList
+                            serverId={channel.serverId}
+                            channelId={channelFilteredOut ? undefined : channelId}
+                        />
                     </div>
                 )}
             </div>

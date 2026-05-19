@@ -102,7 +102,13 @@ function Channel() {
                 </div>
                 {showMemberSidebar && (
                     <div className="max-w-xs w-full bg-card/70 h-full border-l border-border">
-                        <MemberSidebarList serverId={channel.serverId} />
+                        {/* Suppress the channel-scoped fetch if we've already
+                            lost VIEW_CHANNEL (race between the lock and the
+                            navigate-away effect). Backend would return 403. */}
+                        <MemberSidebarList
+                            serverId={channel.serverId}
+                            channelId={Array.isArray(serverChannels) && serverChannels.some(c => c.id === channel.id) ? channel.id : undefined}
+                        />
                     </div>
                 )}
             </div>
